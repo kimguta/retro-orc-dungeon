@@ -564,9 +564,9 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge) {
   const nx = -dy / len;
   const ny = dx / len;
   const palette = swordPalette();
-  const nearW = 34 + lunge * 15;
-  const midW = 23 + lunge * 6;
-  const farW = 8 + lunge * 3;
+  const nearW = 30 + lunge * 12;
+  const midW = 21 + lunge * 5;
+  const farW = 5 + lunge * 2;
   const hiltX = nearX - dx / len * 46;
   const hiltY = nearY - dy / len * 46;
 
@@ -583,8 +583,7 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge) {
   ctx.beginPath();
   ctx.moveTo(nearX + nx * midW, nearY + ny * midW);
   ctx.lineTo(nearX - nx * midW, nearY - ny * midW);
-  ctx.lineTo(farX - nx * farW, farY - ny * farW);
-  ctx.lineTo(farX + nx * farW, farY + ny * farW);
+  ctx.lineTo(farX + dx / len * 58, farY + dy / len * 58);
   ctx.closePath();
   ctx.fill();
 
@@ -593,15 +592,6 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge) {
   ctx.moveTo(nearX + nx * midW * 0.25, nearY + ny * midW * 0.25);
   ctx.lineTo(nearX + nx * midW * 0.02, nearY + ny * midW * 0.02);
   ctx.lineTo(farX + nx * farW * 0.1, farY + ny * farW * 0.1);
-  ctx.closePath();
-  ctx.fill();
-
-  const tip = 58 + lunge * 10;
-  ctx.fillStyle = palette.blade;
-  ctx.beginPath();
-  ctx.moveTo(farX + nx * farW * 1.25, farY + ny * farW * 1.25);
-  ctx.lineTo(farX - nx * farW * 1.25, farY - ny * farW * 1.25);
-  ctx.lineTo(farX + dx / len * tip, farY + dy / len * tip);
   ctx.closePath();
   ctx.fill();
 
@@ -643,19 +633,19 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge) {
 }
 
 function swordPalette() {
-  if (player.weaponLevel >= 7) {
-    return { blade: "#f4cf45", highlight: "#fff4aa", shadow: "#5d4516", guard: "#d19d2c", trail: "rgba(255, 221, 89, 0.45)" };
+  if (player.weaponLevel >= 5) {
+    return { blade: "#f1c232", highlight: "#fff0a6", shadow: "#5b4315", guard: "#c18a24", trail: "rgba(255, 220, 72, 0.45)" };
   }
-  if (player.weaponLevel >= 4) {
-    return { blade: "#d83b34", highlight: "#ffc0a8", shadow: "#4b1511", guard: "#9c2d25", trail: "rgba(255, 95, 76, 0.42)" };
+  if (player.weaponLevel >= 2) {
+    return { blade: "#c83b34", highlight: "#ffd0c0", shadow: "#4a1511", guard: "#91302a", trail: "rgba(255, 90, 70, 0.42)" };
   }
   return { blade: "#d8d8d2", highlight: "#ffffff", shadow: "#686860", guard: "#9a8b68", trail: "rgba(255, 255, 255, 0.34)" };
 }
 
 function swordName() {
-  if (player.weaponLevel >= 7) return "GOLD SWORD";
-  if (player.weaponLevel >= 4) return "RED SWORD";
-  return player.weaponLevel > 1 ? "WHITE SWORD +" : "WHITE SWORD";
+  if (player.weaponLevel >= 5) return "GOLD SWORD";
+  if (player.weaponLevel >= 2) return "RED SWORD";
+  return "WHITE SWORD";
 }
 
 function drawThrustHead(cx, tipY, s, jab) {
@@ -702,20 +692,20 @@ function drawHitSpark() {
 function drawHud() {
   drawMiniMap();
   drawCrosshair();
-  ctx.fillStyle = "rgba(8, 6, 5, 0.72)";
-  ctx.fillRect(0, H - 82, W, 82);
-  ctx.fillStyle = "rgba(255, 225, 140, 0.08)";
-  ctx.fillRect(0, H - 82, W, 3);
-  drawBar(28, H - 58, 282, 32, player.hp / 100, "#d42f2f", "#3f1212");
-  drawText(`HP ${player.hp}`, 43, H - 35, 23, "#fff1bd");
-  drawText(`KILLS ${kills}`, 354, H - 35, 25, "#fff1bd");
-  drawText(`STAGE ${stage}`, 548, H - 35, 20, "#d7c27b");
-  drawText(swordName(), W - 230, H - 35, 19, "#d7c27b");
+  ctx.fillStyle = "rgba(8, 6, 5, 0.58)";
+  ctx.fillRect(0, H - 54, W, 54);
+  ctx.fillStyle = "rgba(255, 225, 140, 0.1)";
+  ctx.fillRect(0, H - 54, W, 2);
+  drawBar(24, H - 38, 196, 20, player.hp / 100, "#d42f2f", "#3f1212");
+  drawText(`HP ${player.hp}`, 32, H - 22, 15, "#fff1bd");
+  drawText(`KILLS ${kills}`, 252, H - 22, 17, "#fff1bd");
+  drawText(`STAGE ${stage}/10`, 410, H - 22, 15, "#d7c27b");
+  drawText(swordName(), W - 184, H - 22, 15, "#d7c27b");
 
   const boss = enemies.find((e) => e.type === "boss" && !e.dead);
   if (boss) {
-    drawBar(W - 354, 30, 318, 28, boss.hp / boss.maxHp, "#b91818", "#2a0c0c");
-    drawText("ORC CHIEF", W - 342, 50, 18, "#ffe08a");
+    drawBar(W - 260, 26, 220, 18, boss.hp / boss.maxHp, "#b91818", "#2a0c0c");
+    drawText("ORC CHIEF", W - 252, 40, 13, "#ffe08a");
   }
 
   if (player.hurt > 0) {
@@ -725,19 +715,19 @@ function drawHud() {
 
   if (noticeTimer > 0) {
     ctx.textAlign = "center";
-    drawText(notice, W / 2, 92, 23, "#ffe39a");
+    drawText(notice, W / 2, 82, 18, "#ffe39a");
     ctx.textAlign = "left";
   }
 }
 
 function drawMiniMap() {
-  const cell = 8;
-  const x0 = 22;
-  const y0 = 22;
-  const pad = 8;
+  const cell = 5;
+  const x0 = 18;
+  const y0 = 18;
+  const pad = 5;
   const mw = map[0].length * cell;
   const mh = map.length * cell;
-  ctx.fillStyle = "rgba(5, 4, 3, 0.78)";
+  ctx.fillStyle = "rgba(5, 4, 3, 0.62)";
   ctx.fillRect(x0 - pad, y0 - pad, mw + pad * 2, mh + pad * 2);
   ctx.strokeStyle = "#d8bd76";
   ctx.strokeRect(x0 - pad, y0 - pad, mw + pad * 2, mh + pad * 2);
@@ -751,54 +741,54 @@ function drawMiniMap() {
 
   for (const item of items) {
     ctx.fillStyle = item.type === "health" ? "#e33b32" : "#e3c75b";
-    ctx.fillRect(x0 + item.x * cell - 2, y0 + item.y * cell - 2, 4, 4);
+    ctx.fillRect(x0 + item.x * cell - 1, y0 + item.y * cell - 1, 3, 3);
   }
 
   for (const e of enemies) {
     if (e.dead) continue;
     ctx.fillStyle = e.type === "boss" ? "#d33" : "#45ba58";
-    ctx.fillRect(x0 + e.x * cell - 2, y0 + e.y * cell - 2, e.type === "boss" ? 5 : 4, e.type === "boss" ? 5 : 4);
+    ctx.fillRect(x0 + e.x * cell - 1, y0 + e.y * cell - 1, e.type === "boss" ? 4 : 3, e.type === "boss" ? 4 : 3);
   }
 
   ctx.fillStyle = "#fff3b0";
   ctx.beginPath();
-  ctx.arc(x0 + player.x * cell, y0 + player.y * cell, 3, 0, Math.PI * 2);
+  ctx.arc(x0 + player.x * cell, y0 + player.y * cell, 2.4, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = "#fff3b0";
   ctx.beginPath();
   ctx.moveTo(x0 + player.x * cell, y0 + player.y * cell);
-  ctx.lineTo(x0 + player.x * cell + Math.cos(player.angle) * 9, y0 + player.y * cell + Math.sin(player.angle) * 9);
+  ctx.lineTo(x0 + player.x * cell + Math.cos(player.angle) * 6, y0 + player.y * cell + Math.sin(player.angle) * 6);
   ctx.stroke();
 }
 
 function drawCrosshair() {
   const cx = W / 2;
   const cy = H / 2;
-  ctx.strokeStyle = "rgba(255, 232, 160, 0.7)";
+  ctx.strokeStyle = "rgba(255, 232, 160, 0.62)";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(cx - 18, cy);
-  ctx.lineTo(cx - 7, cy);
-  ctx.moveTo(cx + 7, cy);
-  ctx.lineTo(cx + 18, cy);
-  ctx.moveTo(cx, cy - 18);
-  ctx.lineTo(cx, cy - 7);
-  ctx.moveTo(cx, cy + 7);
-  ctx.lineTo(cx, cy + 18);
+  ctx.moveTo(cx - 13, cy);
+  ctx.lineTo(cx - 5, cy);
+  ctx.moveTo(cx + 5, cy);
+  ctx.lineTo(cx + 13, cy);
+  ctx.moveTo(cx, cy - 13);
+  ctx.lineTo(cx, cy - 5);
+  ctx.moveTo(cx, cy + 5);
+  ctx.lineTo(cx, cy + 13);
   ctx.stroke();
   ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
   ctx.fillRect(cx - 2, cy - 2, 4, 4);
 }
 
 function drawBar(x, y, w, h, pct, fill, bg) {
-  ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-  ctx.fillRect(x - 5, y - 5, w + 10, h + 10);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.62)";
+  ctx.fillRect(x - 3, y - 3, w + 6, h + 6);
   ctx.fillStyle = bg;
   ctx.fillRect(x, y, w, h);
   ctx.fillStyle = fill;
-  ctx.fillRect(x + 4, y + 4, Math.max(0, (w - 8) * pct), h - 8);
+  ctx.fillRect(x + 3, y + 3, Math.max(0, (w - 6) * pct), h - 6);
   ctx.fillStyle = "rgba(255, 238, 177, 0.24)";
-  ctx.fillRect(x + 4, y + 4, Math.max(0, (w - 8) * pct), Math.max(2, Math.floor((h - 8) / 3)));
+  ctx.fillRect(x + 3, y + 3, Math.max(0, (w - 6) * pct), Math.max(2, Math.floor((h - 6) / 3)));
   ctx.strokeStyle = "#ffe39a";
   ctx.lineWidth = 2;
   ctx.strokeRect(x, y, w, h);
