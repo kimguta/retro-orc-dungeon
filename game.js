@@ -283,29 +283,53 @@ function drawOrc(e, x, y, size, dist) {
   const dark = e.type === "boss";
   const flash = e.hitFlash > 0;
   const skin = flash ? "#f6e9b8" : dark ? "#1d5f32" : "#2f9c45";
+  const skinLight = flash ? "#fff6cf" : dark ? "#3a8745" : "#5fc765";
   const shadow = dark ? "#0e2817" : "#145b28";
+  const deepShadow = dark ? "#07130b" : "#0a3317";
   const armor = dark ? "#181818" : "#262728";
+  const armorLight = dark ? "#3b3b3b" : "#46494a";
   const eye = dark ? "#e12621" : "#f0d447";
 
   ctx.globalAlpha = Math.max(0.35, 1 - dist / 16);
-  rect(x + 4 * px, y + 4 * px, 8 * px, 8 * px, skin);
-  rect(x + 2 * px, y + 6 * px, 3 * px, 3 * px, skin);
-  rect(x + 11 * px, y + 6 * px, 3 * px, 3 * px, skin);
-  rect(x + 4 * px, y + 10 * px, 8 * px, 2 * px, shadow);
-  rect(x + 6 * px, y + 7 * px, 2 * px, 1 * px, eye);
-  rect(x + 10 * px, y + 7 * px, 2 * px, 1 * px, eye);
-  rect(x + 7 * px, y + 11 * px, 1 * px, 2 * px, "#efe8ca");
-  rect(x + 10 * px, y + 11 * px, 1 * px, 2 * px, "#efe8ca");
-  rect(x + 4 * px, y + 13 * px, 8 * px, 8 * px, armor);
-  rect(x + 3 * px, y + 14 * px, 2 * px, 6 * px, dark ? "#2a2a2a" : "#35383a");
-  rect(x + 11 * px, y + 14 * px, 2 * px, 6 * px, dark ? "#2a2a2a" : "#35383a");
-  rect(x + 6 * px, y + 15 * px, 4 * px, 1 * px, "#766247");
+
+  rect(x + 5 * px, y + 4 * px, 7 * px, 1 * px, skinLight);
+  rect(x + 4 * px, y + 5 * px, 9 * px, 7 * px, skin);
+  rect(x + 5 * px, y + 11 * px, 7 * px, 2 * px, shadow);
+  rect(x + 3 * px, y + 7 * px, 3 * px, 2 * px, skin);
+  rect(x + 11 * px, y + 7 * px, 3 * px, 2 * px, skin);
+  rect(x + 2 * px, y + 8 * px, 2 * px, 1 * px, skinLight);
+  rect(x + 13 * px, y + 8 * px, 2 * px, 1 * px, skinLight);
+  rect(x + 4 * px, y + 6 * px, 9 * px, 1 * px, deepShadow);
+  rect(x + 6 * px, y + 8 * px, 2 * px, 1 * px, eye);
+  rect(x + 10 * px, y + 8 * px, 2 * px, 1 * px, eye);
+  rect(x + 8 * px, y + 9 * px, 2 * px, 2 * px, deepShadow);
+  rect(x + 6 * px, y + 11 * px, 6 * px, 1 * px, "#1b0c0a");
+  rect(x + 7 * px, y + 11 * px, 1 * px, 3 * px, "#efe8ca");
+  rect(x + 10 * px, y + 11 * px, 1 * px, 3 * px, "#efe8ca");
+
+  rect(x + 4 * px, y + 13 * px, 9 * px, 8 * px, armor);
+  rect(x + 5 * px, y + 13 * px, 6 * px, 1 * px, armorLight);
+  rect(x + 6 * px, y + 15 * px, 5 * px, 1 * px, "#806a49");
+  rect(x + 7 * px, y + 16 * px, 1 * px, 4 * px, "#141414");
+  rect(x + 2 * px, y + 14 * px, 3 * px, 3 * px, armorLight);
+  rect(x + 12 * px, y + 14 * px, 3 * px, 3 * px, armorLight);
+  rect(x + 2 * px, y + 17 * px, 2 * px, 5 * px, shadow);
+  rect(x + 13 * px, y + 17 * px, 2 * px, 5 * px, shadow);
+  rect(x + 5 * px, y + 21 * px, 3 * px, 3 * px, dark ? "#111" : "#1a1b1b");
+  rect(x + 10 * px, y + 21 * px, 3 * px, 3 * px, dark ? "#111" : "#1a1b1b");
+  rect(x + 4 * px, y + 24 * px, 4 * px, 1 * px, "#0b0b0b");
+  rect(x + 10 * px, y + 24 * px, 4 * px, 1 * px, "#0b0b0b");
+  rect(x + 12 * px, y + 5 * px, 1 * px, 8 * px, "rgba(0, 0, 0, 0.2)");
 
   if (dark) {
     rect(x + 3 * px, y + 1 * px, 2 * px, 5 * px, "#c7b98f");
-    rect(x + 11 * px, y + 1 * px, 2 * px, 5 * px, "#c7b98f");
-    rect(x + 2 * px, y + 12 * px, 4 * px, 3 * px, "#111");
-    rect(x + 10 * px, y + 12 * px, 4 * px, 3 * px, "#111");
+    rect(x + 12 * px, y + 1 * px, 2 * px, 5 * px, "#c7b98f");
+    rect(x + 3 * px, y + 1 * px, 1 * px, 2 * px, "#fff0bd");
+    rect(x + 13 * px, y + 1 * px, 1 * px, 2 * px, "#fff0bd");
+    rect(x + 1 * px, y + 12 * px, 5 * px, 4 * px, "#111");
+    rect(x + 11 * px, y + 12 * px, 5 * px, 4 * px, "#111");
+    rect(x + 4 * px, y + 14 * px, 9 * px, 1 * px, "#6f1414");
+    rect(x + 6 * px, y + 3 * px, 6 * px, 1 * px, "#111");
   }
 
   ctx.globalAlpha = 1;
@@ -317,27 +341,42 @@ function rect(x, y, w, h, color) {
 }
 
 function drawWeapon() {
-  const t = swing > 0 ? Math.sin((1 - swing) * Math.PI) : 0;
-  ctx.save();
-  ctx.translate(W * 0.57 + t * 115, H * 0.92 - t * 62);
-  ctx.rotate(-0.42 - t * 0.95);
-  ctx.fillStyle = "#4a2d18";
-  ctx.fillRect(-24, -165, 48, 180);
-  ctx.fillStyle = "#6b4322";
-  ctx.fillRect(-15, -158, 15, 165);
-  ctx.fillStyle = "#2c190e";
-  ctx.fillRect(-28, -172, 56, 24);
-  ctx.fillStyle = "#8b6238";
-  ctx.fillRect(-18, -166, 36, 12);
-  ctx.restore();
+  const progress = swing > 0 ? 1 - swing : 0;
+  const power = swing > 0 ? Math.sin(progress * Math.PI) : 0;
+  const pivotX = W * 0.66;
+  const pivotY = H * 1.08;
+  const angle = -0.2 + power * 1.25;
 
-  if (swing > 0.35) {
-    ctx.strokeStyle = "rgba(237, 211, 132, 0.35)";
-    ctx.lineWidth = 14;
+  if (power > 0.42) {
+    ctx.strokeStyle = "rgba(237, 211, 132, 0.28)";
+    ctx.lineWidth = 16;
     ctx.beginPath();
-    ctx.arc(W * 0.52, H * 0.68, 130, -0.2, 0.65);
+    ctx.arc(pivotX - 30, pivotY - 80, 190, -1.25, -0.18);
     ctx.stroke();
   }
+
+  ctx.save();
+  ctx.translate(pivotX, pivotY);
+  ctx.rotate(angle);
+
+  rect(-17, -175, 36, 165, "#513019");
+  rect(-12, -170, 12, 150, "#7a4a24");
+  rect(6, -166, 8, 136, "#2d190d");
+  rect(-20, -176, 42, 13, "#3b2313");
+  rect(-23, -158, 47, 16, "#65401f");
+  rect(-14, -139, 32, 12, "#4a2b17");
+  rect(-21, -111, 39, 10, "#5c361d");
+  rect(-11, -86, 29, 8, "#8b5b2f");
+  rect(-22, -55, 38, 9, "#442512");
+  rect(-13, -33, 30, 7, "#6b4220");
+  rect(-4, -166, 5, 136, "rgba(255, 218, 132, 0.18)");
+  rect(13, -151, 7, 11, "#1b0d07");
+  rect(-23, -126, 6, 9, "#2a150a");
+  rect(10, -96, 5, 5, "#d8c08a");
+  rect(-17, -72, 5, 5, "#d8c08a");
+  rect(-11, -15, 29, 34, "#3b2416");
+  rect(-8, -9, 22, 8, "#6e4a2d");
+  ctx.restore();
 }
 
 function drawHud() {
