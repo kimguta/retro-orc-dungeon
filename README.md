@@ -11,18 +11,21 @@ Controls:
 - `WASD`: move
 - `Left / Right Arrow`: rotate view
 - `Mouse`: rotate view after clicking the canvas
-- `Mouse click / Space`: swing the club
+- `Mouse click / Space`: thrust the pike
 - `Enter`: restart after game over or clear
 
 ## Game
 
-- Room 1: 2 regular orcs
-- Room 2: 3 regular orcs
-- Room 3: 1 orc chief
+- Room 1: safe start room
+- Room 2: regular orcs
+- Room 3: orc chief
 - Regular orcs have 2 HP
 - The orc chief has 8 HP
-- Only enemies directly in front of the player and at close range are hit by the club
+- Only enemies directly in front of the player and at close range are hit by the pike
 - Orcs chase the player and deal damage on contact
+- Regular orcs can drop health items
+- The orc chief drops a relic that advances to the next stage
+- A minimap shows walls, the player, enemies, and dropped items
 
 ## GitHub Pages
 
