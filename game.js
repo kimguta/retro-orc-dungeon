@@ -390,9 +390,16 @@ function drawWorld() {
     ctx.fillStyle = `rgb(${Math.floor(light * 0.65 * mortar)}, ${Math.floor(light * 0.42 * mortar)}, ${Math.floor(light * 0.28 * mortar)})`;
     ctx.fillRect(x, y, colW, wallH);
 
-    const brickY = y + (Math.floor(hit.y * 4) % 4) * (wallH / 14);
-    ctx.fillStyle = "rgba(255, 204, 120, 0.08)";
-    ctx.fillRect(x, brickY, colW, Math.max(1, wallH / 28));
+    const block = Math.max(10, wallH / 7);
+    const brickY = y + (Math.floor(hit.y * 5 + hit.x * 2) % 6) * block;
+    ctx.fillStyle = "rgba(255, 217, 145, 0.11)";
+    ctx.fillRect(x, brickY, colW, Math.max(1, wallH / 42));
+    ctx.fillStyle = "rgba(31, 18, 12, 0.18)";
+    ctx.fillRect(x, y, colW, Math.max(1, wallH / 36));
+    if (r % 10 === 0) {
+      ctx.fillStyle = "rgba(255, 226, 160, 0.07)";
+      ctx.fillRect(x, y + wallH * 0.1, colW, wallH * 0.72);
+    }
 
     ctx.fillStyle = `rgba(18, 12, 10, ${Math.min(0.34, fixedDist / 18)})`;
     ctx.fillRect(x, y, colW, wallH);
@@ -482,29 +489,31 @@ function drawOrc(e, x, y, size, dist) {
 
   ctx.globalAlpha = Math.max(0.35, 1 - dist / 16);
 
-  rect(x + 5 * px, y + 4 * px, 7 * px, 1 * px, skinLight);
-  rect(x + 4 * px, y + 5 * px, 9 * px, 7 * px, skin);
-  rect(x + 5 * px, y + 11 * px, 7 * px, 2 * px, shadow);
-  rect(x + 3 * px, y + 7 * px, 3 * px, 2 * px, skin);
-  rect(x + 11 * px, y + 7 * px, 3 * px, 2 * px, skin);
-  rect(x + 2 * px, y + 8 * px, 2 * px, 1 * px, skinLight);
-  rect(x + 13 * px, y + 8 * px, 2 * px, 1 * px, skinLight);
+  rect(x + 3 * px, y + 4 * px, 11 * px, 10 * px, deepShadow);
+  rect(x + 5 * px, y + 3 * px, 7 * px, 2 * px, skinLight);
+  rect(x + 4 * px, y + 5 * px, 9 * px, 8 * px, skin);
+  rect(x + 5 * px, y + 12 * px, 7 * px, 2 * px, shadow);
+  rect(x + 1 * px, y + 7 * px, 4 * px, 3 * px, skin);
+  rect(x + 12 * px, y + 7 * px, 4 * px, 3 * px, skin);
+  rect(x + 1 * px, y + 8 * px, 2 * px, 1 * px, skinLight);
+  rect(x + 14 * px, y + 8 * px, 2 * px, 1 * px, skinLight);
   rect(x + 4 * px, y + 6 * px, 9 * px, 1 * px, deepShadow);
-  rect(x + 6 * px, y + 8 * px, 2 * px, 1 * px, eye);
-  rect(x + 10 * px, y + 8 * px, 2 * px, 1 * px, eye);
+  rect(x + 5 * px, y + 8 * px, 3 * px, 1 * px, eye);
+  rect(x + 10 * px, y + 8 * px, 3 * px, 1 * px, eye);
   rect(x + 8 * px, y + 9 * px, 2 * px, 2 * px, deepShadow);
-  rect(x + 6 * px, y + 11 * px, 6 * px, 1 * px, "#1b0c0a");
-  rect(x + 7 * px, y + 11 * px, 1 * px, 3 * px, "#efe8ca");
-  rect(x + 10 * px, y + 11 * px, 1 * px, 3 * px, "#efe8ca");
+  rect(x + 5 * px, y + 11 * px, 7 * px, 2 * px, "#1b0c0a");
+  rect(x + 6 * px, y + 12 * px, 1 * px, 3 * px, "#efe8ca");
+  rect(x + 10 * px, y + 12 * px, 1 * px, 3 * px, "#efe8ca");
 
-  rect(x + 4 * px, y + 13 * px, 9 * px, 8 * px, armor);
-  rect(x + 5 * px, y + 13 * px, 6 * px, 1 * px, armorLight);
-  rect(x + 6 * px, y + 15 * px, 5 * px, 1 * px, "#806a49");
-  rect(x + 7 * px, y + 16 * px, 1 * px, 4 * px, "#141414");
-  rect(x + 2 * px, y + 14 * px, 3 * px, 3 * px, armorLight);
-  rect(x + 12 * px, y + 14 * px, 3 * px, 3 * px, armorLight);
-  rect(x + 2 * px, y + 17 * px, 2 * px, 5 * px, shadow);
-  rect(x + 13 * px, y + 17 * px, 2 * px, 5 * px, shadow);
+  rect(x + 3 * px, y + 13 * px, 11 * px, 9 * px, armor);
+  rect(x + 4 * px, y + 13 * px, 8 * px, 1 * px, armorLight);
+  rect(x + 5 * px, y + 16 * px, 7 * px, 1 * px, "#806a49");
+  rect(x + 7 * px, y + 17 * px, 1 * px, 5 * px, "#141414");
+  rect(x + 1 * px, y + 14 * px, 4 * px, 4 * px, armorLight);
+  rect(x + 12 * px, y + 14 * px, 4 * px, 4 * px, armorLight);
+  rect(x + 1 * px, y + 18 * px, 3 * px, 5 * px, shadow);
+  rect(x + 14 * px, y + 18 * px, 3 * px, 5 * px, shadow);
+  rect(x + 15 * px, y + 19 * px, 3 * px, 1 * px, "#8f7a50");
   rect(x + 5 * px, y + 21 * px, 3 * px, 3 * px, dark ? "#111" : "#1a1b1b");
   rect(x + 10 * px, y + 21 * px, 3 * px, 3 * px, dark ? "#111" : "#1a1b1b");
   rect(x + 4 * px, y + 24 * px, 4 * px, 1 * px, "#0b0b0b");
@@ -566,7 +575,8 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge) {
   const palette = swordPalette();
   const nearW = 30 + lunge * 12;
   const midW = 21 + lunge * 5;
-  const farW = 5 + lunge * 2;
+  const farW = 13 + lunge * 3;
+  const tipLen = 28 + lunge * 4;
   const hiltX = nearX - dx / len * 46;
   const hiltY = nearY - dy / len * 46;
 
@@ -583,7 +593,9 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge) {
   ctx.beginPath();
   ctx.moveTo(nearX + nx * midW, nearY + ny * midW);
   ctx.lineTo(nearX - nx * midW, nearY - ny * midW);
-  ctx.lineTo(farX + dx / len * 58, farY + dy / len * 58);
+  ctx.lineTo(farX - nx * farW, farY - ny * farW);
+  ctx.lineTo(farX + dx / len * tipLen, farY + dy / len * tipLen);
+  ctx.lineTo(farX + nx * farW, farY + ny * farW);
   ctx.closePath();
   ctx.fill();
 
@@ -591,7 +603,7 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge) {
   ctx.beginPath();
   ctx.moveTo(nearX + nx * midW * 0.25, nearY + ny * midW * 0.25);
   ctx.lineTo(nearX + nx * midW * 0.02, nearY + ny * midW * 0.02);
-  ctx.lineTo(farX + nx * farW * 0.1, farY + ny * farW * 0.1);
+  ctx.lineTo(farX + nx * farW * 0.18 + dx / len * 8, farY + ny * farW * 0.18 + dy / len * 8);
   ctx.closePath();
   ctx.fill();
 
