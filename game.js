@@ -56,6 +56,8 @@ let gameState = "play";
 let mouseActive = false;
 let messagePulse = 0;
 let started = false;
+let hitSpark = 0;
+let screenShake = 0;
 
 function enemy(type, x, y) {
   return {
@@ -144,6 +146,8 @@ function update(dt) {
   swing = Math.max(0, swing - dt * 3.4);
   swingCooldown = Math.max(0, swingCooldown - dt);
   player.hurt = Math.max(0, player.hurt - dt * 3);
+  hitSpark = Math.max(0, hitSpark - dt * 5);
+  screenShake = Math.max(0, screenShake - dt * 5);
 
   for (const e of enemies) {
     if (e.dead) continue;
@@ -194,6 +198,8 @@ function attack() {
   if (target) {
     target.hp -= 1;
     target.hitFlash = 1;
+    hitSpark = 1;
+    screenShake = 1;
     if (target.hp <= 0) {
       target.dead = true;
       kills += 1;
@@ -214,11 +220,17 @@ function hasLineOfSight(e) {
 }
 
 function draw() {
+  ctx.save();
+  if (screenShake > 0) {
+    const wobble = Math.sin(performance.now() * 0.08) * screenShake * 4;
+    ctx.translate(wobble, -wobble * 0.45);
+  }
   drawWorld();
   drawSprites();
   drawWeapon();
   drawHud();
   if (gameState !== "play") drawEndScreen();
+  ctx.restore();
 }
 
 function drawWorld() {
@@ -248,6 +260,10 @@ function drawWorld() {
     ctx.fillStyle = `rgb(${Math.floor(light * 0.65 * mortar)}, ${Math.floor(light * 0.42 * mortar)}, ${Math.floor(light * 0.28 * mortar)})`;
     ctx.fillRect(x, y, colW, wallH);
 
+    const brickY = y + (Math.floor(hit.y * 4) % 4) * (wallH / 14);
+    ctx.fillStyle = "rgba(255, 204, 120, 0.08)";
+    ctx.fillRect(x, brickY, colW, Math.max(1, wallH / 28));
+
     ctx.fillStyle = `rgba(18, 12, 10, ${Math.min(0.34, fixedDist / 18)})`;
     ctx.fillRect(x, y, colW, wallH);
 
@@ -255,6 +271,13 @@ function drawWorld() {
       ctx.fillStyle = "rgba(15, 9, 7, 0.28)";
       ctx.fillRect(x, y, 1, wallH);
     }
+  }
+
+  ctx.fillStyle = "rgba(255, 196, 94, 0.08)";
+  for (let i = 0; i < 9; i += 1) {
+    const tx = ((i * 137 + 53) % W);
+    const ty = HALF_H + ((i * 71 + 41) % (H - HALF_H));
+    ctx.fillRect(tx, ty, 2, 2);
   }
 }
 
@@ -340,56 +363,101 @@ function rect(x, y, w, h, color) {
   ctx.fillRect(Math.round(x), Math.round(y), Math.ceil(w), Math.ceil(h));
 }
 
+function tri(x1, y1, x2, y2, x3, y3, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(Math.round(x1), Math.round(y1));
+  ctx.lineTo(Math.round(x2), Math.round(y2));
+  ctx.lineTo(Math.round(x3), Math.round(y3));
+  ctx.closePath();
+  ctx.fill();
+}
+
 function drawWeapon() {
   const progress = swing > 0 ? 1 - swing : 0;
-  const sweep = swing > 0 ? Math.min(1, progress / 0.72) : 0;
-  const followThrough = swing > 0 && progress > 0.72 ? (progress - 0.72) / 0.28 : 0;
-  const hitPower = swing > 0 ? Math.sin(progress * Math.PI) : 0;
-  const pivotX = W * (swing > 0 ? 0.76 - sweep * 0.28 : 0.68);
-  const pivotY = H * 1.12;
-  const angle = swing > 0 ? -0.88 + sweep * 1.75 - followThrough * 0.22 : -0.34;
-  const scale = swing > 0 ? 1.62 + hitPower * 0.1 : 1.48;
+  const thrust = swing > 0 ? Math.sin(progress * Math.PI) : 0;
+  const recoil = swing > 0 && progress > 0.58 ? (progress - 0.58) / 0.42 : 0;
+  const baseX = W * 0.5;
+  const baseY = H * (1.35 - thrust * 0.42 + recoil * 0.08);
+  const scale = 1.3 + thrust * 0.48;
+  const sway = Math.sin(performance.now() * 0.006) * 2;
 
-  if (hitPower > 0.35) {
-    ctx.strokeStyle = "rgba(255, 226, 130, 0.34)";
-    ctx.lineWidth = 24;
+  if (thrust > 0.38) {
+    ctx.fillStyle = "rgba(255, 231, 142, 0.2)";
     ctx.beginPath();
-    ctx.arc(W * 0.52, H * 0.88, 270, -1.26, -0.06);
-    ctx.stroke();
+    ctx.moveTo(W * 0.5, H * 0.5);
+    ctx.lineTo(W * 0.43, H * 0.84);
+    ctx.lineTo(W * 0.57, H * 0.84);
+    ctx.closePath();
+    ctx.fill();
   }
 
   ctx.save();
-  ctx.translate(pivotX, pivotY);
-  ctx.rotate(angle);
+  ctx.translate(baseX + sway, baseY);
+  ctx.rotate((thrust - 0.4) * 0.035);
   ctx.scale(scale, scale);
 
-  rect(-24, -196, 48, 184, "#5a351b");
-  rect(-18, -190, 15, 166, "#8a5529");
-  rect(8, -184, 10, 150, "#29170b");
-  rect(-28, -201, 54, 16, "#382111");
-  rect(-32, -181, 62, 20, "#704621");
-  rect(-21, -157, 43, 13, "#4f2e17");
-  rect(-29, -126, 51, 12, "#68401f");
-  rect(-15, -98, 39, 10, "#9a6735");
-  rect(-30, -62, 49, 12, "#482713");
-  rect(-17, -36, 39, 9, "#7a4b25");
-  rect(-6, -188, 7, 153, "rgba(255, 225, 146, 0.22)");
-  rect(17, -172, 8, 13, "#190c06");
-  rect(-31, -144, 8, 11, "#261207");
-  rect(12, -112, 7, 7, "#e1c78b");
-  rect(-22, -80, 7, 7, "#e1c78b");
-  rect(-15, -18, 37, 40, "#3b2416");
-  rect(-11, -10, 29, 10, "#7b5434");
-  rect(-18, 8, 38, 14, "#21130c");
+  rect(-12, -224, 24, 260, "#54341d");
+  rect(-7, -218, 7, 246, "#98612e");
+  rect(7, -214, 5, 230, "#25150b");
+  rect(-17, -136, 34, 13, "#2b1a10");
+  rect(-20, -86, 40, 14, "#7c4d27");
+  rect(-15, -42, 31, 10, "#2f1d12");
+  rect(-16, 8, 33, 28, "#1f130d");
+
+  rect(-52, -235, 104, 16, "#272421");
+  rect(-41, -252, 14, 41, "#858077");
+  rect(-7, -263, 14, 52, "#a49b88");
+  rect(27, -252, 14, 41, "#858077");
+  tri(-50, -252, -34, -284, -19, -252, "#cfc6ad");
+  tri(-16, -263, 0, -303, 16, -263, "#ded4b7");
+  tri(19, -252, 34, -284, 50, -252, "#cfc6ad");
+  rect(-35, -247, 6, 28, "#5f5b54");
+  rect(29, -247, 6, 28, "#5f5b54");
+  rect(-2, -257, 5, 34, "#6f695e");
+  rect(-50, -228, 100, 8, "#111");
+
+  rect(-58, -219, 116, 13, "#6b4327");
+  rect(-46, -216, 22, 8, "#a66d39");
+  rect(-10, -216, 21, 8, "#a66d39");
+  rect(27, -216, 22, 8, "#a66d39");
+  rect(-37, -205, 9, 10, "#d4bb76");
+  rect(32, -205, 9, 10, "#d4bb76");
+  ctx.restore();
+
+  if (hitSpark > 0) drawHitSpark();
+}
+
+function drawHitSpark() {
+  const a = hitSpark;
+  const cx = W / 2;
+  const cy = H * 0.49;
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.strokeStyle = "#ffe78f";
+  ctx.lineWidth = 4;
+  for (let i = 0; i < 8; i += 1) {
+    const ang = (Math.PI * 2 * i) / 8;
+    const inner = 8 + (1 - a) * 8;
+    const outer = 38 + (1 - a) * 18;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(ang) * inner, cy + Math.sin(ang) * inner);
+    ctx.lineTo(cx + Math.cos(ang) * outer, cy + Math.sin(ang) * outer);
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
 function drawHud() {
+  drawCrosshair();
   ctx.fillStyle = "rgba(8, 6, 5, 0.72)";
   ctx.fillRect(0, H - 82, W, 82);
+  ctx.fillStyle = "rgba(255, 225, 140, 0.08)";
+  ctx.fillRect(0, H - 82, W, 3);
   drawBar(28, H - 58, 282, 32, player.hp / 100, "#d42f2f", "#3f1212");
   drawText(`HP ${player.hp}`, 43, H - 35, 23, "#fff1bd");
   drawText(`KILLS ${kills}/6`, 354, H - 35, 25, "#fff1bd");
+  drawText("RUST TRIDENT", W - 252, H - 35, 19, "#d7c27b");
 
   const boss = enemies.find((e) => e.type === "boss" && !e.dead);
   if (boss) {
@@ -401,6 +469,25 @@ function drawHud() {
     ctx.fillStyle = `rgba(155, 0, 0, ${player.hurt * 0.25})`;
     ctx.fillRect(0, 0, W, H);
   }
+}
+
+function drawCrosshair() {
+  const cx = W / 2;
+  const cy = H / 2;
+  ctx.strokeStyle = "rgba(255, 232, 160, 0.7)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx - 18, cy);
+  ctx.lineTo(cx - 7, cy);
+  ctx.moveTo(cx + 7, cy);
+  ctx.lineTo(cx + 18, cy);
+  ctx.moveTo(cx, cy - 18);
+  ctx.lineTo(cx, cy - 7);
+  ctx.moveTo(cx, cy + 7);
+  ctx.lineTo(cx, cy + 18);
+  ctx.stroke();
+  ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+  ctx.fillRect(cx - 2, cy - 2, 4, 4);
 }
 
 function drawBar(x, y, w, h, pct, fill, bg) {
