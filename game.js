@@ -72,6 +72,9 @@ function enemy(type, x, y) {
     damage: type === "boss" ? 18 + stageBonus * 4 : 10 + stageBonus * 2,
     attackTimer: 0,
     hitFlash: 0,
+    stun: 0,
+    knockX: 0,
+    knockY: 0,
     dead: false,
   };
 }
@@ -193,9 +196,16 @@ function update(dt) {
     if (e.dead) continue;
     e.hitFlash = Math.max(0, e.hitFlash - dt * 6);
     e.attackTimer = Math.max(0, e.attackTimer - dt);
+    e.stun = Math.max(0, e.stun - dt);
+    if (Math.abs(e.knockX) > 0.01 || Math.abs(e.knockY) > 0.01) {
+      moveActor(e, e.knockX * dt, e.knockY * dt, e.radius);
+      e.knockX *= Math.pow(0.04, dt);
+      e.knockY *= Math.pow(0.04, dt);
+    }
     if (!started) continue;
     if (e.type === "orc" && player.x < 9.5) continue;
     if (e.type === "boss" && player.y < 8.7) continue;
+    if (e.stun > 0) continue;
 
     const dx = player.x - e.x;
     const dy = player.y - e.y;
@@ -238,6 +248,11 @@ function attack() {
   if (target) {
     target.hp -= player.weaponLevel;
     target.hitFlash = 1;
+    const pushAngle = Math.atan2(target.y - player.y, target.x - player.x);
+    const pushPower = target.type === "boss" ? 2.2 : 4.0;
+    target.knockX = Math.cos(pushAngle) * pushPower;
+    target.knockY = Math.sin(pushAngle) * pushPower;
+    target.stun = target.type === "boss" ? 0.18 : 0.32;
     hitSpark = 1;
     screenShake = 1;
     if (target.hp <= 0) {
@@ -521,10 +536,11 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge) {
   const len = Math.hypot(dx, dy) || 1;
   const nx = -dy / len;
   const ny = dx / len;
-  const nearW = 40 + lunge * 22;
-  const farW = 15 + lunge * 4;
+  const upgraded = player.weaponLevel > 1;
+  const nearW = 32 + lunge * 18;
+  const farW = 12 + lunge * 4;
 
-  ctx.fillStyle = "#2b1a10";
+  ctx.fillStyle = upgraded ? "#32251a" : "#2b1a10";
   ctx.beginPath();
   ctx.moveTo(nearX + nx * nearW, nearY + ny * nearW);
   ctx.lineTo(nearX - nx * nearW, nearY - ny * nearW);
@@ -533,44 +549,53 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge) {
   ctx.closePath();
   ctx.fill();
 
-  ctx.fillStyle = "#9b6333";
+  ctx.fillStyle = upgraded ? "#b98544" : "#9b6333";
   ctx.beginPath();
-  ctx.moveTo(nearX + nx * nearW * 0.25, nearY + ny * nearW * 0.25);
-  ctx.lineTo(nearX - nx * nearW * 0.05, nearY - ny * nearW * 0.05);
-  ctx.lineTo(farX - nx * farW * 0.12, farY - ny * farW * 0.12);
-  ctx.lineTo(farX + nx * farW * 0.2, farY + ny * farW * 0.2);
+  ctx.moveTo(nearX + nx * nearW * 0.18, nearY + ny * nearW * 0.18);
+  ctx.lineTo(nearX - nx * nearW * 0.02, nearY - ny * nearW * 0.02);
+  ctx.lineTo(farX - nx * farW * 0.08, farY - ny * farW * 0.08);
+  ctx.lineTo(farX + nx * farW * 0.14, farY + ny * farW * 0.14);
   ctx.closePath();
   ctx.fill();
 
-  for (const t of [0.23, 0.52, 0.78]) {
+  for (const t of [0.36, 0.72]) {
     const cx = nearX + dx * t;
     const cy = nearY + dy * t;
-    const bandW = nearW * (1 - t) + farW * t + 7;
-    ctx.fillStyle = t === 0.52 ? "#d2ad69" : "#5b351d";
+    const bandW = nearW * (1 - t) + farW * t + 5;
+    ctx.fillStyle = upgraded ? "#d7c777" : "#5b351d";
     ctx.beginPath();
-    ctx.moveTo(cx + nx * bandW + dx / len * 8, cy + ny * bandW + dy / len * 8);
-    ctx.lineTo(cx - nx * bandW + dx / len * 8, cy - ny * bandW + dy / len * 8);
-    ctx.lineTo(cx - nx * bandW - dx / len * 8, cy - ny * bandW - dy / len * 8);
-    ctx.lineTo(cx + nx * bandW - dx / len * 8, cy + ny * bandW - dy / len * 8);
+    ctx.moveTo(cx + nx * bandW + dx / len * 7, cy + ny * bandW + dy / len * 7);
+    ctx.lineTo(cx - nx * bandW + dx / len * 7, cy - ny * bandW + dy / len * 7);
+    ctx.lineTo(cx - nx * bandW - dx / len * 7, cy - ny * bandW - dy / len * 7);
+    ctx.lineTo(cx + nx * bandW - dx / len * 7, cy + ny * bandW - dy / len * 7);
     ctx.closePath();
     ctx.fill();
   }
 
-  const capW = 34 + lunge * 10;
-  ctx.fillStyle = "#d2c4a1";
+  const capW = (upgraded ? 42 : 30) + lunge * 8;
+  ctx.fillStyle = upgraded ? "#9ed7e3" : "#d2c4a1";
   ctx.beginPath();
   ctx.moveTo(farX + nx * capW, farY + ny * capW);
   ctx.lineTo(farX - nx * capW, farY - ny * capW);
-  ctx.lineTo(farX + dx / len * (54 + lunge * 12), farY + dy / len * (54 + lunge * 12));
+  ctx.lineTo(farX + dx / len * (upgraded ? 70 : 52), farY + dy / len * (upgraded ? 70 : 52));
   ctx.closePath();
   ctx.fill();
-  ctx.fillStyle = "#fff2c6";
+  ctx.fillStyle = upgraded ? "#e8fbff" : "#fff2c6";
   ctx.beginPath();
-  ctx.moveTo(farX + nx * capW * 0.35, farY + ny * capW * 0.35);
-  ctx.lineTo(farX - nx * capW * 0.35, farY - ny * capW * 0.35);
-  ctx.lineTo(farX + dx / len * (40 + lunge * 10), farY + dy / len * (40 + lunge * 10));
+  ctx.moveTo(farX + nx * capW * 0.28, farY + ny * capW * 0.28);
+  ctx.lineTo(farX - nx * capW * 0.28, farY - ny * capW * 0.28);
+  ctx.lineTo(farX + dx / len * (upgraded ? 55 : 39), farY + dy / len * (upgraded ? 55 : 39));
   ctx.closePath();
   ctx.fill();
+  if (upgraded) {
+    ctx.strokeStyle = "rgba(140, 230, 255, 0.45)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(farX + nx * capW * 0.8, farY + ny * capW * 0.8);
+    ctx.lineTo(farX + dx / len * 74, farY + dy / len * 74);
+    ctx.lineTo(farX - nx * capW * 0.8, farY - ny * capW * 0.8);
+    ctx.stroke();
+  }
 
   ctx.fillStyle = "#20120b";
   ctx.beginPath();
