@@ -376,56 +376,75 @@ function tri(x1, y1, x2, y2, x3, y3, color) {
 function drawWeapon() {
   const progress = swing > 0 ? 1 - swing : 0;
   const thrust = swing > 0 ? Math.sin(progress * Math.PI) : 0;
-  const recoil = swing > 0 && progress > 0.58 ? (progress - 0.58) / 0.42 : 0;
   const baseX = W * 0.5;
-  const baseY = H * (1.35 - thrust * 0.42 + recoil * 0.08);
-  const scale = 1.3 + thrust * 0.48;
-  const sway = Math.sin(performance.now() * 0.006) * 2;
+  const baseY = H * 1.12;
+  const tipX = W * 0.5;
+  const tipY = H * 0.64;
+  const headScale = 0.82 + thrust * 1.18;
+  const gripW = 44 + thrust * 18;
+  const shaftTopW = 18 + thrust * 28;
+  const sway = swing > 0 ? 0 : Math.sin(performance.now() * 0.006) * 2;
 
   if (thrust > 0.38) {
-    ctx.fillStyle = "rgba(255, 231, 142, 0.2)";
+    ctx.fillStyle = `rgba(255, 231, 142, ${0.08 + thrust * 0.16})`;
     ctx.beginPath();
-    ctx.moveTo(W * 0.5, H * 0.5);
-    ctx.lineTo(W * 0.43, H * 0.84);
-    ctx.lineTo(W * 0.57, H * 0.84);
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(baseX - 86, H * 0.96);
+    ctx.lineTo(baseX + 86, H * 0.96);
     ctx.closePath();
     ctx.fill();
   }
 
-  ctx.save();
-  ctx.translate(baseX + sway, baseY);
-  ctx.rotate((thrust - 0.4) * 0.035);
-  ctx.scale(scale, scale);
-
-  rect(-12, -224, 24, 260, "#54341d");
-  rect(-7, -218, 7, 246, "#98612e");
-  rect(7, -214, 5, 230, "#25150b");
-  rect(-17, -136, 34, 13, "#2b1a10");
-  rect(-20, -86, 40, 14, "#7c4d27");
-  rect(-15, -42, 31, 10, "#2f1d12");
-  rect(-16, 8, 33, 28, "#1f130d");
-
-  rect(-52, -235, 104, 16, "#272421");
-  rect(-41, -252, 14, 41, "#858077");
-  rect(-7, -263, 14, 52, "#a49b88");
-  rect(27, -252, 14, 41, "#858077");
-  tri(-50, -252, -34, -284, -19, -252, "#cfc6ad");
-  tri(-16, -263, 0, -303, 16, -263, "#ded4b7");
-  tri(19, -252, 34, -284, 50, -252, "#cfc6ad");
-  rect(-35, -247, 6, 28, "#5f5b54");
-  rect(29, -247, 6, 28, "#5f5b54");
-  rect(-2, -257, 5, 34, "#6f695e");
-  rect(-50, -228, 100, 8, "#111");
-
-  rect(-58, -219, 116, 13, "#6b4327");
-  rect(-46, -216, 22, 8, "#a66d39");
-  rect(-10, -216, 21, 8, "#a66d39");
-  rect(27, -216, 22, 8, "#a66d39");
-  rect(-37, -205, 9, 10, "#d4bb76");
-  rect(32, -205, 9, 10, "#d4bb76");
-  ctx.restore();
+  drawShaft(baseX + sway, baseY, tipX, tipY + 120 * headScale, gripW, shaftTopW);
+  drawTridentHead(tipX, tipY, headScale);
 
   if (hitSpark > 0) drawHitSpark();
+}
+
+function drawShaft(baseX, baseY, topX, topY, baseW, topW) {
+  ctx.fillStyle = "#3a2415";
+  ctx.beginPath();
+  ctx.moveTo(baseX - baseW / 2, baseY);
+  ctx.lineTo(baseX + baseW / 2, baseY);
+  ctx.lineTo(topX + topW / 2, topY);
+  ctx.lineTo(topX - topW / 2, topY);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#8f5b2e";
+  ctx.beginPath();
+  ctx.moveTo(baseX - baseW * 0.16, baseY);
+  ctx.lineTo(baseX + baseW * 0.06, baseY);
+  ctx.lineTo(topX + topW * 0.12, topY);
+  ctx.lineTo(topX - topW * 0.12, topY);
+  ctx.closePath();
+  ctx.fill();
+
+  rect(baseX - baseW * 0.62, baseY - 64, baseW * 1.24, 34, "#2a180f");
+  rect(baseX - baseW * 0.5, baseY - 53, baseW, 12, "#704423");
+}
+
+function drawTridentHead(cx, tipY, s) {
+  const cy = tipY + 58 * s;
+  const barW = 116 * s;
+  rect(cx - barW / 2, cy + 22 * s, barW, 15 * s, "#1f1f1d");
+  rect(cx - barW / 2, cy + 35 * s, barW, 8 * s, "#050505");
+  rect(cx - 58 * s, cy + 43 * s, 116 * s, 18 * s, "#7c4d27");
+  rect(cx - 47 * s, cy + 47 * s, 24 * s, 10 * s, "#ae7440");
+  rect(cx - 12 * s, cy + 47 * s, 24 * s, 10 * s, "#ae7440");
+  rect(cx + 23 * s, cy + 47 * s, 24 * s, 10 * s, "#ae7440");
+
+  rect(cx - 39 * s, cy - 4 * s, 14 * s, 31 * s, "#858077");
+  rect(cx - 7 * s, cy - 12 * s, 14 * s, 39 * s, "#a49b88");
+  rect(cx + 25 * s, cy - 4 * s, 14 * s, 31 * s, "#858077");
+  tri(cx - 49 * s, cy - 4 * s, cx - 32 * s, tipY + 18 * s, cx - 17 * s, cy - 4 * s, "#cfc6ad");
+  tri(cx - 17 * s, cy - 12 * s, cx, tipY, cx + 17 * s, cy - 12 * s, "#ded4b7");
+  tri(cx + 17 * s, cy - 4 * s, cx + 32 * s, tipY + 18 * s, cx + 49 * s, cy - 4 * s, "#cfc6ad");
+  rect(cx - 33 * s, cy, 5 * s, 27 * s, "#5f5b54");
+  rect(cx + 28 * s, cy, 5 * s, 27 * s, "#5f5b54");
+  rect(cx - 2 * s, cy - 6 * s, 5 * s, 33 * s, "#6f695e");
+  rect(cx - 38 * s, cy + 63 * s, 9 * s, 18 * s, "#d4bb76");
+  rect(cx + 30 * s, cy + 63 * s, 9 * s, 18 * s, "#d4bb76");
 }
 
 function drawHitSpark() {
