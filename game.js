@@ -11,7 +11,7 @@ const TILE = 64;
 const TURN_SPEED = 2.35;
 const MOVE_SPEED = 3.15;
 
-const map = [
+const BASE_MAP = [
   "####################",
   "#........##........#",
   "#........##........#",
@@ -39,8 +39,9 @@ const player = {
   weaponLevel: 1,
 };
 
-const MAX_STAGE = 2;
+const MAX_STAGE = 10;
 let stage = 1;
+let map = buildMap(stage);
 let enemies = buildEnemies(stage);
 let items = [];
 
@@ -82,24 +83,23 @@ function enemy(type, x, y) {
 function buildEnemies(nextStage) {
   const previousStage = stage;
   stage = nextStage;
-  const layout = nextStage === 1
-    ? [
-        ["orc", 14.2, 2.0],
-        ["orc", 17.0, 2.5],
-        ["orc", 15.4, 5.9],
-        ["orc", 17.4, 5.5],
-        ["orc", 13.6, 6.0],
-        ["boss", 17.2, 11.4],
-      ]
-    : [
-        ["orc", 12.2, 2.1],
-        ["orc", 14.8, 2.6],
-        ["orc", 17.4, 2.1],
-        ["orc", 13.0, 5.8],
-        ["orc", 16.4, 5.9],
-        ["orc", 18.0, 4.6],
-        ["boss", 17.0, 11.1],
-      ];
+  const pool = [
+    ["orc", 14.2, 2.0],
+    ["orc", 17.0, 2.5],
+    ["orc", 15.4, 5.9],
+    ["orc", 17.4, 5.5],
+    ["orc", 13.6, 6.0],
+    ["orc", 12.2, 2.1],
+    ["orc", 14.8, 3.3],
+    ["orc", 18.0, 4.6],
+  ];
+  const count = Math.min(pool.length, 4 + Math.ceil(nextStage / 2));
+  const offset = (nextStage - 1) % pool.length;
+  const layout = [];
+  for (let i = 0; i < count; i += 1) {
+    layout.push(pool[(offset + i) % pool.length]);
+  }
+  layout.push(["boss", nextStage % 2 ? 17.2 : 16.4, 11.1]);
   const built = layout.map(([type, x, y]) => enemy(type, x, y));
   stage = previousStage;
   return built;
@@ -112,6 +112,32 @@ function spawnItem(type, x, y) {
     y,
     bob: Math.random() * Math.PI * 2,
   });
+}
+
+function buildMap(nextStage) {
+  const rows = BASE_MAP.map((row) => row.split(""));
+  const variants = [
+    [[12, 2], [12, 3], [16, 5], [3, 11], [4, 11]],
+    [[14, 2], [15, 2], [12, 5], [13, 5], [11, 11], [12, 11]],
+    [[17, 3], [17, 4], [11, 2], [6, 10], [6, 11], [14, 12]],
+    [[13, 3], [14, 4], [15, 5], [4, 12], [10, 10], [15, 10]],
+  ];
+  const chosen = variants[(nextStage - 1) % variants.length];
+  for (const [x, y] of chosen) {
+    if (nextStage === 1 && y < 7) continue;
+    if (rows[y] && rows[y][x] === ".") rows[y][x] = "#";
+  }
+  if (nextStage >= 4) {
+    for (const [x, y] of [[10, 3], [18, 6], [9, 10], [16, 12]]) {
+      if (rows[y] && rows[y][x] === ".") rows[y][x] = "#";
+    }
+  }
+  rows[4][9] = ".";
+  rows[7][8] = ".";
+  rows[8][8] = ".";
+  rows[7][15] = ".";
+  rows[8][15] = ".";
+  return rows.map((row) => row.join(""));
 }
 
 function isWall(x, y) {
@@ -303,9 +329,10 @@ function advanceStage() {
   swing = 0;
   swingCooldown = 0;
   started = false;
+  map = buildMap(stage);
   enemies = buildEnemies(stage);
   items = [];
-  notice = `STAGE ${stage} - PIKE UPGRADED`;
+  notice = `STAGE ${stage} - SWORD UPGRADED`;
   noticeTimer = 3;
 }
 
@@ -536,11 +563,14 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge) {
   const len = Math.hypot(dx, dy) || 1;
   const nx = -dy / len;
   const ny = dx / len;
-  const upgraded = player.weaponLevel > 1;
-  const nearW = 32 + lunge * 18;
-  const farW = 12 + lunge * 4;
+  const palette = swordPalette();
+  const nearW = 34 + lunge * 15;
+  const midW = 23 + lunge * 6;
+  const farW = 8 + lunge * 3;
+  const hiltX = nearX - dx / len * 46;
+  const hiltY = nearY - dy / len * 46;
 
-  ctx.fillStyle = upgraded ? "#32251a" : "#2b1a10";
+  ctx.fillStyle = palette.shadow;
   ctx.beginPath();
   ctx.moveTo(nearX + nx * nearW, nearY + ny * nearW);
   ctx.lineTo(nearX - nx * nearW, nearY - ny * nearW);
@@ -549,71 +579,83 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge) {
   ctx.closePath();
   ctx.fill();
 
-  ctx.fillStyle = upgraded ? "#b98544" : "#9b6333";
+  ctx.fillStyle = palette.blade;
   ctx.beginPath();
-  ctx.moveTo(nearX + nx * nearW * 0.18, nearY + ny * nearW * 0.18);
-  ctx.lineTo(nearX - nx * nearW * 0.02, nearY - ny * nearW * 0.02);
-  ctx.lineTo(farX - nx * farW * 0.08, farY - ny * farW * 0.08);
-  ctx.lineTo(farX + nx * farW * 0.14, farY + ny * farW * 0.14);
+  ctx.moveTo(nearX + nx * midW, nearY + ny * midW);
+  ctx.lineTo(nearX - nx * midW, nearY - ny * midW);
+  ctx.lineTo(farX - nx * farW, farY - ny * farW);
+  ctx.lineTo(farX + nx * farW, farY + ny * farW);
   ctx.closePath();
   ctx.fill();
 
-  for (const t of [0.36, 0.72]) {
-    const cx = nearX + dx * t;
-    const cy = nearY + dy * t;
-    const bandW = nearW * (1 - t) + farW * t + 5;
-    ctx.fillStyle = upgraded ? "#d7c777" : "#5b351d";
-    ctx.beginPath();
-    ctx.moveTo(cx + nx * bandW + dx / len * 7, cy + ny * bandW + dy / len * 7);
-    ctx.lineTo(cx - nx * bandW + dx / len * 7, cy - ny * bandW + dy / len * 7);
-    ctx.lineTo(cx - nx * bandW - dx / len * 7, cy - ny * bandW - dy / len * 7);
-    ctx.lineTo(cx + nx * bandW - dx / len * 7, cy + ny * bandW - dy / len * 7);
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  const capW = (upgraded ? 42 : 30) + lunge * 8;
-  ctx.fillStyle = upgraded ? "#9ed7e3" : "#d2c4a1";
+  ctx.fillStyle = palette.highlight;
   ctx.beginPath();
-  ctx.moveTo(farX + nx * capW, farY + ny * capW);
-  ctx.lineTo(farX - nx * capW, farY - ny * capW);
-  ctx.lineTo(farX + dx / len * (upgraded ? 70 : 52), farY + dy / len * (upgraded ? 70 : 52));
+  ctx.moveTo(nearX + nx * midW * 0.25, nearY + ny * midW * 0.25);
+  ctx.lineTo(nearX + nx * midW * 0.02, nearY + ny * midW * 0.02);
+  ctx.lineTo(farX + nx * farW * 0.1, farY + ny * farW * 0.1);
   ctx.closePath();
   ctx.fill();
-  ctx.fillStyle = upgraded ? "#e8fbff" : "#fff2c6";
+
+  const tip = 58 + lunge * 10;
+  ctx.fillStyle = palette.blade;
   ctx.beginPath();
-  ctx.moveTo(farX + nx * capW * 0.28, farY + ny * capW * 0.28);
-  ctx.lineTo(farX - nx * capW * 0.28, farY - ny * capW * 0.28);
-  ctx.lineTo(farX + dx / len * (upgraded ? 55 : 39), farY + dy / len * (upgraded ? 55 : 39));
+  ctx.moveTo(farX + nx * farW * 1.25, farY + ny * farW * 1.25);
+  ctx.lineTo(farX - nx * farW * 1.25, farY - ny * farW * 1.25);
+  ctx.lineTo(farX + dx / len * tip, farY + dy / len * tip);
   ctx.closePath();
   ctx.fill();
-  if (upgraded) {
-    ctx.strokeStyle = "rgba(140, 230, 255, 0.45)";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(farX + nx * capW * 0.8, farY + ny * capW * 0.8);
-    ctx.lineTo(farX + dx / len * 74, farY + dy / len * 74);
-    ctx.lineTo(farX - nx * capW * 0.8, farY - ny * capW * 0.8);
-    ctx.stroke();
-  }
 
-  ctx.fillStyle = "#20120b";
+  ctx.fillStyle = palette.guard;
   ctx.beginPath();
-  ctx.moveTo(nearX + nx * (nearW + 14), nearY + ny * (nearW + 14));
-  ctx.lineTo(nearX - nx * (nearW + 14), nearY - ny * (nearW + 14));
-  ctx.lineTo(nearX - dx / len * 58 - nx * nearW, nearY - dy / len * 58 - ny * nearW);
-  ctx.lineTo(nearX - dx / len * 58 + nx * nearW, nearY - dy / len * 58 + ny * nearW);
+  ctx.moveTo(nearX + nx * 66 + dx / len * 10, nearY + ny * 66 + dy / len * 10);
+  ctx.lineTo(nearX - nx * 66 + dx / len * 10, nearY - ny * 66 + dy / len * 10);
+  ctx.lineTo(nearX - nx * 54 - dx / len * 16, nearY - ny * 54 - dy / len * 16);
+  ctx.lineTo(nearX + nx * 54 - dx / len * 16, nearY + ny * 54 - dy / len * 16);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#2a160d";
+  ctx.beginPath();
+  ctx.moveTo(nearX + nx * 22, nearY + ny * 22);
+  ctx.lineTo(nearX - nx * 22, nearY - ny * 22);
+  ctx.lineTo(hiltX - nx * 16, hiltY - ny * 16);
+  ctx.lineTo(hiltX + nx * 16, hiltY + ny * 16);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#9b6333";
+  ctx.beginPath();
+  ctx.moveTo(hiltX + nx * 26 - dx / len * 4, hiltY + ny * 26 - dy / len * 4);
+  ctx.lineTo(hiltX - nx * 26 - dx / len * 4, hiltY - ny * 26 - dy / len * 4);
+  ctx.lineTo(hiltX - nx * 20 - dx / len * 28, hiltY - ny * 20 - dy / len * 28);
+  ctx.lineTo(hiltX + nx * 20 - dx / len * 28, hiltY + ny * 20 - dy / len * 28);
   ctx.closePath();
   ctx.fill();
 
   if (lunge > 0.42) {
-    ctx.strokeStyle = `rgba(255, 232, 158, ${0.36 * lunge})`;
+    ctx.strokeStyle = palette.trail;
     ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.moveTo(nearX - dx * 0.18, nearY - dy * 0.18);
     ctx.lineTo(farX, farY);
     ctx.stroke();
   }
+}
+
+function swordPalette() {
+  if (player.weaponLevel >= 7) {
+    return { blade: "#f4cf45", highlight: "#fff4aa", shadow: "#5d4516", guard: "#d19d2c", trail: "rgba(255, 221, 89, 0.45)" };
+  }
+  if (player.weaponLevel >= 4) {
+    return { blade: "#d83b34", highlight: "#ffc0a8", shadow: "#4b1511", guard: "#9c2d25", trail: "rgba(255, 95, 76, 0.42)" };
+  }
+  return { blade: "#d8d8d2", highlight: "#ffffff", shadow: "#686860", guard: "#9a8b68", trail: "rgba(255, 255, 255, 0.34)" };
+}
+
+function swordName() {
+  if (player.weaponLevel >= 7) return "GOLD SWORD";
+  if (player.weaponLevel >= 4) return "RED SWORD";
+  return player.weaponLevel > 1 ? "WHITE SWORD +" : "WHITE SWORD";
 }
 
 function drawThrustHead(cx, tipY, s, jab) {
@@ -666,9 +708,9 @@ function drawHud() {
   ctx.fillRect(0, H - 82, W, 3);
   drawBar(28, H - 58, 282, 32, player.hp / 100, "#d42f2f", "#3f1212");
   drawText(`HP ${player.hp}`, 43, H - 35, 23, "#fff1bd");
-  drawText(`KILLS ${kills}/${stage === 1 ? 6 : 13}`, 354, H - 35, 25, "#fff1bd");
+  drawText(`KILLS ${kills}`, 354, H - 35, 25, "#fff1bd");
   drawText(`STAGE ${stage}`, 548, H - 35, 20, "#d7c27b");
-  drawText(player.weaponLevel > 1 ? "IRON PIKE +" : "IRON PIKE", W - 232, H - 35, 19, "#d7c27b");
+  drawText(swordName(), W - 230, H - 35, 19, "#d7c27b");
 
   const boss = enemies.find((e) => e.type === "boss" && !e.dead);
   if (boss) {
@@ -798,6 +840,7 @@ function resetGame() {
   gameState = "play";
   started = false;
   items = [];
+  map = buildMap(stage);
   enemies = buildEnemies(stage);
   notice = "STAGE 1";
   noticeTimer = 2.4;
