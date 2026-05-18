@@ -35,16 +35,14 @@ const player = {
   angle: 0,
   hp: 100,
   hurt: 0,
+  maxHp: 100,
+  weaponLevel: 1,
 };
 
-const enemies = [
-  enemy("orc", 14.2, 2.0),
-  enemy("orc", 17.0, 2.5),
-  enemy("orc", 15.4, 5.9),
-  enemy("orc", 17.4, 5.5),
-  enemy("orc", 13.6, 6.0),
-  enemy("boss", 17.2, 11.4),
-];
+const MAX_STAGE = 2;
+let stage = 1;
+let enemies = buildEnemies(stage);
+let items = [];
 
 const keys = new Set();
 const depths = new Array(RAYS).fill(MAX_DEPTH);
@@ -58,21 +56,59 @@ let messagePulse = 0;
 let started = false;
 let hitSpark = 0;
 let screenShake = 0;
+let notice = "STAGE 1";
+let noticeTimer = 2.4;
 
 function enemy(type, x, y) {
+  const stageBonus = stage - 1;
   return {
     type,
     x,
     y,
-    hp: type === "boss" ? 8 : 2,
-    maxHp: type === "boss" ? 8 : 2,
+    hp: type === "boss" ? 8 + stageBonus * 4 : 2 + stageBonus,
+    maxHp: type === "boss" ? 8 + stageBonus * 4 : 2 + stageBonus,
     radius: type === "boss" ? 0.42 : 0.32,
-    speed: type === "boss" ? 0.88 : 1.12,
-    damage: type === "boss" ? 18 : 10,
+    speed: type === "boss" ? 0.88 + stageBonus * 0.08 : 1.12 + stageBonus * 0.1,
+    damage: type === "boss" ? 18 + stageBonus * 4 : 10 + stageBonus * 2,
     attackTimer: 0,
     hitFlash: 0,
     dead: false,
   };
+}
+
+function buildEnemies(nextStage) {
+  const previousStage = stage;
+  stage = nextStage;
+  const layout = nextStage === 1
+    ? [
+        ["orc", 14.2, 2.0],
+        ["orc", 17.0, 2.5],
+        ["orc", 15.4, 5.9],
+        ["orc", 17.4, 5.5],
+        ["orc", 13.6, 6.0],
+        ["boss", 17.2, 11.4],
+      ]
+    : [
+        ["orc", 12.2, 2.1],
+        ["orc", 14.8, 2.6],
+        ["orc", 17.4, 2.1],
+        ["orc", 13.0, 5.8],
+        ["orc", 16.4, 5.9],
+        ["orc", 18.0, 4.6],
+        ["boss", 17.0, 11.1],
+      ];
+  const built = layout.map(([type, x, y]) => enemy(type, x, y));
+  stage = previousStage;
+  return built;
+}
+
+function spawnItem(type, x, y) {
+  items.push({
+    type,
+    x,
+    y,
+    bob: Math.random() * Math.PI * 2,
+  });
 }
 
 function isWall(x, y) {
@@ -148,6 +184,10 @@ function update(dt) {
   player.hurt = Math.max(0, player.hurt - dt * 3);
   hitSpark = Math.max(0, hitSpark - dt * 5);
   screenShake = Math.max(0, screenShake - dt * 5);
+  noticeTimer = Math.max(0, noticeTimer - dt);
+  for (const item of items) {
+    item.bob += dt * 4;
+  }
 
   for (const e of enemies) {
     if (e.dead) continue;
@@ -171,9 +211,7 @@ function update(dt) {
     }
   }
 
-  if (enemies.every((e) => e.dead)) {
-    gameState = "clear";
-  }
+  collectItems();
 }
 
 function attack() {
@@ -198,15 +236,62 @@ function attack() {
   }
 
   if (target) {
-    target.hp -= 1;
+    target.hp -= player.weaponLevel;
     target.hitFlash = 1;
     hitSpark = 1;
     screenShake = 1;
     if (target.hp <= 0) {
       target.dead = true;
       kills += 1;
+      if (target.type === "boss") {
+        spawnItem("relic", target.x, target.y);
+        notice = stage < MAX_STAGE ? "BOSS DROPPED A GATE RELIC" : "BOSS DROPPED THE CHIEF TOKEN";
+        noticeTimer = 3;
+      } else if (Math.random() < 0.45) {
+        spawnItem("health", target.x, target.y);
+      }
     }
   }
+}
+
+function collectItems() {
+  for (let i = items.length - 1; i >= 0; i -= 1) {
+    const item = items[i];
+    const dist = Math.hypot(item.x - player.x, item.y - player.y);
+    if (dist > 0.58) continue;
+    if (item.type === "health") {
+      player.hp = Math.min(player.maxHp, player.hp + 28);
+      notice = "HEALTH RESTORED";
+      noticeTimer = 1.6;
+      items.splice(i, 1);
+    } else if (item.type === "relic") {
+      items.splice(i, 1);
+      if (stage < MAX_STAGE) {
+        advanceStage();
+      } else {
+        player.weaponLevel += 1;
+        notice = "CHIEF TOKEN CLAIMED";
+        noticeTimer = 2;
+        gameState = "clear";
+      }
+    }
+  }
+}
+
+function advanceStage() {
+  stage += 1;
+  player.x = 4.5;
+  player.y = 4.5;
+  player.angle = 0;
+  player.hp = Math.min(player.maxHp, player.hp + 45);
+  player.weaponLevel += 1;
+  swing = 0;
+  swingCooldown = 0;
+  started = false;
+  enemies = buildEnemies(stage);
+  items = [];
+  notice = `STAGE ${stage} - PIKE UPGRADED`;
+  noticeTimer = 3;
 }
 
 function hasLineOfSight(e) {
@@ -229,6 +314,7 @@ function draw() {
   }
   drawWorld();
   drawSprites();
+  drawItems();
   drawWeapon();
   drawHud();
   if (gameState !== "play") drawEndScreen();
@@ -300,6 +386,43 @@ function drawSprites() {
     const depthIndex = Math.floor((screenX / W) * RAYS);
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < s.dist - 0.2) continue;
     drawOrc(s.e, screenX - size / 2, HALF_H - size * 0.55, size, s.dist);
+  }
+}
+
+function drawItems() {
+  const visible = items
+    .map((item) => {
+      const dx = item.x - player.x;
+      const dy = item.y - player.y;
+      return { item, dist: Math.hypot(dx, dy), angle: normAngle(Math.atan2(dy, dx) - player.angle) };
+    })
+    .filter((s) => Math.abs(s.angle) < FOV * 0.72 && hasLineOfSight(s.item))
+    .sort((a, b) => b.dist - a.dist);
+
+  for (const s of visible) {
+    const screenX = W / 2 + Math.tan(s.angle) * (W / FOV);
+    const size = Math.min(96, (H / s.dist) * 0.28);
+    const depthIndex = Math.floor((screenX / W) * RAYS);
+    if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < s.dist - 0.2) continue;
+    const y = HALF_H + H / Math.max(1, s.dist) * 0.24 - size + Math.sin(s.item.bob) * 5;
+    drawItemSprite(s.item, screenX - size / 2, y, size);
+  }
+}
+
+function drawItemSprite(item, x, y, size) {
+  const px = Math.max(2, Math.floor(size / 10));
+  if (item.type === "health") {
+    rect(x + 2 * px, y + 1 * px, 6 * px, 8 * px, "#2b1010");
+    rect(x + 3 * px, y + 2 * px, 4 * px, 6 * px, "#c9332b");
+    rect(x + 4 * px, y + 3 * px, 2 * px, 4 * px, "#fff0bf");
+    rect(x + 3 * px, y + 4 * px, 4 * px, 2 * px, "#fff0bf");
+    rect(x + 2 * px, y + 8 * px, 6 * px, 1 * px, "#0b0504");
+  } else {
+    rect(x + 2 * px, y + 2 * px, 6 * px, 6 * px, "#21160f");
+    rect(x + 3 * px, y + 1 * px, 4 * px, 8 * px, "#d0ae52");
+    rect(x + 4 * px, y + 2 * px, 2 * px, 6 * px, "#fff0a8");
+    rect(x + 1 * px, y + 4 * px, 8 * px, 2 * px, "#8b1f1f");
+    rect(x + 2 * px, y + 8 * px, 6 * px, 1 * px, "#0b0504");
   }
 }
 
@@ -419,12 +542,33 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge) {
   ctx.closePath();
   ctx.fill();
 
+  for (const t of [0.23, 0.52, 0.78]) {
+    const cx = nearX + dx * t;
+    const cy = nearY + dy * t;
+    const bandW = nearW * (1 - t) + farW * t + 7;
+    ctx.fillStyle = t === 0.52 ? "#d2ad69" : "#5b351d";
+    ctx.beginPath();
+    ctx.moveTo(cx + nx * bandW + dx / len * 8, cy + ny * bandW + dy / len * 8);
+    ctx.lineTo(cx - nx * bandW + dx / len * 8, cy - ny * bandW + dy / len * 8);
+    ctx.lineTo(cx - nx * bandW - dx / len * 8, cy - ny * bandW - dy / len * 8);
+    ctx.lineTo(cx + nx * bandW - dx / len * 8, cy + ny * bandW - dy / len * 8);
+    ctx.closePath();
+    ctx.fill();
+  }
+
   const capW = 34 + lunge * 10;
   ctx.fillStyle = "#d2c4a1";
   ctx.beginPath();
   ctx.moveTo(farX + nx * capW, farY + ny * capW);
   ctx.lineTo(farX - nx * capW, farY - ny * capW);
   ctx.lineTo(farX + dx / len * (54 + lunge * 12), farY + dy / len * (54 + lunge * 12));
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "#fff2c6";
+  ctx.beginPath();
+  ctx.moveTo(farX + nx * capW * 0.35, farY + ny * capW * 0.35);
+  ctx.lineTo(farX - nx * capW * 0.35, farY - ny * capW * 0.35);
+  ctx.lineTo(farX + dx / len * (40 + lunge * 10), farY + dy / len * (40 + lunge * 10));
   ctx.closePath();
   ctx.fill();
 
@@ -489,6 +633,7 @@ function drawHitSpark() {
 }
 
 function drawHud() {
+  drawMiniMap();
   drawCrosshair();
   ctx.fillStyle = "rgba(8, 6, 5, 0.72)";
   ctx.fillRect(0, H - 82, W, 82);
@@ -496,8 +641,9 @@ function drawHud() {
   ctx.fillRect(0, H - 82, W, 3);
   drawBar(28, H - 58, 282, 32, player.hp / 100, "#d42f2f", "#3f1212");
   drawText(`HP ${player.hp}`, 43, H - 35, 23, "#fff1bd");
-  drawText(`KILLS ${kills}/6`, 354, H - 35, 25, "#fff1bd");
-  drawText("IRON PIKE", W - 210, H - 35, 19, "#d7c27b");
+  drawText(`KILLS ${kills}/${stage === 1 ? 6 : 13}`, 354, H - 35, 25, "#fff1bd");
+  drawText(`STAGE ${stage}`, 548, H - 35, 20, "#d7c27b");
+  drawText(player.weaponLevel > 1 ? "IRON PIKE +" : "IRON PIKE", W - 232, H - 35, 19, "#d7c27b");
 
   const boss = enemies.find((e) => e.type === "boss" && !e.dead);
   if (boss) {
@@ -509,6 +655,53 @@ function drawHud() {
     ctx.fillStyle = `rgba(155, 0, 0, ${player.hurt * 0.25})`;
     ctx.fillRect(0, 0, W, H);
   }
+
+  if (noticeTimer > 0) {
+    ctx.textAlign = "center";
+    drawText(notice, W / 2, 92, 23, "#ffe39a");
+    ctx.textAlign = "left";
+  }
+}
+
+function drawMiniMap() {
+  const cell = 8;
+  const x0 = 22;
+  const y0 = 22;
+  const pad = 8;
+  const mw = map[0].length * cell;
+  const mh = map.length * cell;
+  ctx.fillStyle = "rgba(5, 4, 3, 0.78)";
+  ctx.fillRect(x0 - pad, y0 - pad, mw + pad * 2, mh + pad * 2);
+  ctx.strokeStyle = "#d8bd76";
+  ctx.strokeRect(x0 - pad, y0 - pad, mw + pad * 2, mh + pad * 2);
+
+  for (let y = 0; y < map.length; y += 1) {
+    for (let x = 0; x < map[y].length; x += 1) {
+      ctx.fillStyle = map[y][x] === "#" ? "#6a4427" : "#181410";
+      ctx.fillRect(x0 + x * cell, y0 + y * cell, cell - 1, cell - 1);
+    }
+  }
+
+  for (const item of items) {
+    ctx.fillStyle = item.type === "health" ? "#e33b32" : "#e3c75b";
+    ctx.fillRect(x0 + item.x * cell - 2, y0 + item.y * cell - 2, 4, 4);
+  }
+
+  for (const e of enemies) {
+    if (e.dead) continue;
+    ctx.fillStyle = e.type === "boss" ? "#d33" : "#45ba58";
+    ctx.fillRect(x0 + e.x * cell - 2, y0 + e.y * cell - 2, e.type === "boss" ? 5 : 4, e.type === "boss" ? 5 : 4);
+  }
+
+  ctx.fillStyle = "#fff3b0";
+  ctx.beginPath();
+  ctx.arc(x0 + player.x * cell, y0 + player.y * cell, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#fff3b0";
+  ctx.beginPath();
+  ctx.moveTo(x0 + player.x * cell, y0 + player.y * cell);
+  ctx.lineTo(x0 + player.x * cell + Math.cos(player.angle) * 9, y0 + player.y * cell + Math.sin(player.angle) * 9);
+  ctx.stroke();
 }
 
 function drawCrosshair() {
@@ -567,25 +760,22 @@ function drawEndScreen() {
 }
 
 function resetGame() {
+  stage = 1;
   player.x = 4.5;
   player.y = 4.5;
   player.angle = 0;
   player.hp = 100;
   player.hurt = 0;
+  player.weaponLevel = 1;
   kills = 0;
   swing = 0;
   swingCooldown = 0;
   gameState = "play";
   started = false;
-  const fresh = [
-    ["orc", 14.2, 2.0],
-    ["orc", 17.0, 2.5],
-    ["orc", 15.4, 5.9],
-    ["orc", 17.4, 5.5],
-    ["orc", 13.6, 6.0],
-    ["boss", 17.2, 11.4],
-  ];
-  enemies.splice(0, enemies.length, ...fresh.map(([type, x, y]) => enemy(type, x, y)));
+  items = [];
+  enemies = buildEnemies(stage);
+  notice = "STAGE 1";
+  noticeTimer = 2.4;
 }
 
 function frame(now) {
