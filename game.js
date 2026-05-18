@@ -76,6 +76,9 @@ function enemy(type, x, y) {
     stun: 0,
     knockX: 0,
     knockY: 0,
+    step: Math.random() * Math.PI * 2,
+    moving: false,
+    attackPose: 0,
     dead: false,
   };
 }
@@ -220,8 +223,10 @@ function update(dt) {
 
   for (const e of enemies) {
     if (e.dead) continue;
+    e.moving = false;
     e.hitFlash = Math.max(0, e.hitFlash - dt * 6);
     e.attackTimer = Math.max(0, e.attackTimer - dt);
+    e.attackPose = Math.max(0, e.attackPose - dt * 5);
     e.stun = Math.max(0, e.stun - dt);
     if (Math.abs(e.knockX) > 0.01 || Math.abs(e.knockY) > 0.01) {
       moveActor(e, e.knockX * dt, e.knockY * dt, e.radius);
@@ -239,9 +244,12 @@ function update(dt) {
     if (dist > 0.65) {
       const speed = e.speed * dt;
       moveActor(e, (dx / dist) * speed, (dy / dist) * speed, e.radius);
+      e.step += dt * (e.type === "boss" ? 7 : 9);
+      e.moving = true;
     } else if (e.attackTimer <= 0) {
       player.hp = Math.max(0, player.hp - e.damage);
       player.hurt = 1;
+      e.attackPose = 1;
       e.attackTimer = e.type === "boss" ? 1.05 : 0.82;
       if (player.hp <= 0) gameState = "over";
     }
@@ -479,6 +487,12 @@ function drawOrc(e, x, y, size, dist) {
   const px = Math.max(2, Math.floor(size / 16));
   const dark = e.type === "boss";
   const flash = e.hitFlash > 0;
+  const walk = e.moving ? Math.sin(e.step) : 0;
+  const bob = e.moving ? Math.abs(Math.sin(e.step)) * px : 0;
+  const attack = e.attackPose;
+  const hurt = e.hitFlash > 0.1;
+  y += bob - attack * 3 * px;
+  x += walk * px * 0.35;
   const skin = flash ? "#f6e9b8" : dark ? "#1d5f32" : "#2f9c45";
   const skinLight = flash ? "#fff6cf" : dark ? "#3a8745" : "#5fc765";
   const shadow = dark ? "#0e2817" : "#145b28";
@@ -498,10 +512,21 @@ function drawOrc(e, x, y, size, dist) {
   rect(x + 1 * px, y + 8 * px, 2 * px, 1 * px, skinLight);
   rect(x + 14 * px, y + 8 * px, 2 * px, 1 * px, skinLight);
   rect(x + 4 * px, y + 6 * px, 9 * px, 1 * px, deepShadow);
-  rect(x + 5 * px, y + 8 * px, 3 * px, 1 * px, eye);
-  rect(x + 10 * px, y + 8 * px, 3 * px, 1 * px, eye);
+  if (hurt) {
+    rect(x + 5 * px, y + 8 * px, 3 * px, 1 * px, "#1b0c0a");
+    rect(x + 10 * px, y + 8 * px, 3 * px, 1 * px, "#1b0c0a");
+    rect(x + 5 * px, y + 7 * px, 3 * px, 1 * px, eye);
+    rect(x + 10 * px, y + 7 * px, 3 * px, 1 * px, eye);
+  } else if (attack > 0) {
+    rect(x + 5 * px, y + 8 * px, 3 * px, 2 * px, eye);
+    rect(x + 10 * px, y + 8 * px, 3 * px, 2 * px, eye);
+  } else {
+    rect(x + 5 * px, y + 8 * px, 3 * px, 1 * px, eye);
+    rect(x + 10 * px, y + 8 * px, 3 * px, 1 * px, eye);
+  }
   rect(x + 8 * px, y + 9 * px, 2 * px, 2 * px, deepShadow);
-  rect(x + 5 * px, y + 11 * px, 7 * px, 2 * px, "#1b0c0a");
+  rect(x + 5 * px, y + 11 * px, 7 * px, hurt ? 1 * px : 2 * px, "#1b0c0a");
+  if (hurt) rect(x + 7 * px, y + 12 * px, 4 * px, 1 * px, "#1b0c0a");
   rect(x + 6 * px, y + 12 * px, 1 * px, 3 * px, "#efe8ca");
   rect(x + 10 * px, y + 12 * px, 1 * px, 3 * px, "#efe8ca");
 
@@ -509,13 +534,17 @@ function drawOrc(e, x, y, size, dist) {
   rect(x + 4 * px, y + 13 * px, 8 * px, 1 * px, armorLight);
   rect(x + 5 * px, y + 16 * px, 7 * px, 1 * px, "#806a49");
   rect(x + 7 * px, y + 17 * px, 1 * px, 5 * px, "#141414");
-  rect(x + 1 * px, y + 14 * px, 4 * px, 4 * px, armorLight);
-  rect(x + 12 * px, y + 14 * px, 4 * px, 4 * px, armorLight);
-  rect(x + 1 * px, y + 18 * px, 3 * px, 5 * px, shadow);
-  rect(x + 14 * px, y + 18 * px, 3 * px, 5 * px, shadow);
-  rect(x + 15 * px, y + 19 * px, 3 * px, 1 * px, "#8f7a50");
-  rect(x + 5 * px, y + 21 * px, 3 * px, 3 * px, dark ? "#111" : "#1a1b1b");
-  rect(x + 10 * px, y + 21 * px, 3 * px, 3 * px, dark ? "#111" : "#1a1b1b");
+  const armSwing = walk > 0 ? 1 : -1;
+  const leftArmY = y + (attack > 0 ? 16 * px : (14 + armSwing) * px);
+  const rightArmY = y + (attack > 0 ? 13 * px : (14 - armSwing) * px);
+  rect(x + 1 * px, leftArmY, 4 * px, 4 * px, armorLight);
+  rect(x + 12 * px, rightArmY, 4 * px, 4 * px, armorLight);
+  rect(x + 1 * px, leftArmY + 4 * px, 3 * px, 5 * px, shadow);
+  rect(x + 14 * px, rightArmY + 4 * px, 3 * px, 5 * px, shadow);
+  rect(x + 15 * px, rightArmY + 5 * px, 3 * px, 1 * px, "#8f7a50");
+  const legA = walk > 0 ? 1 : 0;
+  rect(x + (5 - legA) * px, y + 21 * px, 3 * px, 3 * px, dark ? "#111" : "#1a1b1b");
+  rect(x + (10 + legA) * px, y + 21 * px, 3 * px, 3 * px, dark ? "#111" : "#1a1b1b");
   rect(x + 4 * px, y + 24 * px, 4 * px, 1 * px, "#0b0b0b");
   rect(x + 10 * px, y + 24 * px, 4 * px, 1 * px, "#0b0b0b");
   rect(x + 12 * px, y + 5 * px, 1 * px, 8 * px, "rgba(0, 0, 0, 0.2)");
