@@ -11,7 +11,7 @@ Controls:
 - `WASD`: move
 - `Left / Right Arrow`: rotate view
 - `Mouse`: rotate view after clicking the canvas
-- `Mouse click / Space`: thrust the pike
+- `Mouse click / Space`: attack with the sword
 - `Enter`: restart after game over or clear
 
 ## Game
@@ -19,12 +19,15 @@ Controls:
 - Room 1: safe start room
 - Room 2: regular orcs
 - Room 3: orc chief
+- The game has 10 stages
+- The map layout changes as stages advance
 - Regular orcs have 2 HP
 - The orc chief has 8 HP
-- Only enemies directly in front of the player and at close range are hit by the pike
+- Only enemies directly in front of the player and at close range are hit by the sword
 - Orcs chase the player and deal damage on contact
 - Regular orcs can drop health items
 - The orc chief drops a relic that advances to the next stage
+- The sword upgrades from white to red to gold as stages advance
 - A minimap shows walls, the player, enemies, and dropped items
 
 ## GitHub Pages
