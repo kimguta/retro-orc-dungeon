@@ -38,11 +38,11 @@ const player = {
 };
 
 const enemies = [
-  enemy("orc", 3.2, 2.4),
-  enemy("orc", 6.7, 5.7),
-  enemy("orc", 12.4, 2.7),
-  enemy("orc", 15.7, 5.4),
-  enemy("orc", 17.2, 2.8),
+  enemy("orc", 14.2, 2.0),
+  enemy("orc", 17.0, 2.5),
+  enemy("orc", 15.4, 5.9),
+  enemy("orc", 17.4, 5.5),
+  enemy("orc", 13.6, 6.0),
   enemy("boss", 17.2, 11.4),
 ];
 
@@ -154,6 +154,8 @@ function update(dt) {
     e.hitFlash = Math.max(0, e.hitFlash - dt * 6);
     e.attackTimer = Math.max(0, e.attackTimer - dt);
     if (!started) continue;
+    if (e.type === "orc" && player.x < 9.5) continue;
+    if (e.type === "boss" && player.y < 8.7) continue;
 
     const dx = player.x - e.x;
     const dy = player.y - e.y;
@@ -375,82 +377,74 @@ function tri(x1, y1, x2, y2, x3, y3, color) {
 
 function drawWeapon() {
   const progress = swing > 0 ? 1 - swing : 0;
-  const jabIn = Math.min(1, progress / 0.22);
-  const jabOut = progress > 0.52 ? Math.max(0, 1 - (progress - 0.52) / 0.48) : 1;
-  const jab = swing > 0 ? Math.sin(Math.min(jabIn, jabOut) * Math.PI * 0.5) : 0;
-  const windup = swing > 0 && progress < 0.18 ? (0.18 - progress) / 0.18 : 0;
-  const sway = swing > 0 ? 0 : Math.sin(performance.now() * 0.006) * 2;
-  const baseX = W * (0.92 + windup * 0.05 - jab * 0.13) + sway;
-  const baseY = H * (1.08 + windup * 0.05 - jab * 0.02);
-  const idleTipX = W * 0.68;
-  const idleTipY = H * 0.72;
-  const targetTipX = W * 0.5;
-  const targetTipY = H * 0.47;
-  const tipX = idleTipX + (targetTipX - idleTipX) * jab;
-  const tipY = idleTipY + (targetTipY - idleTipY) * jab;
-  const weaponScale = 1.08 + jab * 0.18;
+  const lungeIn = Math.min(1, progress / 0.16);
+  const lungeOut = progress > 0.42 ? Math.max(0, 1 - (progress - 0.42) / 0.42) : 1;
+  const lunge = swing > 0 ? Math.min(lungeIn, lungeOut) : 0;
+  const recoil = swing > 0 && progress > 0.72 ? (progress - 0.72) / 0.28 : 0;
+  const sway = swing > 0 ? 0 : Math.sin(performance.now() * 0.006) * 3;
 
-  drawAngledTrident(baseX, baseY, tipX, tipY, weaponScale, jab);
+  const nearX = W * (0.86 - lunge * 0.13 + recoil * 0.06) + sway;
+  const nearY = H * (1.14 + recoil * 0.06);
+  const farX = W * (0.61 - lunge * 0.1);
+  const farY = H * (0.75 - lunge * 0.25);
+  drawForwardPole(nearX, nearY, farX, farY, lunge);
 
   if (hitSpark > 0) drawHitSpark();
 }
 
-function drawAngledTrident(baseX, baseY, tipX, tipY, scale, jab) {
-  const dx = tipX - baseX;
-  const dy = tipY - baseY;
+function drawForwardPole(nearX, nearY, farX, farY, lunge) {
+  const dx = farX - nearX;
+  const dy = farY - nearY;
   const len = Math.hypot(dx, dy) || 1;
-  const angle = Math.atan2(dy, dx) + Math.PI / 2;
-  const shaftW = 30 * scale;
-  const headY = -len / scale;
+  const nx = -dy / len;
+  const ny = dx / len;
+  const nearW = 40 + lunge * 22;
+  const farW = 15 + lunge * 4;
 
-  ctx.save();
-  ctx.translate(baseX, baseY);
-  ctx.rotate(angle);
-  ctx.scale(scale, scale);
-
-  rect(-shaftW * 0.5, headY + 64, shaftW, -headY + 104, "#2b190f");
-  rect(-shaftW * 0.21, headY + 72, shaftW * 0.24, -headY + 88, "#9b6333");
-  rect(shaftW * 0.26, headY + 86, shaftW * 0.18, -headY + 60, "#140b06");
-  rect(-48, -62, 96, 42, "#1d100a");
-  rect(-40, -50, 80, 13, "#764823");
-
-  rect(-86, headY + 48, 172, 24, "#1b1b19");
-  rect(-78, headY + 70, 156, 12, "#050505");
-  rect(-91, headY + 82, 182, 24, "#784a27");
-  rect(-70, headY + 88, 37, 12, "#b7763d");
-  rect(-18, headY + 88, 36, 12, "#b7763d");
-  rect(33, headY + 88, 37, 12, "#b7763d");
-
-  rect(-60, headY + 10, 20, 48, "#858077");
-  rect(-10, headY - 4, 20, 62, "#a49b88");
-  rect(40, headY + 10, 20, 48, "#858077");
-  tri(-72, headY + 10, -50, headY - 50, -28, headY + 10, "#cfc6ad");
-  tri(-25, headY - 4, 0, headY - 78, 25, headY - 4, "#ded4b7");
-  tri(28, headY + 10, 50, headY - 50, 72, headY + 10, "#cfc6ad");
-  rect(-51, headY + 16, 8, 42, "#5b574f");
-  rect(43, headY + 16, 8, 42, "#5b574f");
-  rect(-3, headY + 6, 8, 52, "#6f695e");
-
-  if (jab > 0.45) {
-    ctx.strokeStyle = `rgba(255, 231, 142, ${0.25 * jab})`;
-    ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.moveTo(-12, headY - 86);
-    ctx.lineTo(12, headY - 86);
-    ctx.stroke();
-  }
-  ctx.restore();
-}
-
-function drawThrustShaft(baseX, baseY, topX, topY, width) {
-  ctx.fillStyle = "#2b190f";
+  ctx.fillStyle = "#2b1a10";
   ctx.beginPath();
-  ctx.moveTo(baseX - width, baseY);
-  ctx.lineTo(baseX + width, baseY);
-  ctx.lineTo(topX + width * 0.5, topY);
-  ctx.lineTo(topX - width * 0.5, topY);
+  ctx.moveTo(nearX + nx * nearW, nearY + ny * nearW);
+  ctx.lineTo(nearX - nx * nearW, nearY - ny * nearW);
+  ctx.lineTo(farX - nx * farW, farY - ny * farW);
+  ctx.lineTo(farX + nx * farW, farY + ny * farW);
   ctx.closePath();
   ctx.fill();
+
+  ctx.fillStyle = "#9b6333";
+  ctx.beginPath();
+  ctx.moveTo(nearX + nx * nearW * 0.25, nearY + ny * nearW * 0.25);
+  ctx.lineTo(nearX - nx * nearW * 0.05, nearY - ny * nearW * 0.05);
+  ctx.lineTo(farX - nx * farW * 0.12, farY - ny * farW * 0.12);
+  ctx.lineTo(farX + nx * farW * 0.2, farY + ny * farW * 0.2);
+  ctx.closePath();
+  ctx.fill();
+
+  const capW = 34 + lunge * 10;
+  ctx.fillStyle = "#d2c4a1";
+  ctx.beginPath();
+  ctx.moveTo(farX + nx * capW, farY + ny * capW);
+  ctx.lineTo(farX - nx * capW, farY - ny * capW);
+  ctx.lineTo(farX + dx / len * (54 + lunge * 12), farY + dy / len * (54 + lunge * 12));
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#20120b";
+  ctx.beginPath();
+  ctx.moveTo(nearX + nx * (nearW + 14), nearY + ny * (nearW + 14));
+  ctx.lineTo(nearX - nx * (nearW + 14), nearY - ny * (nearW + 14));
+  ctx.lineTo(nearX - dx / len * 58 - nx * nearW, nearY - dy / len * 58 - ny * nearW);
+  ctx.lineTo(nearX - dx / len * 58 + nx * nearW, nearY - dy / len * 58 + ny * nearW);
+  ctx.closePath();
+  ctx.fill();
+
+  if (lunge > 0.42) {
+    ctx.strokeStyle = `rgba(255, 232, 158, ${0.36 * lunge})`;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(nearX - dx * 0.18, nearY - dy * 0.18);
+    ctx.lineTo(farX, farY);
+    ctx.stroke();
+  }
 }
 
 function drawThrustHead(cx, tipY, s, jab) {
@@ -503,7 +497,7 @@ function drawHud() {
   drawBar(28, H - 58, 282, 32, player.hp / 100, "#d42f2f", "#3f1212");
   drawText(`HP ${player.hp}`, 43, H - 35, 23, "#fff1bd");
   drawText(`KILLS ${kills}/6`, 354, H - 35, 25, "#fff1bd");
-  drawText("RUST TRIDENT", W - 252, H - 35, 19, "#d7c27b");
+  drawText("IRON PIKE", W - 210, H - 35, 19, "#d7c27b");
 
   const boss = enemies.find((e) => e.type === "boss" && !e.dead);
   if (boss) {
@@ -584,11 +578,11 @@ function resetGame() {
   gameState = "play";
   started = false;
   const fresh = [
-    ["orc", 3.2, 2.4],
-    ["orc", 6.7, 5.7],
-    ["orc", 12.4, 2.7],
-    ["orc", 15.7, 5.4],
-    ["orc", 17.2, 2.8],
+    ["orc", 14.2, 2.0],
+    ["orc", 17.0, 2.5],
+    ["orc", 15.4, 5.9],
+    ["orc", 17.4, 5.5],
+    ["orc", 13.6, 6.0],
     ["boss", 17.2, 11.4],
   ];
   enemies.splice(0, enemies.length, ...fresh.map(([type, x, y]) => enemy(type, x, y)));
