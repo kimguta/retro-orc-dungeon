@@ -28,6 +28,8 @@ Controls:
 
 This project is a static site, so it can be deployed with GitHub Pages.
 
+The repository was created as private. If GitHub Pages is not available for a private repository on your account, change the repository visibility to public first.
+
 1. Open the repository on GitHub.
 2. Go to `Settings`.
 3. Open `Pages`.
