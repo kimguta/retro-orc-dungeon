@@ -375,76 +375,74 @@ function tri(x1, y1, x2, y2, x3, y3, color) {
 
 function drawWeapon() {
   const progress = swing > 0 ? 1 - swing : 0;
-  const thrust = swing > 0 ? Math.sin(progress * Math.PI) : 0;
-  const baseX = W * 0.5;
-  const baseY = H * 1.12;
-  const tipX = W * 0.5;
-  const tipY = H * 0.64;
-  const headScale = 0.82 + thrust * 1.18;
-  const gripW = 44 + thrust * 18;
-  const shaftTopW = 18 + thrust * 28;
+  const jabIn = Math.min(1, progress / 0.22);
+  const jabOut = progress > 0.52 ? Math.max(0, 1 - (progress - 0.52) / 0.48) : 1;
+  const jab = swing > 0 ? Math.sin(Math.min(jabIn, jabOut) * Math.PI * 0.5) : 0;
+  const windup = swing > 0 && progress < 0.18 ? (0.18 - progress) / 0.18 : 0;
   const sway = swing > 0 ? 0 : Math.sin(performance.now() * 0.006) * 2;
+  const baseX = W * (0.74 + windup * 0.05 - jab * 0.22) + sway;
+  const baseY = H * (1.18 + windup * 0.08);
+  const idleTipX = W * 0.66;
+  const idleTipY = H * 0.86;
+  const targetTipX = W * 0.5;
+  const targetTipY = H * 0.44;
+  const tipX = idleTipX + (targetTipX - idleTipX) * jab;
+  const tipY = idleTipY + (targetTipY - idleTipY) * jab;
+  const headScale = 0.9 + jab * 0.22;
+  const shaftWidth = 15 + jab * 5;
 
-  if (thrust > 0.38) {
-    ctx.fillStyle = `rgba(255, 231, 142, ${0.08 + thrust * 0.16})`;
-    ctx.beginPath();
-    ctx.moveTo(tipX, tipY);
-    ctx.lineTo(baseX - 86, H * 0.96);
-    ctx.lineTo(baseX + 86, H * 0.96);
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  drawShaft(baseX + sway, baseY, tipX, tipY + 120 * headScale, gripW, shaftTopW);
-  drawTridentHead(tipX, tipY, headScale);
+  drawThrustShaft(baseX, baseY, tipX, tipY + 64 * headScale, shaftWidth);
+  drawThrustHead(tipX, tipY, headScale, jab);
 
   if (hitSpark > 0) drawHitSpark();
 }
 
-function drawShaft(baseX, baseY, topX, topY, baseW, topW) {
-  ctx.fillStyle = "#3a2415";
+function drawThrustShaft(baseX, baseY, topX, topY, width) {
+  const dx = topX - baseX;
+  const dy = topY - baseY;
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = (-dy / len) * width;
+  const ny = (dx / len) * width;
+
+  ctx.fillStyle = "#2b190f";
   ctx.beginPath();
-  ctx.moveTo(baseX - baseW / 2, baseY);
-  ctx.lineTo(baseX + baseW / 2, baseY);
-  ctx.lineTo(topX + topW / 2, topY);
-  ctx.lineTo(topX - topW / 2, topY);
+  ctx.moveTo(baseX - nx * 1.55, baseY - ny * 1.55);
+  ctx.lineTo(baseX + nx * 1.55, baseY + ny * 1.55);
+  ctx.lineTo(topX + nx * 0.55, topY + ny * 0.55);
+  ctx.lineTo(topX - nx * 0.55, topY - ny * 0.55);
   ctx.closePath();
   ctx.fill();
 
-  ctx.fillStyle = "#8f5b2e";
+  ctx.strokeStyle = "#9b6333";
+  ctx.lineWidth = Math.max(5, width * 0.55);
   ctx.beginPath();
-  ctx.moveTo(baseX - baseW * 0.16, baseY);
-  ctx.lineTo(baseX + baseW * 0.06, baseY);
-  ctx.lineTo(topX + topW * 0.12, topY);
-  ctx.lineTo(topX - topW * 0.12, topY);
-  ctx.closePath();
-  ctx.fill();
+  ctx.moveTo(baseX - nx * 0.2, baseY - ny * 0.2);
+  ctx.lineTo(topX - nx * 0.04, topY - ny * 0.04);
+  ctx.stroke();
 
-  rect(baseX - baseW * 0.62, baseY - 64, baseW * 1.24, 34, "#2a180f");
-  rect(baseX - baseW * 0.5, baseY - 53, baseW, 12, "#704423");
+  rect(baseX - width * 2.5, baseY - 58, width * 5, 32, "#20120b");
+  rect(baseX - width * 2.1, baseY - 48, width * 4.2, 10, "#7a4a25");
 }
 
-function drawTridentHead(cx, tipY, s) {
+function drawThrustHead(cx, tipY, s, jab) {
   const cy = tipY + 58 * s;
-  const barW = 116 * s;
-  rect(cx - barW / 2, cy + 22 * s, barW, 15 * s, "#1f1f1d");
-  rect(cx - barW / 2, cy + 35 * s, barW, 8 * s, "#050505");
-  rect(cx - 58 * s, cy + 43 * s, 116 * s, 18 * s, "#7c4d27");
-  rect(cx - 47 * s, cy + 47 * s, 24 * s, 10 * s, "#ae7440");
-  rect(cx - 12 * s, cy + 47 * s, 24 * s, 10 * s, "#ae7440");
-  rect(cx + 23 * s, cy + 47 * s, 24 * s, 10 * s, "#ae7440");
+  const barW = (88 + jab * 10) * s;
+  rect(cx - barW / 2, cy + 20 * s, barW, 13 * s, "#1d1d1b");
+  rect(cx - barW / 2, cy + 31 * s, barW, 7 * s, "#050505");
+  rect(cx - 48 * s, cy + 38 * s, 96 * s, 15 * s, "#7c4d27");
+  rect(cx - 38 * s, cy + 41 * s, 20 * s, 8 * s, "#ae7440");
+  rect(cx - 10 * s, cy + 41 * s, 20 * s, 8 * s, "#ae7440");
+  rect(cx + 18 * s, cy + 41 * s, 20 * s, 8 * s, "#ae7440");
 
-  rect(cx - 39 * s, cy - 4 * s, 14 * s, 31 * s, "#858077");
-  rect(cx - 7 * s, cy - 12 * s, 14 * s, 39 * s, "#a49b88");
-  rect(cx + 25 * s, cy - 4 * s, 14 * s, 31 * s, "#858077");
-  tri(cx - 49 * s, cy - 4 * s, cx - 32 * s, tipY + 18 * s, cx - 17 * s, cy - 4 * s, "#cfc6ad");
-  tri(cx - 17 * s, cy - 12 * s, cx, tipY, cx + 17 * s, cy - 12 * s, "#ded4b7");
-  tri(cx + 17 * s, cy - 4 * s, cx + 32 * s, tipY + 18 * s, cx + 49 * s, cy - 4 * s, "#cfc6ad");
-  rect(cx - 33 * s, cy, 5 * s, 27 * s, "#5f5b54");
-  rect(cx + 28 * s, cy, 5 * s, 27 * s, "#5f5b54");
-  rect(cx - 2 * s, cy - 6 * s, 5 * s, 33 * s, "#6f695e");
-  rect(cx - 38 * s, cy + 63 * s, 9 * s, 18 * s, "#d4bb76");
-  rect(cx + 30 * s, cy + 63 * s, 9 * s, 18 * s, "#d4bb76");
+  rect(cx - 32 * s, cy - 1 * s, 10 * s, 27 * s, "#858077");
+  rect(cx - 5 * s, cy - 8 * s, 10 * s, 34 * s, "#a49b88");
+  rect(cx + 22 * s, cy - 1 * s, 10 * s, 27 * s, "#858077");
+  tri(cx - 39 * s, cy - 1 * s, cx - 27 * s, tipY + 12 * s, cx - 15 * s, cy - 1 * s, "#cfc6ad");
+  tri(cx - 13 * s, cy - 8 * s, cx, tipY, cx + 13 * s, cy - 8 * s, "#ded4b7");
+  tri(cx + 15 * s, cy - 1 * s, cx + 27 * s, tipY + 12 * s, cx + 39 * s, cy - 1 * s, "#cfc6ad");
+  rect(cx - 27 * s, cy + 2 * s, 4 * s, 23 * s, "#5f5b54");
+  rect(cx + 23 * s, cy + 2 * s, 4 * s, 23 * s, "#5f5b54");
+  rect(cx - 1 * s, cy - 3 * s, 4 * s, 28 * s, "#6f695e");
 }
 
 function drawHitSpark() {
