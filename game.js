@@ -380,48 +380,77 @@ function drawWeapon() {
   const jab = swing > 0 ? Math.sin(Math.min(jabIn, jabOut) * Math.PI * 0.5) : 0;
   const windup = swing > 0 && progress < 0.18 ? (0.18 - progress) / 0.18 : 0;
   const sway = swing > 0 ? 0 : Math.sin(performance.now() * 0.006) * 2;
-  const baseX = W * (0.74 + windup * 0.05 - jab * 0.22) + sway;
-  const baseY = H * (1.18 + windup * 0.08);
-  const idleTipX = W * 0.66;
-  const idleTipY = H * 0.86;
+  const baseX = W * (0.92 + windup * 0.05 - jab * 0.13) + sway;
+  const baseY = H * (1.08 + windup * 0.05 - jab * 0.02);
+  const idleTipX = W * 0.68;
+  const idleTipY = H * 0.72;
   const targetTipX = W * 0.5;
-  const targetTipY = H * 0.44;
+  const targetTipY = H * 0.47;
   const tipX = idleTipX + (targetTipX - idleTipX) * jab;
   const tipY = idleTipY + (targetTipY - idleTipY) * jab;
-  const headScale = 0.9 + jab * 0.22;
-  const shaftWidth = 15 + jab * 5;
+  const weaponScale = 1.08 + jab * 0.18;
 
-  drawThrustShaft(baseX, baseY, tipX, tipY + 64 * headScale, shaftWidth);
-  drawThrustHead(tipX, tipY, headScale, jab);
+  drawAngledTrident(baseX, baseY, tipX, tipY, weaponScale, jab);
 
   if (hitSpark > 0) drawHitSpark();
 }
 
-function drawThrustShaft(baseX, baseY, topX, topY, width) {
-  const dx = topX - baseX;
-  const dy = topY - baseY;
+function drawAngledTrident(baseX, baseY, tipX, tipY, scale, jab) {
+  const dx = tipX - baseX;
+  const dy = tipY - baseY;
   const len = Math.hypot(dx, dy) || 1;
-  const nx = (-dy / len) * width;
-  const ny = (dx / len) * width;
+  const angle = Math.atan2(dy, dx) + Math.PI / 2;
+  const shaftW = 30 * scale;
+  const headY = -len / scale;
 
+  ctx.save();
+  ctx.translate(baseX, baseY);
+  ctx.rotate(angle);
+  ctx.scale(scale, scale);
+
+  rect(-shaftW * 0.5, headY + 64, shaftW, -headY + 104, "#2b190f");
+  rect(-shaftW * 0.21, headY + 72, shaftW * 0.24, -headY + 88, "#9b6333");
+  rect(shaftW * 0.26, headY + 86, shaftW * 0.18, -headY + 60, "#140b06");
+  rect(-48, -62, 96, 42, "#1d100a");
+  rect(-40, -50, 80, 13, "#764823");
+
+  rect(-86, headY + 48, 172, 24, "#1b1b19");
+  rect(-78, headY + 70, 156, 12, "#050505");
+  rect(-91, headY + 82, 182, 24, "#784a27");
+  rect(-70, headY + 88, 37, 12, "#b7763d");
+  rect(-18, headY + 88, 36, 12, "#b7763d");
+  rect(33, headY + 88, 37, 12, "#b7763d");
+
+  rect(-60, headY + 10, 20, 48, "#858077");
+  rect(-10, headY - 4, 20, 62, "#a49b88");
+  rect(40, headY + 10, 20, 48, "#858077");
+  tri(-72, headY + 10, -50, headY - 50, -28, headY + 10, "#cfc6ad");
+  tri(-25, headY - 4, 0, headY - 78, 25, headY - 4, "#ded4b7");
+  tri(28, headY + 10, 50, headY - 50, 72, headY + 10, "#cfc6ad");
+  rect(-51, headY + 16, 8, 42, "#5b574f");
+  rect(43, headY + 16, 8, 42, "#5b574f");
+  rect(-3, headY + 6, 8, 52, "#6f695e");
+
+  if (jab > 0.45) {
+    ctx.strokeStyle = `rgba(255, 231, 142, ${0.25 * jab})`;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(-12, headY - 86);
+    ctx.lineTo(12, headY - 86);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawThrustShaft(baseX, baseY, topX, topY, width) {
   ctx.fillStyle = "#2b190f";
   ctx.beginPath();
-  ctx.moveTo(baseX - nx * 1.55, baseY - ny * 1.55);
-  ctx.lineTo(baseX + nx * 1.55, baseY + ny * 1.55);
-  ctx.lineTo(topX + nx * 0.55, topY + ny * 0.55);
-  ctx.lineTo(topX - nx * 0.55, topY - ny * 0.55);
+  ctx.moveTo(baseX - width, baseY);
+  ctx.lineTo(baseX + width, baseY);
+  ctx.lineTo(topX + width * 0.5, topY);
+  ctx.lineTo(topX - width * 0.5, topY);
   ctx.closePath();
   ctx.fill();
-
-  ctx.strokeStyle = "#9b6333";
-  ctx.lineWidth = Math.max(5, width * 0.55);
-  ctx.beginPath();
-  ctx.moveTo(baseX - nx * 0.2, baseY - ny * 0.2);
-  ctx.lineTo(topX - nx * 0.04, topY - ny * 0.04);
-  ctx.stroke();
-
-  rect(baseX - width * 2.5, baseY - 58, width * 5, 32, "#20120b");
-  rect(baseX - width * 2.1, baseY - 48, width * 4.2, 10, "#7a4a25");
 }
 
 function drawThrustHead(cx, tipY, s, jab) {
