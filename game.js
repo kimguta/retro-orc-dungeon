@@ -223,14 +223,14 @@ function draw() {
 
 function drawWorld() {
   const sky = ctx.createLinearGradient(0, 0, 0, HALF_H);
-  sky.addColorStop(0, "#16111b");
-  sky.addColorStop(1, "#2b1d22");
+  sky.addColorStop(0, "#2a2031");
+  sky.addColorStop(1, "#4a3340");
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, W, HALF_H);
 
   const floor = ctx.createLinearGradient(0, HALF_H, 0, H);
-  floor.addColorStop(0, "#2b251e");
-  floor.addColorStop(1, "#0c0907");
+  floor.addColorStop(0, "#4b4437");
+  floor.addColorStop(1, "#1d1712");
   ctx.fillStyle = floor;
   ctx.fillRect(0, HALF_H, W, HALF_H);
 
@@ -243,12 +243,12 @@ function drawWorld() {
     const x = (r / RAYS) * W;
     const colW = W / RAYS + 1;
     const y = HALF_H - wallH / 2;
-    const light = Math.max(28, 175 - fixedDist * 18);
+    const light = Math.max(58, 232 - fixedDist * 13);
     const mortar = hit.shadeSeed ? 0.82 : 1;
     ctx.fillStyle = `rgb(${Math.floor(light * 0.65 * mortar)}, ${Math.floor(light * 0.42 * mortar)}, ${Math.floor(light * 0.28 * mortar)})`;
     ctx.fillRect(x, y, colW, wallH);
 
-    ctx.fillStyle = `rgba(18, 12, 10, ${Math.min(0.55, fixedDist / 14)})`;
+    ctx.fillStyle = `rgba(18, 12, 10, ${Math.min(0.34, fixedDist / 18)})`;
     ctx.fillRect(x, y, colW, wallH);
 
     if (r % 5 === 0) {
@@ -342,58 +342,59 @@ function rect(x, y, w, h, color) {
 
 function drawWeapon() {
   const progress = swing > 0 ? 1 - swing : 0;
-  const power = swing > 0 ? Math.sin(progress * Math.PI) : 0;
-  const pivotX = W * 0.66;
-  const pivotY = H * 1.08;
-  const angle = -0.2 + power * 1.25;
+  const sweep = swing > 0 ? Math.min(1, progress / 0.72) : 0;
+  const followThrough = swing > 0 && progress > 0.72 ? (progress - 0.72) / 0.28 : 0;
+  const hitPower = swing > 0 ? Math.sin(progress * Math.PI) : 0;
+  const pivotX = W * (swing > 0 ? 0.76 - sweep * 0.28 : 0.68);
+  const pivotY = H * 1.12;
+  const angle = swing > 0 ? -0.88 + sweep * 1.75 - followThrough * 0.22 : -0.34;
+  const scale = swing > 0 ? 1.62 + hitPower * 0.1 : 1.48;
 
-  if (power > 0.42) {
-    ctx.strokeStyle = "rgba(237, 211, 132, 0.28)";
-    ctx.lineWidth = 16;
+  if (hitPower > 0.35) {
+    ctx.strokeStyle = "rgba(255, 226, 130, 0.34)";
+    ctx.lineWidth = 24;
     ctx.beginPath();
-    ctx.arc(pivotX - 30, pivotY - 80, 190, -1.25, -0.18);
+    ctx.arc(W * 0.52, H * 0.88, 270, -1.26, -0.06);
     ctx.stroke();
   }
 
   ctx.save();
   ctx.translate(pivotX, pivotY);
   ctx.rotate(angle);
+  ctx.scale(scale, scale);
 
-  rect(-17, -175, 36, 165, "#513019");
-  rect(-12, -170, 12, 150, "#7a4a24");
-  rect(6, -166, 8, 136, "#2d190d");
-  rect(-20, -176, 42, 13, "#3b2313");
-  rect(-23, -158, 47, 16, "#65401f");
-  rect(-14, -139, 32, 12, "#4a2b17");
-  rect(-21, -111, 39, 10, "#5c361d");
-  rect(-11, -86, 29, 8, "#8b5b2f");
-  rect(-22, -55, 38, 9, "#442512");
-  rect(-13, -33, 30, 7, "#6b4220");
-  rect(-4, -166, 5, 136, "rgba(255, 218, 132, 0.18)");
-  rect(13, -151, 7, 11, "#1b0d07");
-  rect(-23, -126, 6, 9, "#2a150a");
-  rect(10, -96, 5, 5, "#d8c08a");
-  rect(-17, -72, 5, 5, "#d8c08a");
-  rect(-11, -15, 29, 34, "#3b2416");
-  rect(-8, -9, 22, 8, "#6e4a2d");
+  rect(-24, -196, 48, 184, "#5a351b");
+  rect(-18, -190, 15, 166, "#8a5529");
+  rect(8, -184, 10, 150, "#29170b");
+  rect(-28, -201, 54, 16, "#382111");
+  rect(-32, -181, 62, 20, "#704621");
+  rect(-21, -157, 43, 13, "#4f2e17");
+  rect(-29, -126, 51, 12, "#68401f");
+  rect(-15, -98, 39, 10, "#9a6735");
+  rect(-30, -62, 49, 12, "#482713");
+  rect(-17, -36, 39, 9, "#7a4b25");
+  rect(-6, -188, 7, 153, "rgba(255, 225, 146, 0.22)");
+  rect(17, -172, 8, 13, "#190c06");
+  rect(-31, -144, 8, 11, "#261207");
+  rect(12, -112, 7, 7, "#e1c78b");
+  rect(-22, -80, 7, 7, "#e1c78b");
+  rect(-15, -18, 37, 40, "#3b2416");
+  rect(-11, -10, 29, 10, "#7b5434");
+  rect(-18, 8, 38, 14, "#21130c");
   ctx.restore();
 }
 
 function drawHud() {
-  ctx.fillStyle = "rgba(8, 6, 5, 0.82)";
-  ctx.fillRect(0, H - 66, W, 66);
-  drawBar(24, H - 48, 220, 20, player.hp / 100, "#b92828", "#3b1414");
-  ctx.fillStyle = "#eadca4";
-  ctx.font = "20px Courier New";
-  ctx.fillText(`HP ${player.hp}`, 34, H - 31);
-  ctx.fillText(`KILLS ${kills}/6`, 292, H - 31);
+  ctx.fillStyle = "rgba(8, 6, 5, 0.72)";
+  ctx.fillRect(0, H - 82, W, 82);
+  drawBar(28, H - 58, 282, 32, player.hp / 100, "#d42f2f", "#3f1212");
+  drawText(`HP ${player.hp}`, 43, H - 35, 23, "#fff1bd");
+  drawText(`KILLS ${kills}/6`, 354, H - 35, 25, "#fff1bd");
 
   const boss = enemies.find((e) => e.type === "boss" && !e.dead);
   if (boss) {
-    drawBar(W - 292, 24, 260, 18, boss.hp / boss.maxHp, "#8e1212", "#241010");
-    ctx.fillStyle = "#e9c46a";
-    ctx.font = "15px Courier New";
-    ctx.fillText("ORC CHIEF", W - 286, 39);
+    drawBar(W - 354, 30, 318, 28, boss.hp / boss.maxHp, "#b91818", "#2a0c0c");
+    drawText("ORC CHIEF", W - 342, 50, 18, "#ffe08a");
   }
 
   if (player.hurt > 0) {
@@ -403,12 +404,26 @@ function drawHud() {
 }
 
 function drawBar(x, y, w, h, pct, fill, bg) {
+  ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+  ctx.fillRect(x - 5, y - 5, w + 10, h + 10);
   ctx.fillStyle = bg;
   ctx.fillRect(x, y, w, h);
   ctx.fillStyle = fill;
-  ctx.fillRect(x + 3, y + 3, Math.max(0, (w - 6) * pct), h - 6);
-  ctx.strokeStyle = "#d6c083";
+  ctx.fillRect(x + 4, y + 4, Math.max(0, (w - 8) * pct), h - 8);
+  ctx.fillStyle = "rgba(255, 238, 177, 0.24)";
+  ctx.fillRect(x + 4, y + 4, Math.max(0, (w - 8) * pct), Math.max(2, Math.floor((h - 8) / 3)));
+  ctx.strokeStyle = "#ffe39a";
+  ctx.lineWidth = 2;
   ctx.strokeRect(x, y, w, h);
+  ctx.lineWidth = 1;
+}
+
+function drawText(text, x, y, size, color) {
+  ctx.font = `${size}px Courier New`;
+  ctx.fillStyle = "#090604";
+  ctx.fillText(text, x + 2, y + 2);
+  ctx.fillStyle = color;
+  ctx.fillText(text, x, y);
 }
 
 function drawEndScreen() {
