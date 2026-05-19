@@ -100,8 +100,8 @@ const SPAWN_POINTS = [
 const TOWN_NPCS = [
   {
     name: "마을 장로",
-    x: 7.05,
-    y: 4.72,
+    x: 2.2,
+    y: 2.25,
     hp: 30,
     maxHp: 30,
     line: "안녕하세요. 밖은 위험하니 검을 잃으면 꼭 다시 찾아오세요.",
@@ -120,18 +120,22 @@ enemies = buildEnemies(stage);
 function enemy(type, x, y) {
   const stageBonus = Math.max(stage - 1, Math.floor((player.level - 1) / 2));
   const stats = enemyStats(type, stageBonus);
+  const level = enemyLevel(type, stageBonus);
+  const levelBonus = Math.max(0, level - 1);
+  const hp = Math.max(1, stats.hp + Math.floor(levelBonus * (stats.boss ? 1.2 : 0.65)));
   return {
     type,
+    level,
     x,
     y,
     spawnX: x,
     spawnY: y,
-    hp: stats.hp,
-    maxHp: stats.hp,
+    hp,
+    maxHp: hp,
     radius: stats.radius,
     speed: stats.speed,
-    damage: stats.damage,
-    xp: stats.xp,
+    damage: stats.damage + Math.floor(levelBonus * 0.7),
+    xp: stats.xp + levelBonus * 4,
     attackRange: stats.attackRange,
     windup: stats.windup,
     cooldown: stats.cooldown,
@@ -149,6 +153,19 @@ function enemy(type, x, y) {
     dead: false,
     respawnTimer: 0,
   };
+}
+
+function enemyLevel(type, stageBonus) {
+  const base = {
+    skeleton: 1,
+    orc: 2,
+    warlock: 4,
+    ogre: 5,
+    skeletonKing: 9,
+    boss: 10,
+  }[type] || 2;
+  const variance = (type === "skeletonKing" || type === "boss") ? 5 : 4;
+  return base + stageBonus + Math.floor(Math.random() * variance);
 }
 
 function enemyStats(type, stageBonus) {
@@ -289,7 +306,7 @@ function enemyLabel(e) {
     boss: "오크 대장",
     orc: "오크",
   };
-  return names[e.type] || "적";
+  return `Lv.${e.level || 1} ${names[e.type] || "적"}`;
 }
 
 function miniMapEnemyColor(e) {
