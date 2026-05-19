@@ -11,6 +11,7 @@ const MAX_DEPTH = 18;
 const TILE = 64;
 const TURN_SPEED = 1.95;
 const MOVE_SPEED = 2.45;
+const SPECIAL_RAGE_COST = 40;
 
 const BASE_MAP = [
   "########################################",
@@ -525,8 +526,8 @@ function update(dt) {
 
 function attack(kind = "normal") {
   if (gameState !== "play" || swingCooldown > 0) return;
-  if (kind === "special" && player.rage < player.maxRage) {
-    notice = "분노 부족";
+  if (kind === "special" && player.rage < SPECIAL_RAGE_COST) {
+    notice = `분노 부족 (${SPECIAL_RAGE_COST} 필요)`;
     noticeTimer = 1;
     return;
   }
@@ -534,7 +535,7 @@ function attack(kind = "normal") {
   swing = 1;
   swingType = kind;
   swingCooldown = kind === "special" ? 0.78 : 0.54;
-  if (kind === "special") player.rage = 0;
+  if (kind === "special") player.rage = Math.max(0, player.rage - SPECIAL_RAGE_COST);
 
   const hitRange = kind === "special" ? 2.3 : 1.55;
   const hitAngle = kind === "special" ? 0.58 : 0.34;
@@ -1331,19 +1332,21 @@ function drawHud() {
   drawMiniMap();
   drawCrosshair();
   ctx.fillStyle = "rgba(8, 6, 5, 0.58)";
-  ctx.fillRect(0, H - 70, W, 70);
+  ctx.fillRect(0, H - 82, W, 82);
   ctx.fillStyle = "rgba(255, 225, 140, 0.1)";
-  ctx.fillRect(0, H - 70, W, 2);
-  drawBar(24, H - 52, 196, 18, player.hp / player.maxHp, "#d42f2f", "#3f1212");
-  drawText(`체력 ${player.hp}`, 32, H - 38, 14, "#fff1bd");
-  drawBar(24, H - 25, 196, 11, player.rage / player.maxRage, "#d77b23", "#2d1609");
-  drawText(`분노 ${Math.floor(player.rage)}`, 32, H - 15, 11, player.rage >= player.maxRage ? "#ffe39a" : "#d8b47b");
-  drawText(`처치 ${kills}`, 252, H - 25, 15, "#fff1bd");
-  drawText(`레벨 ${player.level}`, 410, H - 44, 14, "#ffe39a");
-  drawText(`경험치 ${player.xp}/${player.nextXp}`, 410, H - 25, 12, "#d7c27b");
-  drawText(isTown() ? "마을" : "필드", 580, H - 25, 14, isTown() ? "#ffe39a" : "#d7c27b");
-  drawText(swordName(), W - 184, H - 25, 14, "#d7c27b");
-  if (player.rage >= player.maxRage) drawText("우클릭 분노공격 준비", W - 250, H - 48, 13, "#ffe39a");
+  ctx.fillRect(0, H - 82, W, 2);
+
+  drawText(`체력 ${player.hp}/${player.maxHp}`, 24, H - 58, 13, "#fff1bd");
+  drawBar(24, H - 50, 196, 14, player.hp / player.maxHp, "#d42f2f", "#3f1212");
+  drawText(`분노 ${Math.floor(player.rage)}/${player.maxRage}`, 24, H - 24, 12, player.rage >= SPECIAL_RAGE_COST ? "#ffe39a" : "#d8b47b");
+  drawBar(24, H - 17, 196, 9, player.rage / player.maxRage, "#d77b23", "#2d1609");
+
+  drawText(`처치 ${kills}`, 252, H - 28, 15, "#fff1bd");
+  drawText(`레벨 ${player.level}`, 410, H - 50, 14, "#ffe39a");
+  drawText(`경험치 ${player.xp}/${player.nextXp}`, 410, H - 28, 12, "#d7c27b");
+  drawText(isTown() ? "마을" : "필드", 580, H - 28, 14, isTown() ? "#ffe39a" : "#d7c27b");
+  drawText(swordName(), W - 184, H - 28, 14, "#d7c27b");
+  if (player.rage >= SPECIAL_RAGE_COST) drawText(`우클릭 특수공격 - 분노 ${SPECIAL_RAGE_COST}`, W - 290, H - 52, 13, "#ffe39a");
 
   const boss = enemies.find((e) => e.boss && !e.dead);
   if (boss && (Math.hypot(player.x - boss.x, player.y - boss.y) < 8 || boss.hp < boss.maxHp)) {
@@ -1504,7 +1507,7 @@ function drawEndScreen() {
   ctx.font = "500 20px Noto Sans KR, Malgun Gothic, sans-serif";
   if (gameState === "start") {
     ctx.fillText("좌클릭 / 스페이스: 공격", W / 2, H / 2 - 18);
-    ctx.fillText("우클릭: 분노 특수공격", W / 2, H / 2 + 14);
+    ctx.fillText(`우클릭: 분노 ${SPECIAL_RAGE_COST} 소모 특수공격`, W / 2, H / 2 + 14);
     ctx.fillText("사냥하고, 성장하고, 던전에서 버티세요", W / 2, H / 2 + 48);
     ctx.fillText("Enter 또는 클릭으로 시작", W / 2, H / 2 + 84);
   } else {
