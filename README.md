@@ -22,12 +22,13 @@ Controls:
 - Room 3: orc chief
 - The game has 10 stages
 - The map layout changes as stages advance
-- Regular orcs have 2 HP
-- The orc chief has 8 HP
+- Enemies now include orcs, skeletons, ogres, warlocks, orc chiefs, and skeleton kings
+- Skeletons are fast and fragile, ogres are slow and heavy, and warlocks fire magic bolts
 - Only enemies directly in front of the player and at close range are hit by the sword
-- Orcs chase the player and deal damage on contact
-- Regular orcs can drop health items
-- The orc chief drops a relic that advances to the next stage
+- Melee enemies chase the player and deal damage up close
+- Enemies award XP when defeated, and leveling up improves health, rage capacity, and damage
+- Regular enemies can drop health items
+- Boss enemies drop a relic that advances to the next stage
 - The sword upgrades from white to red to gold as stages advance
 - A minimap shows walls, the player, enemies, and dropped items
 - A rage bar fills from combat and unlocks a stronger right-click special attack
