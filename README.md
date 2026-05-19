@@ -1,47 +1,39 @@
-# Retro Orc Dungeon
+# ?덊듃濡??ㅽ겕 ?섏쟾
 
-A small static browser prototype for a 90s DOS-style first-person dungeon crawler. It uses HTML, CSS, JavaScript, and Canvas 2D only.
+HTML, CSS, JavaScript, Canvas 2D留??ъ슜?섎뒗 90?꾨? DOS??1?몄묶 ?섏쟾 ?≪뀡 ?꾨줈?좏??낆엯?덈떎.
 
-## Play
+## ?ㅽ뻾
 
-Open `index.html` in a browser, or serve the folder with any simple static server.
+`index.html`??釉뚮씪?곗??먯꽌 諛붾줈 ?닿굅?? 媛꾨떒???뺤쟻 ?쒕쾭濡??대뜑瑜??대㈃ ?⑸땲??
 
-Controls:
+議곗옉:
 
-- `WASD`: move
-- `Left / Right Arrow`: rotate view
-- `Mouse`: rotate view after clicking the canvas
-- `Left mouse / Space`: normal sword attack
-- `Right mouse`: rage special attack when the rage bar is full
-- `Enter`: start or restart after game over
+- `WASD`: ?대룞
+- `醫???諛⑺뼢??: ?쒖젏 ?뚯쟾
+- `留덉슦??: 罹붾쾭???대┃ ???쒖젏 ?뚯쟾
+- `醫뚰겢由?/ Space`: ?쇰컲 寃 怨듦꺽
+- `?고겢由?: 遺꾨끂 寃뚯씠吏媛 媛??李쇱쓣 ???뱀닔怨듦꺽
+- `Enter`: ?쒖옉 ?먮뒗 寃뚯엫?ㅻ쾭 ???ъ떆??
+## 寃뚯엫 ?댁슜
 
-## Game
+- ?섎굹?????섏쟾 ?꾨뱶瑜??뚯븘?ㅻ땲硫??щ깷?섍퀬 ?깆옣?⑸땲??
+- 紐ъ뒪?곕뒗 ?ㅽ겕, ?ㅼ펷?덊넠, ?ㅼ슦嫄? ?뚮줉, ?ㅽ겕 ??? ?ㅼ펷?덊넠 ?뱀씠 ?깆옣?⑸땲??
+- ?ㅼ펷?덊넠? 鍮좊Ⅴ怨??쏀븯硫? ?ㅼ슦嫄곕뒗 ?먮━吏留??쇳듉?섍퀬 媛뺥빀?덈떎.
+- ?뚮줉? 嫄곕━瑜??먭퀬 留덈쾿?꾩쓣 諛쒖궗?⑸땲??
+- 紐ъ뒪?곕? 泥섏튂?섎㈃ 寃쏀뿕移섎? ?산퀬 ?덈꺼?낇빀?덈떎.
+- ?덈꺼?낇븯硫?理쒕? 泥대젰, 遺꾨끂 理쒕?移? 怨듦꺽?μ씠 ?깆옣?⑸땲??
+- 泥섏튂??紐ъ뒪?곕뒗 ?쇱젙 ?쒓컙??吏?섎㈃ ?뚮젅?댁뼱? ?⑥뼱吏??꾩튂?먯꽌 ?ㅼ떆 ?깆옣?⑸땲??
+- ?쇰컲 紐ъ뒪?곗? 蹂댁뒪湲?紐ъ뒪?곕뒗 泥대젰 ?뚮났 ?꾩씠?쒖쓣 ?⑥뼱?⑤┫ ???덉뒿?덈떎.
+- 寃? ?덈꺼???곕씪 ?곌?, 遺됱?寃, ?⑷툑寃?쇰줈 媛뺥솕?⑸땲??
+- 誘몃땲留듭? 踰? ?뚮젅?댁뼱, 紐ъ뒪?? ?꾩씠?? ?ъ궗泥대? ?쒖떆?⑸땲??
 
-- The game now uses one larger dungeon field instead of separate stages
-- The field has safer starting paths, monster patrol zones, and deeper boss areas
-- Enemies now include orcs, skeletons, ogres, warlocks, orc chiefs, and skeleton kings
-- Skeletons are fast and fragile, ogres are slow and heavy, and warlocks fire magic bolts
-- Only enemies directly in front of the player and at close range are hit by the sword
-- Melee enemies chase the player and deal damage up close
-- Enemies award XP when defeated, and leveling up improves health, rage capacity, and damage
-- Defeated monsters respawn after a delay, away from the player, so the dungeon keeps repopulating
-- Regular enemies can drop health items
-- Boss enemies award larger XP and can drop health
-- The sword upgrades from white to red to gold as the player levels up
-- A minimap shows walls, the player, enemies, and dropped items
-- A rage bar fills from combat and unlocks a stronger right-click special attack
+## GitHub Pages 諛고룷
 
-## GitHub Pages
+?뺤쟻 ?ъ씠?몄씠誘濡?GitHub Pages濡?諛붾줈 諛고룷?????덉뒿?덈떎.
 
-This project is a static site, so it can be deployed with GitHub Pages.
-
-The repository was created as private. If GitHub Pages is not available for a private repository on your account, change the repository visibility to public first.
-
-1. Open the repository on GitHub.
-2. Go to `Settings`.
-3. Open `Pages`.
-4. Under `Build and deployment`, choose `Deploy from a branch`.
-5. Select the `main` branch and the root folder `/`.
-6. Save the settings.
-
-After GitHub finishes publishing, the game will be available at the Pages URL shown in that settings screen.
+1. GitHub ??μ냼瑜??쎈땲??
+2. `Settings`濡??대룞?⑸땲??
+3. `Pages` 硫붾돱瑜??쎈땲??
+4. `Build and deployment`?먯꽌 `Deploy from a branch`瑜??좏깮?⑸땲??
+5. `main` 釉뚮옖移섏? `/` 猷⑦듃 ?대뜑瑜??좏깮?⑸땲??
+6. ??ν븯硫?Pages 二쇱냼媛 ?앹꽦?⑸땲??
