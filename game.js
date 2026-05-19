@@ -1160,9 +1160,7 @@ function drawBar(x, y, w, h, pct, fill, bg) {
 }
 
 function drawText(text, x, y, size, color) {
-  ctx.font = `700 ${size}px Malgun Gothic, Gulim, Courier New, monospace`;
-  ctx.fillStyle = "#090604";
-  ctx.fillText(text, x + 1, y + 1);
+  ctx.font = `500 ${size}px Noto Sans KR, Malgun Gothic, Apple SD Gothic Neo, sans-serif`;
   ctx.fillStyle = color;
   ctx.fillText(text, x, y);
 }
@@ -1172,13 +1170,13 @@ function drawEndScreen() {
   ctx.fillRect(0, 0, W, H);
   ctx.textAlign = "center";
   ctx.fillStyle = gameState === "over" ? "#b52626" : "#e6c766";
-  ctx.font = gameState === "start" ? "700 48px Malgun Gothic, Gulim, monospace" : "700 54px Malgun Gothic, Gulim, monospace";
+  ctx.font = gameState === "start" ? "600 48px Noto Sans KR, Malgun Gothic, sans-serif" : "600 54px Noto Sans KR, Malgun Gothic, sans-serif";
   let title = "게임 오버";
   if (gameState === "start") title = "레트로 오크 던전";
   if (gameState === "clear") title = "던전 정복";
   ctx.fillText(title, W / 2, H / 2 - 72);
   ctx.fillStyle = "#d9c99a";
-  ctx.font = "700 20px Malgun Gothic, Gulim, monospace";
+  ctx.font = "500 20px Noto Sans KR, Malgun Gothic, sans-serif";
   if (gameState === "start") {
     ctx.fillText("좌클릭 / 스페이스: 공격", W / 2, H / 2 - 18);
     ctx.fillText("우클릭: 분노 특수공격", W / 2, H / 2 + 14);
