@@ -12,6 +12,8 @@ const TILE = 64;
 const TURN_SPEED = 1.95;
 const MOVE_SPEED = 2.45;
 const SPECIAL_RAGE_COST = 40;
+const BERSERK_DRAIN_PER_SECOND = 16;
+const DEATH_RESPAWN_SECONDS = 5;
 
 const BASE_MAP = [
   "########################################",
@@ -78,6 +80,8 @@ let noticeTimer = 0;
 let dialogueText = "";
 let dialogueSpeaker = "";
 let dialogueTimer = 0;
+let berserk = false;
+let deathTimer = 0;
 
 const SPAWN_POINTS = [
   { type: "skeleton", x: 11.5, y: 3.5 },
@@ -212,6 +216,12 @@ function spawnDamagePop(x, y, value, boss) {
 
 function addRage(amount) {
   player.rage = Math.min(player.maxRage, player.rage + amount);
+  if (!berserk && player.rage >= player.maxRage) {
+    berserk = true;
+    notice = "광폭화";
+    noticeTimer = 1.8;
+    screenShake = Math.max(screenShake, 0.8);
+  }
 }
 
 function gainXp(amount) {
@@ -252,10 +262,29 @@ function respawnDelay(e) {
   return 12;
 }
 
-function handlePlayerDeath() {
+function startPlayerDeath() {
+  if (gameState === "dead") return;
   if (player.weaponLevel > 0) {
     spawnItem("weapon", player.x, player.y, player.weaponLevel);
   }
+  gameState = "dead";
+  deathTimer = DEATH_RESPAWN_SECONDS;
+  player.hp = 0;
+  player.hurt = 1;
+  berserk = false;
+  swing = 0;
+  swingCooldown = 0;
+  swingType = "normal";
+  projectiles = [];
+  damagePops = [];
+  dialogueText = "";
+  dialogueSpeaker = "";
+  dialogueTimer = 0;
+  notice = "죽었습니다";
+  noticeTimer = DEATH_RESPAWN_SECONDS;
+}
+
+function respawnPlayer() {
   player.x = 4.5;
   player.y = 4.5;
   player.angle = 0;
@@ -272,6 +301,9 @@ function handlePlayerDeath() {
   dialogueText = "";
   dialogueSpeaker = "";
   dialogueTimer = 0;
+  berserk = false;
+  deathTimer = 0;
+  gameState = "play";
   notice = "마을에서 부활 - 검을 되찾으세요";
   noticeTimer = 3.2;
 }
@@ -398,12 +430,30 @@ function castRay(angle) {
 }
 
 function update(dt) {
+  if (gameState === "dead") {
+    messagePulse += dt;
+    deathTimer = Math.max(0, deathTimer - dt);
+    noticeTimer = Math.max(0, noticeTimer - dt);
+    player.hurt = Math.max(0.5, player.hurt - dt * 0.25);
+    if (deathTimer <= 0) respawnPlayer();
+    return;
+  }
+
   if (gameState !== "play") {
     messagePulse += dt;
     return;
   }
 
-  const moveStep = MOVE_SPEED * dt;
+  if (berserk) {
+    player.rage = Math.max(0, player.rage - BERSERK_DRAIN_PER_SECOND * dt);
+    if (player.rage <= 0) {
+      berserk = false;
+      notice = "광폭화 종료";
+      noticeTimer = 1.4;
+    }
+  }
+
+  const moveStep = MOVE_SPEED * (berserk ? 1.5 : 1) * dt;
   const turnStep = TURN_SPEED * dt;
   if (keys.has("ArrowLeft")) player.angle -= turnStep;
   if (keys.has("ArrowRight")) player.angle += turnStep;
@@ -456,7 +506,7 @@ function update(dt) {
       addRage(6);
       screenShake = Math.max(screenShake, 0.6);
       projectiles.splice(i, 1);
-      if (player.hp <= 0) handlePlayerDeath();
+      if (player.hp <= 0) startPlayerDeath();
     }
   }
 
@@ -499,7 +549,7 @@ function update(dt) {
           addRage(e.boss ? 12 : 7);
           e.attackPose = 1;
           screenShake = Math.max(screenShake, e.boss ? 1 : 0.55);
-          if (player.hp <= 0) handlePlayerDeath();
+          if (player.hp <= 0) startPlayerDeath();
         }
         e.attackTimer = e.cooldown;
       }
@@ -526,7 +576,7 @@ function update(dt) {
 
 function attack(kind = "normal") {
   if (gameState !== "play" || swingCooldown > 0) return;
-  if (kind === "special" && player.rage < SPECIAL_RAGE_COST) {
+  if (kind === "special" && !berserk && player.rage < SPECIAL_RAGE_COST) {
     notice = `분노 부족 (${SPECIAL_RAGE_COST} 필요)`;
     noticeTimer = 1;
     return;
@@ -535,12 +585,13 @@ function attack(kind = "normal") {
   swing = 1;
   swingType = kind;
   swingCooldown = kind === "special" ? 0.78 : 0.54;
-  if (kind === "special") player.rage = Math.max(0, player.rage - SPECIAL_RAGE_COST);
+  if (kind === "special" && !berserk) player.rage = Math.max(0, player.rage - SPECIAL_RAGE_COST);
 
   const hitRange = kind === "special" ? 2.3 : 1.55;
   const hitAngle = kind === "special" ? 0.58 : 0.34;
   const baseDamage = 1 + player.weaponLevel + Math.floor((player.level - 1) / 2);
-  const damage = kind === "special" ? baseDamage * 2 + 2 : baseDamage;
+  const rageDamage = berserk ? 1.5 : 1;
+  const damage = Math.ceil((kind === "special" ? baseDamage * 2 + 2 : baseDamage) * rageDamage);
   const hits = [];
   for (const e of enemies) {
     if (e.dead) continue;
@@ -1331,22 +1382,29 @@ function drawHitSpark() {
 function drawHud() {
   drawMiniMap();
   drawCrosshair();
+  if (berserk) {
+    ctx.fillStyle = "rgba(170, 18, 8, 0.18)";
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "rgba(255, 68, 42, 0.12)";
+    ctx.fillRect(0, 0, W, HALF_H);
+  }
   ctx.fillStyle = "rgba(8, 6, 5, 0.58)";
   ctx.fillRect(0, H - 82, W, 82);
   ctx.fillStyle = "rgba(255, 225, 140, 0.1)";
   ctx.fillRect(0, H - 82, W, 2);
 
-  drawText(`체력 ${player.hp}/${player.maxHp}`, 24, H - 58, 13, "#fff1bd");
-  drawBar(24, H - 50, 196, 14, player.hp / player.maxHp, "#d42f2f", "#3f1212");
-  drawText(`분노 ${Math.floor(player.rage)}/${player.maxRage}`, 24, H - 24, 12, player.rage >= SPECIAL_RAGE_COST ? "#ffe39a" : "#d8b47b");
-  drawBar(24, H - 17, 196, 9, player.rage / player.maxRage, "#d77b23", "#2d1609");
+  drawText("체력", 24, H - 45, 13, "#fff1bd");
+  drawBar(70, H - 58, 150, 16, player.hp / player.maxHp, "#d42f2f", "#3f1212", `${player.hp}/${player.maxHp}`);
+  drawText(berserk ? "광폭" : "분노", 24, H - 17, 13, berserk ? "#ffb199" : "#ffe39a");
+  drawBar(70, H - 29, 150, 13, player.rage / player.maxRage, berserk ? "#f04a22" : "#d77b23", "#2d1609", `${Math.floor(player.rage)}/${player.maxRage}`);
 
   drawText(`처치 ${kills}`, 252, H - 28, 15, "#fff1bd");
   drawText(`레벨 ${player.level}`, 410, H - 50, 14, "#ffe39a");
   drawText(`경험치 ${player.xp}/${player.nextXp}`, 410, H - 28, 12, "#d7c27b");
   drawText(isTown() ? "마을" : "필드", 580, H - 28, 14, isTown() ? "#ffe39a" : "#d7c27b");
   drawText(swordName(), W - 184, H - 28, 14, "#d7c27b");
-  if (player.rage >= SPECIAL_RAGE_COST) drawText(`우클릭 특수공격 - 분노 ${SPECIAL_RAGE_COST}`, W - 290, H - 52, 13, "#ffe39a");
+  if (berserk) drawText("광폭화: 공격력/이속 +50%", W - 288, H - 52, 13, "#ffb199");
+  else if (player.rage >= SPECIAL_RAGE_COST) drawText(`우클릭 특수공격 - 분노 ${SPECIAL_RAGE_COST}`, W - 290, H - 52, 13, "#ffe39a");
 
   const boss = enemies.find((e) => e.boss && !e.dead);
   if (boss && (Math.hypot(player.x - boss.x, player.y - boss.y) < 8 || boss.hp < boss.maxHp)) {
@@ -1472,7 +1530,7 @@ function drawCrosshair() {
   ctx.fillRect(cx - 2, cy - 2, 4, 4);
 }
 
-function drawBar(x, y, w, h, pct, fill, bg) {
+function drawBar(x, y, w, h, pct, fill, bg, label = "") {
   ctx.fillStyle = "rgba(0, 0, 0, 0.62)";
   ctx.fillRect(x - 3, y - 3, w + 6, h + 6);
   ctx.fillStyle = bg;
@@ -1485,6 +1543,11 @@ function drawBar(x, y, w, h, pct, fill, bg) {
   ctx.lineWidth = 2;
   ctx.strokeRect(x, y, w, h);
   ctx.lineWidth = 1;
+  if (label) {
+    ctx.textAlign = "center";
+    drawText(label, x + w / 2, y + h - 4, Math.max(10, Math.min(12, h - 2)), "#fff7d6");
+    ctx.textAlign = "left";
+  }
 }
 
 function drawText(text, x, y, size, color) {
@@ -1502,14 +1565,18 @@ function drawEndScreen() {
   let title = "게임 오버";
   if (gameState === "start") title = "레트로 오크 던전";
   if (gameState === "clear") title = "던전 정복";
+  if (gameState === "dead") title = "죽었습니다";
   ctx.fillText(title, W / 2, H / 2 - 72);
   ctx.fillStyle = "#d9c99a";
   ctx.font = "500 20px Noto Sans KR, Malgun Gothic, sans-serif";
   if (gameState === "start") {
     ctx.fillText("좌클릭 / 스페이스: 공격", W / 2, H / 2 - 18);
-    ctx.fillText(`우클릭: 분노 ${SPECIAL_RAGE_COST} 소모 특수공격`, W / 2, H / 2 + 14);
+    ctx.fillText(`분노 최대치: 자동 광폭화`, W / 2, H / 2 + 14);
     ctx.fillText("사냥하고, 성장하고, 던전에서 버티세요", W / 2, H / 2 + 48);
     ctx.fillText("Enter 또는 클릭으로 시작", W / 2, H / 2 + 84);
+  } else if (gameState === "dead") {
+    ctx.fillText(`${Math.ceil(deathTimer)}초 후 마을에서 부활합니다`, W / 2, H / 2 + 12);
+    ctx.fillText("강화된 검은 죽은 자리에 떨어졌습니다", W / 2, H / 2 + 48);
   } else {
     ctx.fillText("Enter로 다시 시작", W / 2, H / 2 + 12);
   }
@@ -1537,6 +1604,8 @@ function resetGame() {
   player.xp = 0;
   player.nextXp = 60;
   player.weaponLevel = 0;
+  berserk = false;
+  deathTimer = 0;
   kills = 0;
   swing = 0;
   swingCooldown = 0;
@@ -1585,7 +1654,7 @@ window.addEventListener("keydown", (event) => {
     if (gameState === "start") startGame();
     else attack("normal");
   }
-  if (event.code === "Enter" && gameState !== "play") resetGame();
+  if (event.code === "Enter" && gameState !== "play" && gameState !== "dead") resetGame();
 });
 
 window.addEventListener("keyup", (event) => {
