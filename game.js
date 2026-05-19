@@ -100,15 +100,17 @@ const SPAWN_POINTS = [
 const TOWN_NPCS = [
   {
     name: "마을 장로",
-    x: 5.7,
-    y: 4.05,
+    x: 7.05,
+    y: 4.72,
+    hp: 30,
+    maxHp: 30,
     line: "안녕하세요. 밖은 위험하니 검을 잃으면 꼭 다시 찾아오세요.",
   },
 ];
 
 const TOWN_PROPS = [
   { type: "lantern", x: 4.1, y: 3.15 },
-  { type: "sign", x: 6.55, y: 4.55 },
+  { type: "sign", x: 5.9, y: 3.05 },
   { type: "crate", x: 3.35, y: 4.85 },
   { type: "well", x: 5.05, y: 2.65 },
 ];
@@ -711,7 +713,11 @@ function drawSprites() {
     const size = Math.min(H * 1.45, (H / s.dist) * spriteScale(s.e));
     const depthIndex = Math.floor((screenX / W) * RAYS);
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < s.dist - 0.2) continue;
-    drawEnemy(s.e, screenX - size / 2, HALF_H - size * 0.55, size, s.dist);
+    const y = HALF_H - size * 0.55;
+    drawEnemy(s.e, screenX - size / 2, y, size, s.dist);
+    if (gameState === "play") {
+      drawNameplate(screenX, y - Math.max(22, size * 0.08), Math.max(58, Math.min(118, size * 0.5)), enemyLabel(s.e), s.e.hp / s.e.maxHp, s.e.boss ? "#d33a32" : "#d8bd76");
+    }
   }
 }
 
@@ -747,7 +753,11 @@ function drawTownSprites() {
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < s.dist - 0.2) continue;
     if (s.kind === "npc") {
       const size = Math.min(180, (H / s.dist) * 0.36);
-      drawTownNpc(s.data, screenX - size / 2, HALF_H - size * 0.38, size, s.dist);
+      const y = HALF_H - size * 0.38;
+      drawTownNpc(s.data, screenX - size / 2, y, size, s.dist);
+      if (gameState === "play") {
+        drawNameplate(screenX, y - Math.max(24, size * 0.1), Math.max(64, Math.min(112, size * 0.55)), s.data.name, s.data.hp / s.data.maxHp, "#6bcf77");
+      }
     } else {
       const size = Math.min(150, (H / s.dist) * propScale(s.data.type));
       drawTownProp(s.data, screenX - size / 2, HALF_H + H / Math.max(1, s.dist) * 0.25 - size, size);
@@ -764,9 +774,7 @@ function propScale(type) {
 
 function drawTownNpc(npc, x, y, size, dist) {
   const px = Math.max(2, Math.floor(size / 18));
-  const bob = Math.sin(performance.now() * 0.004 + npc.x) * px * 0.6;
   const near = nearestTownNpc()?.npc === npc;
-  y += bob;
 
   rect(x + 5 * px, y + 2 * px, 8 * px, 7 * px, "#bd9a68");
   rect(x + 4 * px, y + 1 * px, 10 * px, 3 * px, "#59402f");
@@ -786,6 +794,25 @@ function drawTownNpc(npc, x, y, size, dist) {
     drawText("E 대화", x + size / 2, y - 8, Math.max(12, Math.floor(size / 8)), "#ffe39a");
     ctx.textAlign = "left";
   }
+}
+
+function drawNameplate(cx, y, width, name, pct, fill) {
+  const w = Math.round(width);
+  const h = 7;
+  const x = Math.round(cx - w / 2);
+  const clamped = Math.max(0, Math.min(1, pct || 0));
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.fillStyle = "rgba(7, 5, 4, 0.7)";
+  ctx.fillRect(x - 4, y - 18, w + 8, 27);
+  drawText(name, cx, y - 7, 12, "#fff1bd");
+  ctx.fillStyle = "#21120d";
+  ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = fill;
+  ctx.fillRect(x + 1, y + 1, Math.max(0, (w - 2) * clamped), h - 2);
+  ctx.strokeStyle = "#0c0806";
+  ctx.strokeRect(x, y, w, h);
+  ctx.restore();
 }
 
 function drawTownProp(prop, x, y, size) {
