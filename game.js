@@ -36,6 +36,8 @@ const player = {
   hp: 100,
   hurt: 0,
   maxHp: 100,
+  rage: 0,
+  maxRage: 100,
   weaponLevel: 1,
 };
 
@@ -51,7 +53,8 @@ let last = performance.now();
 let kills = 0;
 let swing = 0;
 let swingCooldown = 0;
-let gameState = "play";
+let swingType = "normal";
+let gameState = "start";
 let mouseActive = false;
 let messagePulse = 0;
 let started = false;
@@ -59,7 +62,7 @@ let hitSpark = 0;
 let screenShake = 0;
 let damagePops = [];
 let notice = "STAGE 1";
-let noticeTimer = 2.4;
+let noticeTimer = 0;
 
 function enemy(type, x, y) {
   const stageBonus = stage - 1;
@@ -128,6 +131,10 @@ function spawnDamagePop(x, y, value, boss) {
     life: 0.72,
     rise: 0,
   });
+}
+
+function addRage(amount) {
+  player.rage = Math.min(player.maxRage, player.rage + amount);
 }
 
 function buildMap(nextStage) {
@@ -268,6 +275,7 @@ function update(dt) {
         if (dist <= attackRange + 0.12) {
           player.hp = Math.max(0, player.hp - e.damage);
           player.hurt = 1;
+          addRage(e.type === "boss" ? 12 : 7);
           e.attackPose = 1;
           screenShake = Math.max(screenShake, e.type === "boss" ? 1 : 0.55);
           if (player.hp <= 0) gameState = "over";
@@ -290,14 +298,23 @@ function update(dt) {
   collectItems();
 }
 
-function attack() {
+function attack(kind = "normal") {
   if (gameState !== "play" || swingCooldown > 0) return;
+  if (kind === "special" && player.rage < player.maxRage) {
+    notice = "RAGE NOT READY";
+    noticeTimer = 1;
+    return;
+  }
   started = true;
   swing = 1;
-  swingCooldown = 0.54;
+  swingType = kind;
+  swingCooldown = kind === "special" ? 0.78 : 0.54;
+  if (kind === "special") player.rage = 0;
 
-  let target = null;
-  let best = Infinity;
+  const hitRange = kind === "special" ? 2.3 : 1.55;
+  const hitAngle = kind === "special" ? 0.58 : 0.34;
+  const damage = kind === "special" ? player.weaponLevel * 2 + 2 : player.weaponLevel;
+  const hits = [];
   for (const e of enemies) {
     if (e.dead) continue;
     const dx = e.x - player.x;
@@ -305,34 +322,43 @@ function attack() {
     const dist = Math.hypot(dx, dy);
     const angle = Math.atan2(dy, dx);
     const delta = Math.abs(normAngle(angle - player.angle));
-    if (dist < 1.55 && delta < 0.34 && hasLineOfSight(e) && dist < best) {
-      target = e;
-      best = dist;
+    if (dist < hitRange && delta < hitAngle && hasLineOfSight(e)) {
+      hits.push({ e, dist });
     }
   }
+  hits.sort((a, b) => a.dist - b.dist);
+  const targets = kind === "special" ? hits.map((hit) => hit.e) : hits.slice(0, 1).map((hit) => hit.e);
 
-  if (target) {
-    target.hp -= player.weaponLevel;
-    target.hitFlash = 1;
-    target.attackWindup = 0;
-    const pushAngle = Math.atan2(target.y - player.y, target.x - player.x);
-    const pushPower = target.type === "boss" ? 1.35 : 2.55;
-    target.knockX = Math.cos(pushAngle) * pushPower;
-    target.knockY = Math.sin(pushAngle) * pushPower;
-    target.stun = target.type === "boss" ? 0.25 : 0.42;
-    spawnDamagePop(target.x, target.y, player.weaponLevel, target.type === "boss");
+  if (targets.length) {
+    for (const target of targets) {
+      damageEnemy(target, damage, kind);
+    }
     hitSpark = 1;
-    screenShake = 1;
-    if (target.hp <= 0) {
-      target.dead = true;
-      kills += 1;
-      if (target.type === "boss") {
-        spawnItem("relic", target.x, target.y);
-        notice = stage < MAX_STAGE ? "BOSS DROPPED A GATE RELIC" : "BOSS DROPPED THE CHIEF TOKEN";
-        noticeTimer = 3;
-      } else if (Math.random() < 0.45) {
-        spawnItem("health", target.x, target.y);
-      }
+    screenShake = kind === "special" ? 1.6 : 1;
+  }
+}
+
+function damageEnemy(target, damage, kind) {
+  target.hp -= damage;
+  target.hitFlash = 1;
+  target.attackWindup = 0;
+  const pushAngle = Math.atan2(target.y - player.y, target.x - player.x);
+  const pushPower = target.type === "boss" ? (kind === "special" ? 2.1 : 1.35) : (kind === "special" ? 4.1 : 2.55);
+  target.knockX = Math.cos(pushAngle) * pushPower;
+  target.knockY = Math.sin(pushAngle) * pushPower;
+  target.stun = target.type === "boss" ? (kind === "special" ? 0.42 : 0.25) : (kind === "special" ? 0.68 : 0.42);
+  spawnDamagePop(target.x, target.y, damage, target.type === "boss");
+  if (kind !== "special") addRage(target.type === "boss" ? 16 : 22);
+  if (target.hp <= 0) {
+    target.dead = true;
+    kills += 1;
+    if (kind !== "special") addRage(target.type === "boss" ? 30 : 16);
+    if (target.type === "boss") {
+      spawnItem("relic", target.x, target.y);
+      notice = stage < MAX_STAGE ? "BOSS DROPPED A GATE RELIC" : "BOSS DROPPED THE CHIEF TOKEN";
+      noticeTimer = 3;
+    } else if (Math.random() < 0.45) {
+      spawnItem("health", target.x, target.y);
     }
   }
 }
@@ -350,7 +376,10 @@ function collectItems() {
     } else if (item.type === "relic") {
       items.splice(i, 1);
       if (stage < MAX_STAGE) {
-        advanceStage();
+        gameState = "stageClear";
+        messagePulse = 0;
+        notice = `STAGE ${stage} COMPLETE`;
+        noticeTimer = 2;
       } else {
         player.weaponLevel += 1;
         notice = "CHIEF TOKEN CLAIMED";
@@ -367,9 +396,11 @@ function advanceStage() {
   player.y = 4.5;
   player.angle = 0;
   player.hp = Math.min(player.maxHp, player.hp + 45);
+  player.rage = Math.min(player.maxRage, player.rage + 35);
   player.weaponLevel += 1;
   swing = 0;
   swingCooldown = 0;
+  swingType = "normal";
   damagePops = [];
   started = false;
   map = buildMap(stage);
@@ -377,6 +408,8 @@ function advanceStage() {
   items = [];
   notice = `STAGE ${stage} - SWORD UPGRADED`;
   noticeTimer = 3;
+  gameState = "play";
+  messagePulse = 0;
 }
 
 function hasLineOfSight(e) {
@@ -643,22 +676,24 @@ function tri(x1, y1, x2, y2, x3, y3, color) {
 
 function drawWeapon() {
   const progress = swing > 0 ? 1 - swing : 0;
-  const lungeIn = Math.min(1, progress / 0.22);
-  const lungeOut = progress > 0.5 ? Math.max(0, 1 - (progress - 0.5) / 0.42) : 1;
+  const special = swingType === "special";
+  const lungeIn = Math.min(1, progress / (special ? 0.18 : 0.2));
+  const lungeOut = progress > 0.56 ? Math.max(0, 1 - (progress - 0.56) / 0.38) : 1;
   const lunge = swing > 0 ? Math.min(lungeIn, lungeOut) : 0;
   const recoil = swing > 0 && progress > 0.72 ? (progress - 0.72) / 0.28 : 0;
   const sway = swing > 0 ? 0 : Math.sin(performance.now() * 0.006) * 3;
+  const reach = special ? lunge * 1.35 : lunge;
 
-  const nearX = W * (0.84 - lunge * 0.1 + recoil * 0.05) + sway;
-  const nearY = H * (1.12 + recoil * 0.05 - lunge * 0.02);
-  const farX = W * (0.59 - lunge * 0.06);
-  const farY = H * (0.75 - lunge * 0.14);
-  drawForwardPole(nearX, nearY, farX, farY, lunge);
+  const nearX = W * (0.84 - reach * 0.19 + recoil * 0.05) + sway;
+  const nearY = H * (1.12 + recoil * 0.05 - reach * 0.05);
+  const farX = W * (0.59 - reach * 0.13);
+  const farY = H * (0.75 - reach * 0.24);
+  drawForwardPole(nearX, nearY, farX, farY, reach, special);
 
   if (hitSpark > 0) drawHitSpark();
 }
 
-function drawForwardPole(nearX, nearY, farX, farY, lunge) {
+function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false) {
   const dx = farX - nearX;
   const dy = farY - nearY;
   const len = Math.hypot(dx, dy) || 1;
@@ -668,7 +703,7 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge) {
   const nearW = 34 + lunge * 10;
   const midW = 24 + lunge * 4;
   const farW = 17 + lunge * 2;
-  const tipLen = 18 + lunge * 4;
+  const tipLen = 18 + lunge * 8;
   const hiltX = nearX - dx / len * 46;
   const hiltY = nearY - dy / len * 46;
 
@@ -726,24 +761,24 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge) {
   ctx.closePath();
   ctx.fill();
 
-  if (lunge > 0.42) {
-    ctx.strokeStyle = palette.trail;
-    ctx.lineWidth = 4;
+  if (lunge > 0.42 || special) {
+    ctx.strokeStyle = special ? palette.specialTrail : palette.trail;
+    ctx.lineWidth = special ? 8 : 4;
     ctx.beginPath();
-    ctx.moveTo(nearX - dx * 0.18, nearY - dy * 0.18);
-    ctx.lineTo(farX, farY);
+    ctx.moveTo(nearX - dx * 0.32, nearY - dy * 0.32);
+    ctx.lineTo(farX + dx / len * 28, farY + dy / len * 28);
     ctx.stroke();
   }
 }
 
 function swordPalette() {
   if (player.weaponLevel >= 5) {
-    return { blade: "#f1c232", highlight: "#fff0a6", shadow: "#5b4315", guard: "#c18a24", trail: "rgba(255, 220, 72, 0.45)" };
+    return { blade: "#f1c232", highlight: "#fff0a6", shadow: "#5b4315", guard: "#c18a24", trail: "rgba(255, 220, 72, 0.45)", specialTrail: "rgba(255, 235, 92, 0.72)" };
   }
   if (player.weaponLevel >= 2) {
-    return { blade: "#c83b34", highlight: "#ffd0c0", shadow: "#4a1511", guard: "#91302a", trail: "rgba(255, 90, 70, 0.42)" };
+    return { blade: "#c83b34", highlight: "#ffd0c0", shadow: "#4a1511", guard: "#91302a", trail: "rgba(255, 90, 70, 0.42)", specialTrail: "rgba(255, 74, 45, 0.68)" };
   }
-  return { blade: "#d8d8d2", highlight: "#ffffff", shadow: "#686860", guard: "#9a8b68", trail: "rgba(255, 255, 255, 0.34)" };
+  return { blade: "#d8d8d2", highlight: "#ffffff", shadow: "#686860", guard: "#9a8b68", trail: "rgba(255, 255, 255, 0.34)", specialTrail: "rgba(255, 238, 186, 0.64)" };
 }
 
 function swordName() {
@@ -797,14 +832,17 @@ function drawHud() {
   drawMiniMap();
   drawCrosshair();
   ctx.fillStyle = "rgba(8, 6, 5, 0.58)";
-  ctx.fillRect(0, H - 54, W, 54);
+  ctx.fillRect(0, H - 70, W, 70);
   ctx.fillStyle = "rgba(255, 225, 140, 0.1)";
-  ctx.fillRect(0, H - 54, W, 2);
-  drawBar(24, H - 38, 196, 20, player.hp / 100, "#d42f2f", "#3f1212");
-  drawText(`HP ${player.hp}`, 32, H - 22, 15, "#fff1bd");
-  drawText(`KILLS ${kills}`, 252, H - 22, 17, "#fff1bd");
-  drawText(`STAGE ${stage}/10`, 410, H - 22, 15, "#d7c27b");
-  drawText(swordName(), W - 184, H - 22, 15, "#d7c27b");
+  ctx.fillRect(0, H - 70, W, 2);
+  drawBar(24, H - 52, 196, 18, player.hp / 100, "#d42f2f", "#3f1212");
+  drawText(`HP ${player.hp}`, 32, H - 38, 13, "#fff1bd");
+  drawBar(24, H - 25, 196, 11, player.rage / player.maxRage, "#d77b23", "#2d1609");
+  drawText(`RAGE ${Math.floor(player.rage)}`, 32, H - 15, 10, player.rage >= player.maxRage ? "#ffe39a" : "#d8b47b");
+  drawText(`KILLS ${kills}`, 252, H - 25, 15, "#fff1bd");
+  drawText(`STAGE ${stage}/10`, 410, H - 25, 14, "#d7c27b");
+  drawText(swordName(), W - 184, H - 25, 14, "#d7c27b");
+  if (player.rage >= player.maxRage) drawText("RMB SPECIAL READY", W - 230, H - 48, 12, "#ffe39a");
 
   const boss = enemies.find((e) => e.type === "boss" && !e.dead);
   if (boss && (player.y >= 8.7 || boss.hp < boss.maxHp)) {
@@ -911,13 +949,34 @@ function drawEndScreen() {
   ctx.fillStyle = "rgba(4, 3, 2, 0.72)";
   ctx.fillRect(0, 0, W, H);
   ctx.textAlign = "center";
-  ctx.fillStyle = gameState === "clear" ? "#e6c766" : "#b52626";
-  ctx.font = "54px Courier New";
-  ctx.fillText(gameState === "clear" ? "DUNGEON CLEARED" : "GAME OVER", W / 2, H / 2 - 28);
+  ctx.fillStyle = gameState === "over" ? "#b52626" : "#e6c766";
+  ctx.font = gameState === "start" ? "46px Courier New" : "54px Courier New";
+  let title = "GAME OVER";
+  if (gameState === "start") title = "RETRO ORC DUNGEON";
+  if (gameState === "stageClear") title = `STAGE ${stage} COMPLETE`;
+  if (gameState === "clear") title = "DUNGEON CLEARED";
+  ctx.fillText(title, W / 2, H / 2 - 72);
   ctx.fillStyle = "#d9c99a";
-  ctx.font = "22px Courier New";
-  ctx.fillText("Press Enter to restart", W / 2, H / 2 + 28);
+  ctx.font = "18px Courier New";
+  if (gameState === "start") {
+    ctx.fillText("LEFT CLICK / SPACE: ATTACK", W / 2, H / 2 - 18);
+    ctx.fillText("RIGHT CLICK: RAGE SPECIAL", W / 2, H / 2 + 12);
+    ctx.fillText("PRESS ENTER OR CLICK TO START", W / 2, H / 2 + 58);
+  } else if (gameState === "stageClear") {
+    ctx.fillText(`STAGE ${stage + 1}/10 READY`, W / 2, H / 2 - 14);
+    ctx.fillText("SWORD UPGRADED - HP RESTORED", W / 2, H / 2 + 16);
+    ctx.fillText("PRESS ENTER OR CLICK FOR NEXT STAGE", W / 2, H / 2 + 58);
+  } else {
+    ctx.fillText("Press Enter to restart", W / 2, H / 2 + 12);
+  }
   ctx.textAlign = "left";
+}
+
+function startGame() {
+  gameState = "play";
+  messagePulse = 0;
+  notice = `STAGE ${stage}`;
+  noticeTimer = 1.8;
 }
 
 function resetGame() {
@@ -927,20 +986,22 @@ function resetGame() {
   player.angle = 0;
   player.hp = 100;
   player.hurt = 0;
+  player.rage = 0;
   player.weaponLevel = 1;
   kills = 0;
   swing = 0;
   swingCooldown = 0;
+  swingType = "normal";
   damagePops = [];
   hitSpark = 0;
   screenShake = 0;
-  gameState = "play";
+  gameState = "start";
   started = false;
   items = [];
   map = buildMap(stage);
   enemies = buildEnemies(stage);
   notice = "STAGE 1";
-  noticeTimer = 2.4;
+  noticeTimer = 0;
 }
 
 function frame(now) {
@@ -952,13 +1013,24 @@ function frame(now) {
 }
 
 window.addEventListener("keydown", (event) => {
+  if (event.code === "Enter" && gameState === "start") {
+    event.preventDefault();
+    startGame();
+    return;
+  }
+  if (event.code === "Enter" && gameState === "stageClear") {
+    event.preventDefault();
+    advanceStage();
+    return;
+  }
   keys.add(event.code);
-  if (["KeyW", "KeyA", "KeyS", "KeyD", "ArrowLeft", "ArrowRight", "Space"].includes(event.code)) {
+  if (gameState === "play" && ["KeyW", "KeyA", "KeyS", "KeyD", "ArrowLeft", "ArrowRight", "Space"].includes(event.code)) {
     started = true;
   }
   if (event.code === "Space") {
     event.preventDefault();
-    attack();
+    if (gameState === "start") startGame();
+    else attack("normal");
   }
   if (event.code === "Enter" && gameState !== "play") resetGame();
 });
@@ -968,6 +1040,14 @@ window.addEventListener("keyup", (event) => {
 });
 
 canvas.addEventListener("click", () => {
+  if (gameState === "start") {
+    startGame();
+    return;
+  }
+  if (gameState === "stageClear") {
+    advanceStage();
+    return;
+  }
   if (!mouseActive) {
     try {
       const lockRequest = canvas.requestPointerLock?.();
@@ -976,7 +1056,25 @@ canvas.addEventListener("click", () => {
       mouseActive = false;
     }
   }
-  attack();
+  attack("normal");
+});
+
+canvas.addEventListener("contextmenu", (event) => {
+  event.preventDefault();
+});
+
+canvas.addEventListener("mousedown", (event) => {
+  if (event.button !== 2) return;
+  event.preventDefault();
+  if (gameState === "start") {
+    startGame();
+    return;
+  }
+  if (gameState === "stageClear") {
+    advanceStage();
+    return;
+  }
+  attack("special");
 });
 
 document.addEventListener("pointerlockchange", () => {
