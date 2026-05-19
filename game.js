@@ -16,28 +16,32 @@ const BERSERK_DRAIN_PER_SECOND = 7.5;
 const DEATH_RESPAWN_SECONDS = 5;
 
 const BASE_MAP = [
-  "########################################",
-  "#......#........#..............#.......#",
-  "#......#........#..####..####..#..###..#",
-  "#......#...............................#",
-  "#...............#..####........####....#",
-  "#####.#####.#####........#######.......#",
-  "#.................####.........#.......#",
-  "#..####..#####....#..#..####...#..###..#",
-  "#..#..............#..#.....#...#.......#",
-  "#..#..######..#####..####..#...#####...#",
-  "#.....#....................#...........#",
-  "#####.#..#######..#######..#..######...#",
-  "#.....#........#...........#...........#",
-  "#..#########...#..#####..###..#####....#",
-  "#..............#.....#........#........#",
-  "#..####..##########..#..#####.#.###....#",
-  "#....................#.................#",
-  "#.######..#########..#######..####.....#",
-  "#......#.............#........#........#",
-  "#..##..#..#########..#..#######..##....#",
-  "#......#.............#............B....#",
-  "########################################",
+  "################################################",
+  "#......#........#..............#.......#.......#",
+  "#......#........#..####..####..#..###..#..###..#",
+  "#......#...............................#.......#",
+  "#...............#..####........####............#",
+  "#####.#####.#####........#######.......#####...#",
+  "#.................####.........#...............#",
+  "#..####..#####....#..#..####...#..###..####....#",
+  "#..#..............#..#.....#...#...............#",
+  "#..#..######..#####..####..#...#####..#####....#",
+  "#.....#....................#...................#",
+  "#####.#..#######..#######..#..######..####.....#",
+  "#.....#........#...........#..............#....#",
+  "#..#########...#..#####..###..#####..###.#.....#",
+  "#..............#.....#........#............#...#",
+  "#..####..##########..#..#####.#.###..####.#....#",
+  "#....................#.....................#...#",
+  "#.######..#########..#######..####..######.#...#",
+  "#......#.............#........#............#...#",
+  "#..##..#..#########..#..#######..##..####.#....#",
+  "#......#.............#.....................#...#",
+  "#..######..#####..####..#####..##########.#....#",
+  "#..............#................#..........#...#",
+  "#..##########..######..#######..#..######......#",
+  "#...............................#.........B....#",
+  "################################################",
 ];
 
 const player = {
@@ -100,6 +104,7 @@ const SPAWN_POINTS = [
   { type: "warlock", x: 29.5, y: 18.5 },
   { type: "ogre", x: 32.5, y: 20.5 },
   { type: "skeletonKing", x: 37.5, y: 20.5 },
+  { type: "balrog", x: 42.5, y: 24.5 },
 ];
 
 const TOWN_NPCS = [
@@ -168,8 +173,9 @@ function enemyLevel(type, stageBonus) {
     ogre: 5,
     skeletonKing: 9,
     boss: 10,
+    balrog: 22,
   }[type] || 2;
-  const variance = (type === "skeletonKing" || type === "boss") ? 5 : 4;
+  const variance = type === "balrog" ? 7 : (type === "skeletonKing" || type === "boss") ? 5 : 4;
   return base + stageBonus + Math.floor(Math.random() * variance);
 }
 
@@ -181,6 +187,7 @@ function enemyStats(type, stageBonus) {
     warlock: { hp: 3 + stageBonus, speed: 0.54 + stageBonus * 0.035, damage: 12 + stageBonus * 2, radius: 0.3, xp: 34 + stageBonus * 6, attackRange: 4.2, windup: 0.55, cooldown: 1.45, projectile: true },
     skeletonKing: { hp: 12 + stageBonus * 4, speed: 0.56 + stageBonus * 0.035, damage: 18 + stageBonus * 3, radius: 0.42, xp: 90 + stageBonus * 12, attackRange: 0.9, windup: 0.5, cooldown: 1.1, boss: true },
     boss: { hp: 8 + stageBonus * 4, speed: 0.62 + stageBonus * 0.045, damage: 18 + stageBonus * 4, radius: 0.42, xp: 80 + stageBonus * 12, attackRange: 0.82, windup: 0.48, cooldown: 1.15, boss: true },
+    balrog: { hp: 55 + stageBonus * 8, speed: 0.48 + stageBonus * 0.025, damage: 34 + stageBonus * 5, radius: 0.58, xp: 360 + stageBonus * 30, attackRange: 1.08, windup: 0.7, cooldown: 1.45, boss: true },
   };
   return stats[type] || stats.orc;
 }
@@ -256,6 +263,7 @@ function reviveEnemy(e) {
 }
 
 function respawnDelay(e) {
+  if (e.type === "balrog") return 180;
   if (e.boss) return 42;
   if (e.type === "ogre") return 24;
   if (e.type === "warlock") return 20;
@@ -309,6 +317,14 @@ function respawnPlayer() {
 }
 
 function dropLoot(target) {
+  if (target.type === "balrog") {
+    spawnItem("legendScroll", target.x, target.y);
+    spawnItem("scroll", target.x + 0.35, target.y);
+    spawnItem("health", target.x - 0.35, target.y);
+    spawnItem("rage", target.x, target.y + 0.35);
+    spawnItem("xp", target.x, target.y - 0.35);
+    return;
+  }
   if (target.boss) {
     spawnItem("scroll", target.x, target.y);
     if (Math.random() < 0.75) spawnItem("health", target.x + 0.25, target.y);
@@ -337,12 +353,14 @@ function enemyLabel(e) {
     ogre: "오우거",
     warlock: "워록",
     boss: "오크 대장",
+    balrog: "발록",
     orc: "오크",
   };
   return `Lv.${e.level || 1} ${names[e.type] || "적"}`;
 }
 
 function miniMapEnemyColor(e) {
+  if (e.type === "balrog") return "#ff3b1f";
   if (e.type === "skeleton" || e.type === "skeletonKing") return "#d8d0ad";
   if (e.type === "ogre") return "#9aaa55";
   if (e.type === "warlock") return "#b75cff";
@@ -355,6 +373,7 @@ function itemColor(item) {
   if (item.type === "rage") return "#e47c25";
   if (item.type === "xp") return "#45a8ff";
   if (item.type === "scroll") return "#f2d58a";
+  if (item.type === "legendScroll") return "#ff4a24";
   if (item.type === "weapon") return "#fff1bd";
   return "#e3c75b";
 }
@@ -668,6 +687,13 @@ function collectItems() {
       notice = `강화 주문서 - 검 +${player.weaponLevel}`;
       noticeTimer = 2.2;
       items.splice(i, 1);
+    } else if (item.type === "legendScroll") {
+      player.weaponLevel += 3;
+      player.maxRage = Math.min(220, player.maxRage + 25);
+      addRage(player.maxRage);
+      notice = `발록의 전리품 - 검 +${player.weaponLevel}`;
+      noticeTimer = 3.2;
+      items.splice(i, 1);
     } else if (item.type === "weapon") {
       player.weaponLevel = Math.max(player.weaponLevel, item.value);
       notice = `검 +${item.value} 회수`;
@@ -792,6 +818,7 @@ function drawSprites() {
 }
 
 function spriteScale(e) {
+  if (e.type === "balrog") return 1.55;
   if (e.type === "ogre") return 1.05;
   if (e.boss) return 1.25;
   if (e.type === "skeleton") return 0.62;
@@ -799,7 +826,8 @@ function spriteScale(e) {
 }
 
 function drawEnemy(e, x, y, size, dist) {
-  if (e.type === "skeleton" || e.type === "skeletonKing") drawSkeleton(e, x, y, size, dist);
+  if (e.type === "balrog") drawBalrog(e, x, y, size, dist);
+  else if (e.type === "skeleton" || e.type === "skeletonKing") drawSkeleton(e, x, y, size, dist);
   else if (e.type === "warlock") drawWarlock(e, x, y, size, dist);
   else drawOrc(e, x, y, size, dist);
 }
@@ -1002,6 +1030,12 @@ function drawItemSprite(item, x, y, size) {
     rect(x + 4 * px, y + 3 * px, 2 * px, 1 * px, "#9d5a22");
     rect(x + 4 * px, y + 5 * px, 2 * px, 1 * px, "#9d5a22");
     rect(x + 1 * px, y + 1 * px, 2 * px, 2 * px, "#fff2b8");
+  } else if (item.type === "legendScroll") {
+    rect(x + 2 * px, y + 1 * px, 6 * px, 8 * px, "#3d0f0a");
+    rect(x + 3 * px, y + 2 * px, 4 * px, 6 * px, "#ff4a24");
+    rect(x + 4 * px, y + 1 * px, 2 * px, 8 * px, "#ffd25a");
+    rect(x + 2 * px, y + 4 * px, 6 * px, 2 * px, "#7a0e09");
+    rect(x + 1 * px, y + 1 * px, 2 * px, 2 * px, "#fff0a8");
   } else if (item.type === "weapon") {
     const palette = swordPalette(item.value);
     rect(x + 4 * px, y + 1 * px, 2 * px, 7 * px, palette.blade);
@@ -1076,6 +1110,50 @@ function drawWarlock(e, x, y, size, dist) {
   if (e.attackWindup > 0) {
     rect(x + 12 * px, y + 16 * px, 5 * px, 5 * px, "#6d2eb2");
     rect(x + 13 * px, y + 17 * px, 3 * px, 3 * px, "#efc9ff");
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawBalrog(e, x, y, size, dist) {
+  const px = Math.max(2, Math.floor(size / 18));
+  const flash = e.hitFlash > 0;
+  const walk = e.moving ? Math.sin(e.step) : 0;
+  const bob = e.moving ? Math.abs(Math.sin(e.step)) * px * 0.7 : 0;
+  const attack = e.attackPose;
+  const winding = e.attackWindup > 0;
+  y += bob - attack * 4 * px + (winding ? 2 * px : 0);
+  x += walk * px * 0.22;
+  ctx.globalAlpha = Math.max(0.45, 1 - dist / 18);
+
+  rect(x + 2 * px, y + 7 * px, 14 * px, 12 * px, flash ? "#ffcf9a" : "#2a0907");
+  rect(x + 4 * px, y + 5 * px, 10 * px, 9 * px, flash ? "#ffd7a8" : "#5a1110");
+  rect(x + 1 * px, y + 9 * px, 4 * px, 3 * px, "#1a0504");
+  rect(x + 13 * px, y + 9 * px, 4 * px, 3 * px, "#1a0504");
+  tri(x + 4 * px, y + 5 * px, x + 1 * px, y - 1 * px, x + 7 * px, y + 3 * px, "#d9b46a");
+  tri(x + 14 * px, y + 5 * px, x + 17 * px, y - 1 * px, x + 11 * px, y + 3 * px, "#d9b46a");
+  rect(x + 5 * px, y + 9 * px, 3 * px, 2 * px, "#ff3b1f");
+  rect(x + 10 * px, y + 9 * px, 3 * px, 2 * px, "#ff3b1f");
+  rect(x + 6 * px, y + 8 * px, 2 * px, 1 * px, "#ffd25a");
+  rect(x + 11 * px, y + 8 * px, 2 * px, 1 * px, "#ffd25a");
+  rect(x + 7 * px, y + 12 * px, 4 * px, 2 * px, "#0b0303");
+  rect(x + 6 * px, y + 14 * px, 2 * px, 3 * px, "#f4dfc0");
+  rect(x + 11 * px, y + 14 * px, 2 * px, 3 * px, "#f4dfc0");
+
+  rect(x + 3 * px, y + 18 * px, 12 * px, 12 * px, "#171010");
+  rect(x + 4 * px, y + 18 * px, 10 * px, 2 * px, "#6f1c13");
+  rect(x + 5 * px, y + 22 * px, 8 * px, 2 * px, "#d63a1d");
+  rect(x + 1 * px, y + 20 * px, 5 * px, 7 * px, "#210808");
+  rect(x + 12 * px, y + 20 * px, 5 * px, 7 * px, "#210808");
+  rect(x + 0 * px, y + 24 * px, 4 * px, 3 * px, "#6f1c13");
+  rect(x + 14 * px, y + 24 * px, 4 * px, 3 * px, "#6f1c13");
+  rect(x + 5 * px, y + 30 * px, 4 * px, 7 * px, "#130706");
+  rect(x + 10 * px, y + 30 * px, 4 * px, 7 * px, "#130706");
+  rect(x + 4 * px, y + 36 * px, 5 * px, 2 * px, "#070303");
+  rect(x + 10 * px, y + 36 * px, 5 * px, 2 * px, "#070303");
+
+  if (winding || attack > 0) {
+    rect(x + 15 * px, y + 17 * px, 3 * px, 12 * px, "#ff5b22");
+    rect(x + 16 * px, y + 18 * px, 1 * px, 10 * px, "#ffd25a");
   }
   ctx.globalAlpha = 1;
 }
@@ -1407,7 +1485,7 @@ function drawHud() {
   if (berserk) drawText("광폭화: 공속/공격력/이속 +50%, 특수공격 무제한", W - 390, H - 52, 13, "#ffb199");
   else if (player.rage >= SPECIAL_RAGE_COST) drawText(`우클릭 특수공격 - 분노 ${SPECIAL_RAGE_COST}`, W - 290, H - 52, 13, "#ffe39a");
 
-  const boss = enemies.find((e) => e.boss && !e.dead);
+  const boss = enemies.find((e) => e.type === "balrog" && !e.dead) || enemies.find((e) => e.boss && !e.dead);
   if (boss && (Math.hypot(player.x - boss.x, player.y - boss.y) < 8 || boss.hp < boss.maxHp)) {
     drawBar(W - 260, 26, 220, 18, boss.hp / boss.maxHp, "#b91818", "#2a0c0c");
     drawText(enemyLabel(boss), W - 252, 40, 13, "#ffe08a");
@@ -1564,8 +1642,8 @@ function drawEndScreen() {
   ctx.fillStyle = gameState === "over" ? "#b52626" : "#e6c766";
   ctx.font = gameState === "start" ? "600 48px Noto Sans KR, Malgun Gothic, sans-serif" : "600 54px Noto Sans KR, Malgun Gothic, sans-serif";
   let title = "게임 오버";
-  if (gameState === "start") title = "레트로 오크 던전";
-  if (gameState === "clear") title = "던전 정복";
+  if (gameState === "start") title = "그림자 성채";
+  if (gameState === "clear") title = "성채 정복";
   if (gameState === "dead") title = "죽었습니다";
   ctx.fillText(title, W / 2, H / 2 - 72);
   ctx.fillStyle = "#d9c99a";
