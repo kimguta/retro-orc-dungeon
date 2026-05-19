@@ -10,9 +10,9 @@ const RAYS = 240;
 const MAX_DEPTH = 18;
 const TILE = 64;
 const TURN_SPEED = 1.95;
-const MOVE_SPEED = 2.45;
+const MOVE_SPEED = 2.1;
 const SPECIAL_RAGE_COST = 40;
-const BERSERK_DRAIN_PER_SECOND = 16;
+const BERSERK_DRAIN_PER_SECOND = 7.5;
 const DEATH_RESPAWN_SECONDS = 5;
 
 const BASE_MAP = [
@@ -584,7 +584,8 @@ function attack(kind = "normal") {
   started = true;
   swing = 1;
   swingType = kind;
-  swingCooldown = kind === "special" ? 0.78 : 0.54;
+  const baseCooldown = kind === "special" ? 0.82 : 0.62;
+  swingCooldown = berserk ? baseCooldown * 0.42 : baseCooldown;
   if (kind === "special" && !berserk) player.rage = Math.max(0, player.rage - SPECIAL_RAGE_COST);
 
   const hitRange = kind === "special" ? 2.3 : 1.55;
@@ -1403,7 +1404,7 @@ function drawHud() {
   drawText(`경험치 ${player.xp}/${player.nextXp}`, 410, H - 28, 12, "#d7c27b");
   drawText(isTown() ? "마을" : "필드", 580, H - 28, 14, isTown() ? "#ffe39a" : "#d7c27b");
   drawText(swordName(), W - 184, H - 28, 14, "#d7c27b");
-  if (berserk) drawText("광폭화: 공격력/이속 +50%", W - 288, H - 52, 13, "#ffb199");
+  if (berserk) drawText("광폭화: 공속/공격력/이속 +50%, 특수공격 무제한", W - 390, H - 52, 13, "#ffb199");
   else if (player.rage >= SPECIAL_RAGE_COST) drawText(`우클릭 특수공격 - 분노 ${SPECIAL_RAGE_COST}`, W - 290, H - 52, 13, "#ffe39a");
 
   const boss = enemies.find((e) => e.boss && !e.dead);
