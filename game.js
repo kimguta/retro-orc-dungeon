@@ -72,7 +72,7 @@ let started = false;
 let hitSpark = 0;
 let screenShake = 0;
 let damagePops = [];
-let notice = "?섏쟾 ?꾨뱶";
+let notice = "던전 필드";
 let noticeTimer = 0;
 
 const SPAWN_POINTS = [
@@ -184,7 +184,7 @@ function gainXp(amount) {
     player.hp = player.maxHp;
     player.maxRage = Math.min(160, player.maxRage + 8);
     if (player.level === 3 || player.level === 6 || player.level === 9) player.weaponLevel += 1;
-    notice = `?덈꺼 ${player.level}`;
+    notice = `레벨 ${player.level}`;
     noticeTimer = 2.2;
   }
 }
@@ -215,14 +215,14 @@ function respawnDelay(e) {
 
 function enemyLabel(e) {
   const names = {
-    skeleton: "?ㅼ펷?덊넠",
-    skeletonKing: "?ㅼ펷?덊넠 ??,
-    ogre: "?ㅼ슦嫄?,
-    warlock: "?뚮줉",
-    boss: "?ㅽ겕 ???,
-    orc: "?ㅽ겕",
+    skeleton: "스켈레톤",
+    skeletonKing: "스켈레톤 킹",
+    ogre: "오우거",
+    warlock: "워록",
+    boss: "오크 대장",
+    orc: "오크",
   };
-  return names[e.type] || "??;
+  return names[e.type] || "적";
 }
 
 function miniMapEnemyColor(e) {
@@ -405,7 +405,7 @@ function update(dt) {
 function attack(kind = "normal") {
   if (gameState !== "play" || swingCooldown > 0) return;
   if (kind === "special" && player.rage < player.maxRage) {
-    notice = "遺꾨끂 遺議?;
+    notice = "분노 부족";
     noticeTimer = 1;
     return;
   }
@@ -465,7 +465,7 @@ function damageEnemy(target, damage, kind) {
     if (kind !== "special") addRage(target.boss ? 30 : 16);
     if (target.boss) {
       if (Math.random() < 0.7) spawnItem("health", target.x, target.y);
-      notice = `${enemyLabel(target)} 泥섏튂`;
+      notice = `${enemyLabel(target)} 처치`;
       noticeTimer = 2.4;
     } else if (Math.random() < 0.36) {
       spawnItem("health", target.x, target.y);
@@ -480,7 +480,7 @@ function collectItems() {
     if (dist > 0.58) continue;
     if (item.type === "health") {
       player.hp = Math.min(player.maxHp, player.hp + 28);
-      notice = "泥대젰 ?뚮났";
+      notice = "체력 회복";
       noticeTimer = 1.6;
       items.splice(i, 1);
     }
@@ -993,9 +993,9 @@ function swordPalette() {
 }
 
 function swordName() {
-  if (player.weaponLevel >= 5) return "?⑷툑寃";
-  if (player.weaponLevel >= 2) return "遺됱?寃";
-  return "?곌?";
+  if (player.weaponLevel >= 5) return "황금검";
+  if (player.weaponLevel >= 2) return "붉은검";
+  return "흰검";
 }
 
 function drawThrustHead(cx, tipY, s, jab) {
@@ -1047,15 +1047,15 @@ function drawHud() {
   ctx.fillStyle = "rgba(255, 225, 140, 0.1)";
   ctx.fillRect(0, H - 70, W, 2);
   drawBar(24, H - 52, 196, 18, player.hp / player.maxHp, "#d42f2f", "#3f1212");
-  drawText(`泥대젰 ${player.hp}`, 32, H - 38, 14, "#fff1bd");
+  drawText(`체력 ${player.hp}`, 32, H - 38, 14, "#fff1bd");
   drawBar(24, H - 25, 196, 11, player.rage / player.maxRage, "#d77b23", "#2d1609");
-  drawText(`遺꾨끂 ${Math.floor(player.rage)}`, 32, H - 15, 11, player.rage >= player.maxRage ? "#ffe39a" : "#d8b47b");
-  drawText(`泥섏튂 ${kills}`, 252, H - 25, 15, "#fff1bd");
-  drawText(`?덈꺼 ${player.level}`, 410, H - 44, 14, "#ffe39a");
-  drawText(`寃쏀뿕移?${player.xp}/${player.nextXp}`, 410, H - 25, 12, "#d7c27b");
-  drawText("?꾨뱶", 580, H - 25, 14, "#d7c27b");
+  drawText(`분노 ${Math.floor(player.rage)}`, 32, H - 15, 11, player.rage >= player.maxRage ? "#ffe39a" : "#d8b47b");
+  drawText(`처치 ${kills}`, 252, H - 25, 15, "#fff1bd");
+  drawText(`레벨 ${player.level}`, 410, H - 44, 14, "#ffe39a");
+  drawText(`경험치 ${player.xp}/${player.nextXp}`, 410, H - 25, 12, "#d7c27b");
+  drawText("필드", 580, H - 25, 14, "#d7c27b");
   drawText(swordName(), W - 184, H - 25, 14, "#d7c27b");
-  if (player.rage >= player.maxRage) drawText("?고겢由?遺꾨끂怨듦꺽 以鍮?, W - 250, H - 48, 13, "#ffe39a");
+  if (player.rage >= player.maxRage) drawText("우클릭 분노공격 준비", W - 250, H - 48, 13, "#ffe39a");
 
   const boss = enemies.find((e) => e.boss && !e.dead);
   if (boss && (Math.hypot(player.x - boss.x, player.y - boss.y) < 8 || boss.hp < boss.maxHp)) {
@@ -1169,19 +1169,19 @@ function drawEndScreen() {
   ctx.textAlign = "center";
   ctx.fillStyle = gameState === "over" ? "#b52626" : "#e6c766";
   ctx.font = gameState === "start" ? "700 48px Malgun Gothic, Gulim, monospace" : "700 54px Malgun Gothic, Gulim, monospace";
-  let title = "寃뚯엫 ?ㅻ쾭";
-  if (gameState === "start") title = "?덊듃濡??ㅽ겕 ?섏쟾";
-  if (gameState === "clear") title = "?섏쟾 ?뺣났";
+  let title = "게임 오버";
+  if (gameState === "start") title = "레트로 오크 던전";
+  if (gameState === "clear") title = "던전 정복";
   ctx.fillText(title, W / 2, H / 2 - 72);
   ctx.fillStyle = "#d9c99a";
   ctx.font = "700 20px Malgun Gothic, Gulim, monospace";
   if (gameState === "start") {
-    ctx.fillText("醫뚰겢由?/ ?ㅽ럹?댁뒪: 怨듦꺽", W / 2, H / 2 - 18);
-    ctx.fillText("?고겢由? 遺꾨끂 ?뱀닔怨듦꺽", W / 2, H / 2 + 14);
-    ctx.fillText("?щ깷?섍퀬, ?깆옣?섍퀬, ?섏쟾?먯꽌 踰꾪떚?몄슂", W / 2, H / 2 + 48);
-    ctx.fillText("Enter ?먮뒗 ?대┃?쇰줈 ?쒖옉", W / 2, H / 2 + 84);
+    ctx.fillText("좌클릭 / 스페이스: 공격", W / 2, H / 2 - 18);
+    ctx.fillText("우클릭: 분노 특수공격", W / 2, H / 2 + 14);
+    ctx.fillText("사냥하고, 성장하고, 던전에서 버티세요", W / 2, H / 2 + 48);
+    ctx.fillText("Enter 또는 클릭으로 시작", W / 2, H / 2 + 84);
   } else {
-    ctx.fillText("Enter濡??ㅼ떆 ?쒖옉", W / 2, H / 2 + 12);
+    ctx.fillText("Enter로 다시 시작", W / 2, H / 2 + 12);
   }
   ctx.textAlign = "left";
 }
@@ -1189,7 +1189,7 @@ function drawEndScreen() {
 function startGame() {
   gameState = "play";
   messagePulse = 0;
-  notice = "?섏쟾 ?꾨뱶";
+  notice = "던전 필드";
   noticeTimer = 1.8;
 }
 
@@ -1220,7 +1220,7 @@ function resetGame() {
   items = [];
   map = buildMap(stage);
   enemies = buildEnemies(stage);
-  notice = "?섏쟾 ?꾨뱶";
+  notice = "던전 필드";
   noticeTimer = 0;
 }
 
