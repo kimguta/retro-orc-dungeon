@@ -13,26 +13,23 @@ Controls:
 - `Mouse`: rotate view after clicking the canvas
 - `Left mouse / Space`: normal sword attack
 - `Right mouse`: rage special attack when the rage bar is full
-- `Enter`: start, advance after stage clear, or restart after game over / clear
+- `Enter`: start or restart after game over
 
 ## Game
 
-- Room 1: safe start room
-- Room 2: regular orcs
-- Room 3: orc chief
-- The game has 10 stages
-- The map layout changes as stages advance
+- The game now uses one larger dungeon field instead of separate stages
+- The field has safer starting paths, monster patrol zones, and deeper boss areas
 - Enemies now include orcs, skeletons, ogres, warlocks, orc chiefs, and skeleton kings
 - Skeletons are fast and fragile, ogres are slow and heavy, and warlocks fire magic bolts
 - Only enemies directly in front of the player and at close range are hit by the sword
 - Melee enemies chase the player and deal damage up close
 - Enemies award XP when defeated, and leveling up improves health, rage capacity, and damage
+- Defeated monsters respawn after a delay, away from the player, so the dungeon keeps repopulating
 - Regular enemies can drop health items
-- Boss enemies drop a relic that advances to the next stage
-- The sword upgrades from white to red to gold as stages advance
+- Boss enemies award larger XP and can drop health
+- The sword upgrades from white to red to gold as the player levels up
 - A minimap shows walls, the player, enemies, and dropped items
 - A rage bar fills from combat and unlocks a stronger right-click special attack
-- Stage clear screens summarize completion before the next stage starts
 
 ## GitHub Pages
 
