@@ -32,15 +32,15 @@ const BASE_MAP = [
   "#..#########...#..#####..###..#####..###.#.....#",
   "#..............#.....#........#............#...#",
   "#..####..##########..#..#####.#.###..####.#....#",
-  "#....................#.....................#...#",
-  "#.######..#########..#######..####..######.#...#",
-  "#......#.............#........#............#...#",
-  "#..##..#..#########..#..#######..##..####.#....#",
-  "#......#.............#.....................#...#",
-  "#..######..#####..####..#####..##########.#....#",
-  "#..............#................#..........#...#",
-  "#..##########..######..#######..#..######......#",
-  "#...............................#.........B....#",
+  "#....................#...........#...#.....#...#",
+  "#.######..#########..#######..####.#.#.###.#...#",
+  "#......#.............#........#....#...#...#...#",
+  "#..##..#..#########..#..#######.######.#.#.#...#",
+  "#......#.............#...........#.....#.#.#...#",
+  "#..######..#####..####..#####..###.######.#....#",
+  "#..............#............#......#......#....#",
+  "#..##########..######..####.#.######.#######...#",
+  "#.......................#.............#...B....#",
   "################################################",
 ];
 
@@ -132,7 +132,8 @@ function enemy(type, x, y) {
   const stats = enemyStats(type, stageBonus);
   const level = enemyLevel(type, stageBonus);
   const levelBonus = Math.max(0, level - 1);
-  const hp = Math.max(1, stats.hp + Math.floor(levelBonus * (stats.boss ? 1.2 : 0.65)));
+  const hpScale = type === "balrog" ? 4.4 : stats.boss ? 1.2 : 0.65;
+  const hp = Math.max(1, stats.hp + Math.floor(levelBonus * hpScale));
   return {
     type,
     level,
@@ -144,7 +145,7 @@ function enemy(type, x, y) {
     maxHp: hp,
     radius: stats.radius,
     speed: stats.speed,
-    damage: stats.damage + Math.floor(levelBonus * 0.7),
+    damage: stats.damage + Math.floor(levelBonus * (type === "balrog" ? 1.45 : 0.7)),
     xp: stats.xp + levelBonus * 4,
     attackRange: stats.attackRange,
     windup: stats.windup,
@@ -173,7 +174,7 @@ function enemyLevel(type, stageBonus) {
     ogre: 5,
     skeletonKing: 9,
     boss: 10,
-    balrog: 22,
+    balrog: 35,
   }[type] || 2;
   const variance = type === "balrog" ? 7 : (type === "skeletonKing" || type === "boss") ? 5 : 4;
   return base + stageBonus + Math.floor(Math.random() * variance);
@@ -187,7 +188,7 @@ function enemyStats(type, stageBonus) {
     warlock: { hp: 3 + stageBonus, speed: 0.54 + stageBonus * 0.035, damage: 12 + stageBonus * 2, radius: 0.3, xp: 34 + stageBonus * 6, attackRange: 4.2, windup: 0.55, cooldown: 1.45, projectile: true },
     skeletonKing: { hp: 12 + stageBonus * 4, speed: 0.56 + stageBonus * 0.035, damage: 18 + stageBonus * 3, radius: 0.42, xp: 90 + stageBonus * 12, attackRange: 0.9, windup: 0.5, cooldown: 1.1, boss: true },
     boss: { hp: 8 + stageBonus * 4, speed: 0.62 + stageBonus * 0.045, damage: 18 + stageBonus * 4, radius: 0.42, xp: 80 + stageBonus * 12, attackRange: 0.82, windup: 0.48, cooldown: 1.15, boss: true },
-    balrog: { hp: 55 + stageBonus * 8, speed: 0.48 + stageBonus * 0.025, damage: 34 + stageBonus * 5, radius: 0.58, xp: 360 + stageBonus * 30, attackRange: 1.08, windup: 0.7, cooldown: 1.45, boss: true },
+    balrog: { hp: 170 + stageBonus * 12, speed: 0.5 + stageBonus * 0.025, damage: 55 + stageBonus * 6, radius: 0.62, xp: 900 + stageBonus * 50, attackRange: 1.12, windup: 0.62, cooldown: 1.2, boss: true },
   };
   return stats[type] || stats.orc;
 }
@@ -376,6 +377,22 @@ function itemColor(item) {
   if (item.type === "legendScroll") return "#ff4a24";
   if (item.type === "weapon") return "#fff1bd";
   return "#e3c75b";
+}
+
+function lostWeapon() {
+  return items.find((item) => item.type === "weapon");
+}
+
+function balrogEnemy() {
+  return enemies.find((e) => e.type === "balrog" && !e.dead);
+}
+
+function directionTo(x, y) {
+  const dx = x - player.x;
+  const dy = y - player.y;
+  const ew = dx > 1.2 ? "동" : dx < -1.2 ? "서" : "";
+  const ns = dy > 1.2 ? "남" : dy < -1.2 ? "북" : "";
+  return ns + ew || "근처";
 }
 
 function buildMap() {
@@ -1485,7 +1502,15 @@ function drawHud() {
   if (berserk) drawText("광폭화: 공속/공격력/이속 +50%, 특수공격 무제한", W - 390, H - 52, 13, "#ffb199");
   else if (player.rage >= SPECIAL_RAGE_COST) drawText(`우클릭 특수공격 - 분노 ${SPECIAL_RAGE_COST}`, W - 290, H - 52, 13, "#ffe39a");
 
-  const boss = enemies.find((e) => e.type === "balrog" && !e.dead) || enemies.find((e) => e.boss && !e.dead);
+  const droppedSword = lostWeapon();
+  if (droppedSword) {
+    drawText(`잃어버린 검: ${directionTo(droppedSword.x, droppedSword.y)}`, 760, H - 28, 13, "#fff1bd");
+  } else {
+    const balrog = balrogEnemy();
+    drawText(balrog ? `목표: ${directionTo(balrog.x, balrog.y)}쪽 발록 처치` : "목표 완료: 발록 처치", 760, H - 28, 13, balrog ? "#ffb199" : "#ffe39a");
+  }
+
+  const boss = balrogEnemy() || enemies.find((e) => e.boss && !e.dead);
   if (boss && (Math.hypot(player.x - boss.x, player.y - boss.y) < 8 || boss.hp < boss.maxHp)) {
     drawBar(W - 260, 26, 220, 18, boss.hp / boss.maxHp, "#b91818", "#2a0c0c");
     drawText(enemyLabel(boss), W - 252, 40, 13, "#ffe08a");
@@ -1541,6 +1566,7 @@ function drawMiniMap() {
   const pad = 5;
   const mw = map[0].length * cell;
   const mh = map.length * cell;
+  const pulse = Math.sin(performance.now() * 0.008) > 0;
   ctx.fillStyle = "rgba(5, 4, 3, 0.62)";
   ctx.fillRect(x0 - pad, y0 - pad, mw + pad * 2, mh + pad * 2);
   ctx.strokeStyle = "#d8bd76";
@@ -1553,9 +1579,24 @@ function drawMiniMap() {
     }
   }
 
+  const balrog = balrogEnemy();
+  if (balrog) {
+    ctx.fillStyle = pulse ? "rgba(255, 60, 28, 0.45)" : "rgba(120, 12, 8, 0.45)";
+    ctx.fillRect(x0 + balrog.x * cell - 7, y0 + balrog.y * cell - 7, 14, 14);
+    ctx.strokeStyle = "#ffb199";
+    ctx.strokeRect(x0 + balrog.x * cell - 7, y0 + balrog.y * cell - 7, 14, 14);
+  }
+
   for (const item of items) {
-    ctx.fillStyle = itemColor(item);
-    ctx.fillRect(x0 + item.x * cell - 1, y0 + item.y * cell - 1, 3, 3);
+    if (item.type === "weapon") {
+      ctx.fillStyle = pulse ? "#fff7c2" : "#f1c232";
+      ctx.fillRect(x0 + item.x * cell - 3, y0 + item.y * cell - 3, 7, 7);
+      ctx.strokeStyle = "#ffffff";
+      ctx.strokeRect(x0 + item.x * cell - 4, y0 + item.y * cell - 4, 9, 9);
+    } else {
+      ctx.fillStyle = itemColor(item);
+      ctx.fillRect(x0 + item.x * cell - 1, y0 + item.y * cell - 1, 3, 3);
+    }
   }
 
   for (const prop of TOWN_PROPS) {
@@ -1576,7 +1617,8 @@ function drawMiniMap() {
   for (const e of enemies) {
     if (e.dead) continue;
     ctx.fillStyle = miniMapEnemyColor(e);
-    ctx.fillRect(x0 + e.x * cell - 1, y0 + e.y * cell - 1, e.boss ? 4 : 3, e.boss ? 4 : 3);
+    const size = e.type === "balrog" ? 6 : e.boss ? 4 : 3;
+    ctx.fillRect(x0 + e.x * cell - Math.floor(size / 2), y0 + e.y * cell - Math.floor(size / 2), size, size);
   }
 
   ctx.fillStyle = "#fff3b0";
