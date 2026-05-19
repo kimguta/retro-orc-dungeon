@@ -10,7 +10,7 @@ body {
   overflow: hidden;
   background: #0b0a09;
   color: #e8d7a4;
-  font-family: "Courier New", Consolas, monospace;
+  font-family: "Malgun Gothic", "Gulim", "Courier New", monospace;
 }
 
 body {
@@ -28,8 +28,7 @@ canvas {
   display: block;
   width: 100vw;
   height: 100vh;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
+  image-rendering: auto;
   border: 0;
   background: #111;
   cursor: crosshair;
@@ -44,15 +43,16 @@ canvas {
   flex-wrap: wrap;
   justify-content: center;
   gap: 6px;
-  font-size: clamp(11px, 2vw, 14px);
-  text-transform: uppercase;
-  color: #bca871;
+  font-size: clamp(12px, 1.6vw, 15px);
+  font-weight: 700;
+  color: #f0d790;
   pointer-events: none;
-  opacity: 0.72;
+  opacity: 0.96;
 }
 
 .help span {
   padding: 3px 7px;
-  border: 1px solid #3b2e21;
-  background: rgba(12, 8, 6, 0.72);
+  border: 1px solid #5d452b;
+  background: rgba(10, 7, 5, 0.88);
+  text-shadow: 1px 1px 0 #000;
 }
