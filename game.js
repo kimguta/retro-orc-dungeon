@@ -74,6 +74,9 @@ let screenShake = 0;
 let damagePops = [];
 let notice = "던전 필드";
 let noticeTimer = 0;
+let dialogueText = "";
+let dialogueSpeaker = "";
+let dialogueTimer = 0;
 
 const SPAWN_POINTS = [
   { type: "skeleton", x: 11.5, y: 3.5 },
@@ -92,6 +95,22 @@ const SPAWN_POINTS = [
   { type: "warlock", x: 29.5, y: 18.5 },
   { type: "ogre", x: 32.5, y: 20.5 },
   { type: "skeletonKing", x: 37.5, y: 20.5 },
+];
+
+const TOWN_NPCS = [
+  {
+    name: "마을 장로",
+    x: 5.7,
+    y: 4.05,
+    line: "안녕하세요. 밖은 위험하니 검을 잃으면 꼭 다시 찾아오세요.",
+  },
+];
+
+const TOWN_PROPS = [
+  { type: "lantern", x: 4.1, y: 3.15 },
+  { type: "sign", x: 6.55, y: 4.55 },
+  { type: "crate", x: 3.35, y: 4.85 },
+  { type: "well", x: 5.05, y: 2.65 },
 ];
 
 enemies = buildEnemies(stage);
@@ -230,6 +249,9 @@ function handlePlayerDeath() {
   projectiles = [];
   damagePops = [];
   started = false;
+  dialogueText = "";
+  dialogueSpeaker = "";
+  dialogueTimer = 0;
   notice = "마을에서 부활 - 검을 되찾으세요";
   noticeTimer = 3.2;
 }
@@ -316,6 +338,28 @@ function isTown(x = player.x, y = player.y) {
   return x < 8 && y < 6;
 }
 
+function nearestTownNpc(range = 1.35) {
+  let best = null;
+  for (const npc of TOWN_NPCS) {
+    const dist = Math.hypot(npc.x - player.x, npc.y - player.y);
+    if (dist <= range && (!best || dist < best.dist)) best = { npc, dist };
+  }
+  return best;
+}
+
+function interact() {
+  const nearby = nearestTownNpc();
+  if (!nearby) {
+    notice = isTown() ? "대화할 사람이 가까이 없습니다" : "마을 사람은 마을에 있습니다";
+    noticeTimer = 1.6;
+    return;
+  }
+  dialogueSpeaker = nearby.npc.name;
+  dialogueText = nearby.npc.line;
+  dialogueTimer = 4.2;
+  noticeTimer = 0;
+}
+
 function castRay(angle) {
   const step = 0.025;
   const sin = Math.sin(angle);
@@ -368,6 +412,7 @@ function update(dt) {
   hitSpark = Math.max(0, hitSpark - dt * 5);
   screenShake = Math.max(0, screenShake - dt * 5);
   noticeTimer = Math.max(0, noticeTimer - dt);
+  dialogueTimer = Math.max(0, dialogueTimer - dt);
   for (const item of items) {
     item.bob += dt * 4;
   }
@@ -580,6 +625,7 @@ function draw() {
   }
   drawWorld();
   drawSprites();
+  drawTownSprites();
   drawProjectiles();
   drawDamagePops();
   drawItems();
@@ -590,15 +636,16 @@ function draw() {
 }
 
 function drawWorld() {
+  const townView = isTown();
   const sky = ctx.createLinearGradient(0, 0, 0, HALF_H);
-  sky.addColorStop(0, "#2a2031");
-  sky.addColorStop(1, "#4a3340");
+  sky.addColorStop(0, townView ? "#40304a" : "#2a2031");
+  sky.addColorStop(1, townView ? "#6a4a45" : "#4a3340");
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, W, HALF_H);
 
   const floor = ctx.createLinearGradient(0, HALF_H, 0, H);
-  floor.addColorStop(0, "#4b4437");
-  floor.addColorStop(1, "#1d1712");
+  floor.addColorStop(0, townView ? "#6b5f47" : "#4b4437");
+  floor.addColorStop(1, townView ? "#2a2118" : "#1d1712");
   ctx.fillStyle = floor;
   ctx.fillRect(0, HALF_H, W, HALF_H);
 
@@ -613,7 +660,11 @@ function drawWorld() {
     const y = HALF_H - wallH / 2;
     const light = Math.max(58, 232 - fixedDist * 13);
     const mortar = hit.shadeSeed ? 0.82 : 1;
-    ctx.fillStyle = `rgb(${Math.floor(light * 0.65 * mortar)}, ${Math.floor(light * 0.42 * mortar)}, ${Math.floor(light * 0.28 * mortar)})`;
+    const hitTown = isTown(hit.x, hit.y);
+    const wallR = hitTown ? 0.78 : 0.65;
+    const wallG = hitTown ? 0.52 : 0.42;
+    const wallB = hitTown ? 0.33 : 0.28;
+    ctx.fillStyle = `rgb(${Math.floor(light * wallR * mortar)}, ${Math.floor(light * wallG * mortar)}, ${Math.floor(light * wallB * mortar)})`;
     ctx.fillRect(x, y, colW, wallH);
 
     const block = Math.max(10, wallH / 7);
@@ -627,7 +678,7 @@ function drawWorld() {
       ctx.fillRect(x, y + wallH * 0.1, colW, wallH * 0.72);
     }
 
-    ctx.fillStyle = `rgba(18, 12, 10, ${Math.min(0.34, fixedDist / 18)})`;
+    ctx.fillStyle = `rgba(18, 12, 10, ${Math.min(townView ? 0.22 : 0.34, fixedDist / 18)})`;
     ctx.fillRect(x, y, colW, wallH);
 
     if (r % 5 === 0) {
@@ -675,6 +726,93 @@ function drawEnemy(e, x, y, size, dist) {
   if (e.type === "skeleton" || e.type === "skeletonKing") drawSkeleton(e, x, y, size, dist);
   else if (e.type === "warlock") drawWarlock(e, x, y, size, dist);
   else drawOrc(e, x, y, size, dist);
+}
+
+function drawTownSprites() {
+  const sprites = [
+    ...TOWN_PROPS.map((prop) => ({ kind: "prop", data: prop })),
+    ...TOWN_NPCS.map((npc) => ({ kind: "npc", data: npc })),
+  ]
+    .map((sprite) => {
+      const dx = sprite.data.x - player.x;
+      const dy = sprite.data.y - player.y;
+      return { ...sprite, dist: Math.hypot(dx, dy), angle: normAngle(Math.atan2(dy, dx) - player.angle) };
+    })
+    .filter((s) => Math.abs(s.angle) < FOV * 0.72 && hasLineOfSight(s.data))
+    .sort((a, b) => b.dist - a.dist);
+
+  for (const s of sprites) {
+    const screenX = W / 2 + Math.tan(s.angle) * (W / FOV);
+    const depthIndex = Math.floor((screenX / W) * RAYS);
+    if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < s.dist - 0.2) continue;
+    if (s.kind === "npc") {
+      const size = Math.min(180, (H / s.dist) * 0.36);
+      drawTownNpc(s.data, screenX - size / 2, HALF_H - size * 0.38, size, s.dist);
+    } else {
+      const size = Math.min(150, (H / s.dist) * propScale(s.data.type));
+      drawTownProp(s.data, screenX - size / 2, HALF_H + H / Math.max(1, s.dist) * 0.25 - size, size);
+    }
+  }
+}
+
+function propScale(type) {
+  if (type === "well") return 0.42;
+  if (type === "sign") return 0.3;
+  if (type === "lantern") return 0.26;
+  return 0.24;
+}
+
+function drawTownNpc(npc, x, y, size, dist) {
+  const px = Math.max(2, Math.floor(size / 18));
+  const bob = Math.sin(performance.now() * 0.004 + npc.x) * px * 0.6;
+  const near = nearestTownNpc()?.npc === npc;
+  y += bob;
+
+  rect(x + 5 * px, y + 2 * px, 8 * px, 7 * px, "#bd9a68");
+  rect(x + 4 * px, y + 1 * px, 10 * px, 3 * px, "#59402f");
+  rect(x + 3 * px, y + 8 * px, 12 * px, 9 * px, "#3f5d70");
+  rect(x + 4 * px, y + 10 * px, 10 * px, 5 * px, "#4f7690");
+  rect(x + 2 * px, y + 9 * px, 3 * px, 7 * px, "#2d3f4c");
+  rect(x + 14 * px, y + 9 * px, 3 * px, 7 * px, "#2d3f4c");
+  rect(x + 6 * px, y + 17 * px, 3 * px, 4 * px, "#2a241d");
+  rect(x + 11 * px, y + 17 * px, 3 * px, 4 * px, "#2a241d");
+  rect(x + 7 * px, y + 5 * px, 2 * px, 1 * px, "#1a130e");
+  rect(x + 11 * px, y + 5 * px, 2 * px, 1 * px, "#1a130e");
+  rect(x + 8 * px, y + 7 * px, 4 * px, 1 * px, "#704020");
+  rect(x + 6 * px, y + 12 * px, 8 * px, 1 * px, "#d6b06d");
+
+  if (near && dist < 1.45) {
+    ctx.textAlign = "center";
+    drawText("E 대화", x + size / 2, y - 8, Math.max(12, Math.floor(size / 8)), "#ffe39a");
+    ctx.textAlign = "left";
+  }
+}
+
+function drawTownProp(prop, x, y, size) {
+  const px = Math.max(2, Math.floor(size / 14));
+  if (prop.type === "lantern") {
+    rect(x + 6 * px, y + 2 * px, 2 * px, 12 * px, "#2b1b12");
+    rect(x + 4 * px, y + 4 * px, 6 * px, 5 * px, "#4b2a16");
+    rect(x + 5 * px, y + 5 * px, 4 * px, 3 * px, "#ffc85a");
+    rect(x + 3 * px, y + 13 * px, 8 * px, 2 * px, "#21140e");
+  } else if (prop.type === "sign") {
+    rect(x + 6 * px, y + 5 * px, 2 * px, 10 * px, "#3c2515");
+    rect(x + 2 * px, y + 2 * px, 10 * px, 5 * px, "#7b4b2b");
+    rect(x + 3 * px, y + 3 * px, 8 * px, 1 * px, "#d6a35b");
+    rect(x + 3 * px, y + 5 * px, 6 * px, 1 * px, "#2c1a10");
+  } else if (prop.type === "well") {
+    rect(x + 2 * px, y + 8 * px, 12 * px, 5 * px, "#4a4038");
+    rect(x + 3 * px, y + 9 * px, 10 * px, 3 * px, "#75675a");
+    rect(x + 4 * px, y + 4 * px, 8 * px, 2 * px, "#4a2d1c");
+    rect(x + 5 * px, y + 2 * px, 6 * px, 2 * px, "#7b4b2b");
+    rect(x + 3 * px, y + 5 * px, 2 * px, 5 * px, "#2d2118");
+    rect(x + 11 * px, y + 5 * px, 2 * px, 5 * px, "#2d2118");
+  } else {
+    rect(x + 2 * px, y + 6 * px, 10 * px, 7 * px, "#4b2f1c");
+    rect(x + 3 * px, y + 7 * px, 8 * px, 5 * px, "#8b5a32");
+    rect(x + 2 * px, y + 9 * px, 10 * px, 1 * px, "#2c1a10");
+    rect(x + 6 * px, y + 6 * px, 1 * px, 7 * px, "#2c1a10");
+  }
 }
 
 function drawProjectiles() {
@@ -1174,11 +1312,42 @@ function drawHud() {
     ctx.fillRect(0, 0, W, H);
   }
 
+  drawInteractionHud();
+  drawDialogue();
+
   if (noticeTimer > 0) {
     ctx.textAlign = "center";
     drawText(notice, W / 2, 82, 18, "#ffe39a");
     ctx.textAlign = "left";
   }
+}
+
+function drawInteractionHud() {
+  const nearby = nearestTownNpc();
+  if (!nearby || dialogueTimer > 0) return;
+  ctx.textAlign = "center";
+  ctx.fillStyle = "rgba(10, 7, 4, 0.72)";
+  ctx.fillRect(W / 2 - 140, H - 126, 280, 30);
+  ctx.strokeStyle = "#d8bd76";
+  ctx.strokeRect(W / 2 - 140, H - 126, 280, 30);
+  drawText("E 대화하기", W / 2, H - 106, 14, "#ffe39a");
+  ctx.textAlign = "left";
+}
+
+function drawDialogue() {
+  if (dialogueTimer <= 0) return;
+  const x = 250;
+  const y = H - 170;
+  const w = W - 500;
+  const h = 82;
+  ctx.fillStyle = "rgba(8, 6, 5, 0.86)";
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = "#d8bd76";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x, y, w, h);
+  ctx.lineWidth = 1;
+  drawText(dialogueSpeaker, x + 18, y + 26, 15, "#ffe39a");
+  drawText(dialogueText, x + 18, y + 58, 17, "#fff1bd");
 }
 
 function drawMiniMap() {
@@ -1203,6 +1372,16 @@ function drawMiniMap() {
   for (const item of items) {
     ctx.fillStyle = itemColor(item);
     ctx.fillRect(x0 + item.x * cell - 1, y0 + item.y * cell - 1, 3, 3);
+  }
+
+  for (const prop of TOWN_PROPS) {
+    ctx.fillStyle = "#c89b58";
+    ctx.fillRect(x0 + prop.x * cell - 1, y0 + prop.y * cell - 1, 2, 2);
+  }
+
+  for (const npc of TOWN_NPCS) {
+    ctx.fillStyle = "#7fc9df";
+    ctx.fillRect(x0 + npc.x * cell - 2, y0 + npc.y * cell - 2, 4, 4);
   }
 
   for (const p of projectiles) {
@@ -1319,6 +1498,9 @@ function resetGame() {
   projectiles = [];
   hitSpark = 0;
   screenShake = 0;
+  dialogueText = "";
+  dialogueSpeaker = "";
+  dialogueTimer = 0;
   gameState = "start";
   started = false;
   items = [];
@@ -1340,6 +1522,11 @@ window.addEventListener("keydown", (event) => {
   if (event.code === "Enter" && gameState === "start") {
     event.preventDefault();
     startGame();
+    return;
+  }
+  if (event.code === "KeyE" && gameState === "play") {
+    event.preventDefault();
+    interact();
     return;
   }
   keys.add(event.code);
