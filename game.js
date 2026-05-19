@@ -1,5 +1,6 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
+ctx.imageSmoothingEnabled = false;
 
 const W = canvas.width;
 const H = canvas.height;
@@ -12,24 +13,28 @@ const TURN_SPEED = 1.95;
 const MOVE_SPEED = 2.45;
 
 const BASE_MAP = [
-  "################################",
-  "#......#........#..............#",
-  "#......#........#..####..####..#",
-  "#......#.......................#",
-  "#...............#..####........#",
-  "#####.#####.#####........#######",
-  "#.................####.........#",
-  "#..####..#####....#..#..####...#",
-  "#..#..............#..#.....#...#",
-  "#..#..######..#####..####..#...#",
-  "#.....#....................#...#",
-  "#####.#..#######..#######..#...#",
-  "#.....#........#...........#...#",
-  "#..#########...#..#####..###...#",
-  "#..............#.....#.........#",
-  "#..####..##########..#..#####..#",
-  "#....................#........B#",
-  "################################",
+  "########################################",
+  "#......#........#..............#.......#",
+  "#......#........#..####..####..#..###..#",
+  "#......#...............................#",
+  "#...............#..####........####....#",
+  "#####.#####.#####........#######.......#",
+  "#.................####.........#.......#",
+  "#..####..#####....#..#..####...#..###..#",
+  "#..#..............#..#.....#...#.......#",
+  "#..#..######..#####..####..#...#####...#",
+  "#.....#....................#...........#",
+  "#####.#..#######..#######..#..######...#",
+  "#.....#........#...........#...........#",
+  "#..#########...#..#####..###..#####....#",
+  "#..............#.....#........#........#",
+  "#..####..##########..#..#####.#.###....#",
+  "#....................#.................#",
+  "#.######..#########..#######..####.....#",
+  "#......#.............#........#........#",
+  "#..##..#..#########..#..#######..##....#",
+  "#......#.............#............B....#",
+  "########################################",
 ];
 
 const player = {
@@ -67,7 +72,7 @@ let started = false;
 let hitSpark = 0;
 let screenShake = 0;
 let damagePops = [];
-let notice = "DUNGEON FIELD";
+let notice = "?섏쟾 ?꾨뱶";
 let noticeTimer = 0;
 
 const SPAWN_POINTS = [
@@ -82,6 +87,11 @@ const SPAWN_POINTS = [
   { type: "ogre", x: 20.5, y: 15.2 },
   { type: "skeletonKing", x: 25.5, y: 16.1 },
   { type: "boss", x: 29.5, y: 16.2 },
+  { type: "skeleton", x: 8.5, y: 18.5 },
+  { type: "orc", x: 15.5, y: 18.5 },
+  { type: "warlock", x: 29.5, y: 18.5 },
+  { type: "ogre", x: 32.5, y: 20.5 },
+  { type: "skeletonKing", x: 37.5, y: 20.5 },
 ];
 
 enemies = buildEnemies(stage);
@@ -174,7 +184,7 @@ function gainXp(amount) {
     player.hp = player.maxHp;
     player.maxRage = Math.min(160, player.maxRage + 8);
     if (player.level === 3 || player.level === 6 || player.level === 9) player.weaponLevel += 1;
-    notice = `LEVEL ${player.level}`;
+    notice = `?덈꺼 ${player.level}`;
     noticeTimer = 2.2;
   }
 }
@@ -205,14 +215,14 @@ function respawnDelay(e) {
 
 function enemyLabel(e) {
   const names = {
-    skeleton: "SKELETON",
-    skeletonKing: "SKELETON KING",
-    ogre: "OGRE",
-    warlock: "WARLOCK",
-    boss: "ORC CHIEF",
-    orc: "ORC",
+    skeleton: "?ㅼ펷?덊넠",
+    skeletonKing: "?ㅼ펷?덊넠 ??,
+    ogre: "?ㅼ슦嫄?,
+    warlock: "?뚮줉",
+    boss: "?ㅽ겕 ???,
+    orc: "?ㅽ겕",
   };
-  return names[e.type] || "ENEMY";
+  return names[e.type] || "??;
 }
 
 function miniMapEnemyColor(e) {
@@ -395,7 +405,7 @@ function update(dt) {
 function attack(kind = "normal") {
   if (gameState !== "play" || swingCooldown > 0) return;
   if (kind === "special" && player.rage < player.maxRage) {
-    notice = "RAGE NOT READY";
+    notice = "遺꾨끂 遺議?;
     noticeTimer = 1;
     return;
   }
@@ -455,7 +465,7 @@ function damageEnemy(target, damage, kind) {
     if (kind !== "special") addRage(target.boss ? 30 : 16);
     if (target.boss) {
       if (Math.random() < 0.7) spawnItem("health", target.x, target.y);
-      notice = `${enemyLabel(target)} DEFEATED`;
+      notice = `${enemyLabel(target)} 泥섏튂`;
       noticeTimer = 2.4;
     } else if (Math.random() < 0.36) {
       spawnItem("health", target.x, target.y);
@@ -470,7 +480,7 @@ function collectItems() {
     if (dist > 0.58) continue;
     if (item.type === "health") {
       player.hp = Math.min(player.maxHp, player.hp + 28);
-      notice = "HEALTH RESTORED";
+      notice = "泥대젰 ?뚮났";
       noticeTimer = 1.6;
       items.splice(i, 1);
     }
@@ -851,6 +861,11 @@ function tri(x1, y1, x2, y2, x3, y3, color) {
 function drawWeapon() {
   const progress = swing > 0 ? 1 - swing : 0;
   const special = swingType === "special";
+  if (special) {
+    drawSpecialSword(progress);
+    if (hitSpark > 0) drawHitSpark();
+    return;
+  }
   const lungeIn = Math.min(1, progress / (special ? 0.18 : 0.2));
   const lungeOut = progress > 0.56 ? Math.max(0, 1 - (progress - 0.56) / 0.38) : 1;
   const lunge = swing > 0 ? Math.min(lungeIn, lungeOut) : 0;
@@ -858,25 +873,38 @@ function drawWeapon() {
   const sway = swing > 0 ? 0 : Math.sin(performance.now() * 0.006) * 3;
   const reach = special ? lunge * 1.35 : lunge;
 
-  const sweep = special && swing > 0 ? Math.sin(progress * Math.PI) : 0;
-  const nearX = special
-    ? W * (0.72 + sweep * 0.2 + recoil * 0.03)
-    : W * (0.84 - reach * 0.19 + recoil * 0.05) + sway;
-  const nearY = special
-    ? H * (1.11 - sweep * 0.05)
-    : H * (1.12 + recoil * 0.05 - reach * 0.05);
-  const farX = special
-    ? W * (0.34 + sweep * 0.44)
-    : W * (0.59 - reach * 0.13);
-  const farY = special
-    ? H * (0.52 - sweep * 0.2)
-    : H * (0.75 - reach * 0.24);
+  const nearX = W * (0.84 - reach * 0.19 + recoil * 0.05) + sway;
+  const nearY = H * (1.12 + recoil * 0.05 - reach * 0.05);
+  const farX = W * (0.59 - reach * 0.13);
+  const farY = H * (0.75 - reach * 0.24);
   drawForwardPole(nearX, nearY, farX, farY, reach, special);
 
   if (hitSpark > 0) drawHitSpark();
 }
 
-function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false) {
+function drawSpecialSword(progress) {
+  const palette = swordPalette();
+  const arc = Math.sin(progress * Math.PI);
+  const sweep = progress - 0.5;
+  const hiltX = W * (0.74 + sweep * 0.28);
+  const hiltY = H * (1.12 - arc * 0.03);
+  const tipX = W * (0.24 + progress * 0.52);
+  const tipY = H * (0.62 - arc * 0.18);
+  drawForwardPole(hiltX, hiltY, tipX, tipY, 0.85 + arc * 0.45, false, false);
+
+  ctx.save();
+  ctx.globalAlpha = 0.28 + arc * 0.28;
+  ctx.strokeStyle = palette.specialTrail;
+  ctx.lineWidth = 18;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(W * 0.24, H * 0.67);
+  ctx.quadraticCurveTo(W * 0.52, H * 0.38 - arc * 36, W * 0.82, H * 0.61);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showTrail = true) {
   const dx = farX - nearX;
   const dy = farY - nearY;
   const len = Math.hypot(dx, dy) || 1;
@@ -944,7 +972,7 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false) {
   ctx.closePath();
   ctx.fill();
 
-  if (lunge > 0.42 || special) {
+  if (showTrail && (lunge > 0.42 || special)) {
     ctx.strokeStyle = special ? palette.specialTrail : palette.trail;
     ctx.lineWidth = special ? 8 : 4;
     ctx.beginPath();
@@ -965,9 +993,9 @@ function swordPalette() {
 }
 
 function swordName() {
-  if (player.weaponLevel >= 5) return "GOLD SWORD";
-  if (player.weaponLevel >= 2) return "RED SWORD";
-  return "WHITE SWORD";
+  if (player.weaponLevel >= 5) return "?⑷툑寃";
+  if (player.weaponLevel >= 2) return "遺됱?寃";
+  return "?곌?";
 }
 
 function drawThrustHead(cx, tipY, s, jab) {
@@ -1019,15 +1047,15 @@ function drawHud() {
   ctx.fillStyle = "rgba(255, 225, 140, 0.1)";
   ctx.fillRect(0, H - 70, W, 2);
   drawBar(24, H - 52, 196, 18, player.hp / player.maxHp, "#d42f2f", "#3f1212");
-  drawText(`HP ${player.hp}`, 32, H - 38, 13, "#fff1bd");
+  drawText(`泥대젰 ${player.hp}`, 32, H - 38, 14, "#fff1bd");
   drawBar(24, H - 25, 196, 11, player.rage / player.maxRage, "#d77b23", "#2d1609");
-  drawText(`RAGE ${Math.floor(player.rage)}`, 32, H - 15, 10, player.rage >= player.maxRage ? "#ffe39a" : "#d8b47b");
-  drawText(`KILLS ${kills}`, 252, H - 25, 15, "#fff1bd");
-  drawText(`LV ${player.level}`, 410, H - 44, 14, "#ffe39a");
-  drawText(`XP ${player.xp}/${player.nextXp}`, 410, H - 25, 12, "#d7c27b");
-  drawText("FIELD", 548, H - 25, 14, "#d7c27b");
+  drawText(`遺꾨끂 ${Math.floor(player.rage)}`, 32, H - 15, 11, player.rage >= player.maxRage ? "#ffe39a" : "#d8b47b");
+  drawText(`泥섏튂 ${kills}`, 252, H - 25, 15, "#fff1bd");
+  drawText(`?덈꺼 ${player.level}`, 410, H - 44, 14, "#ffe39a");
+  drawText(`寃쏀뿕移?${player.xp}/${player.nextXp}`, 410, H - 25, 12, "#d7c27b");
+  drawText("?꾨뱶", 580, H - 25, 14, "#d7c27b");
   drawText(swordName(), W - 184, H - 25, 14, "#d7c27b");
-  if (player.rage >= player.maxRage) drawText("RMB SPECIAL READY", W - 230, H - 48, 12, "#ffe39a");
+  if (player.rage >= player.maxRage) drawText("?고겢由?遺꾨끂怨듦꺽 以鍮?, W - 250, H - 48, 13, "#ffe39a");
 
   const boss = enemies.find((e) => e.boss && !e.dead);
   if (boss && (Math.hypot(player.x - boss.x, player.y - boss.y) < 8 || boss.hp < boss.maxHp)) {
@@ -1128,9 +1156,9 @@ function drawBar(x, y, w, h, pct, fill, bg) {
 }
 
 function drawText(text, x, y, size, color) {
-  ctx.font = `${size}px Courier New`;
+  ctx.font = `700 ${size}px Malgun Gothic, Gulim, Courier New, monospace`;
   ctx.fillStyle = "#090604";
-  ctx.fillText(text, x + 2, y + 2);
+  ctx.fillText(text, x + 1, y + 1);
   ctx.fillStyle = color;
   ctx.fillText(text, x, y);
 }
@@ -1140,20 +1168,20 @@ function drawEndScreen() {
   ctx.fillRect(0, 0, W, H);
   ctx.textAlign = "center";
   ctx.fillStyle = gameState === "over" ? "#b52626" : "#e6c766";
-  ctx.font = gameState === "start" ? "46px Courier New" : "54px Courier New";
-  let title = "GAME OVER";
-  if (gameState === "start") title = "RETRO ORC DUNGEON";
-  if (gameState === "clear") title = "DUNGEON CLEARED";
+  ctx.font = gameState === "start" ? "700 48px Malgun Gothic, Gulim, monospace" : "700 54px Malgun Gothic, Gulim, monospace";
+  let title = "寃뚯엫 ?ㅻ쾭";
+  if (gameState === "start") title = "?덊듃濡??ㅽ겕 ?섏쟾";
+  if (gameState === "clear") title = "?섏쟾 ?뺣났";
   ctx.fillText(title, W / 2, H / 2 - 72);
   ctx.fillStyle = "#d9c99a";
-  ctx.font = "18px Courier New";
+  ctx.font = "700 20px Malgun Gothic, Gulim, monospace";
   if (gameState === "start") {
-    ctx.fillText("LEFT CLICK / SPACE: ATTACK", W / 2, H / 2 - 18);
-    ctx.fillText("RIGHT CLICK: RAGE SPECIAL", W / 2, H / 2 + 12);
-    ctx.fillText("HUNT, LEVEL UP, AND SURVIVE THE FIELD", W / 2, H / 2 + 42);
-    ctx.fillText("PRESS ENTER OR CLICK TO START", W / 2, H / 2 + 76);
+    ctx.fillText("醫뚰겢由?/ ?ㅽ럹?댁뒪: 怨듦꺽", W / 2, H / 2 - 18);
+    ctx.fillText("?고겢由? 遺꾨끂 ?뱀닔怨듦꺽", W / 2, H / 2 + 14);
+    ctx.fillText("?щ깷?섍퀬, ?깆옣?섍퀬, ?섏쟾?먯꽌 踰꾪떚?몄슂", W / 2, H / 2 + 48);
+    ctx.fillText("Enter ?먮뒗 ?대┃?쇰줈 ?쒖옉", W / 2, H / 2 + 84);
   } else {
-    ctx.fillText("Press Enter to restart", W / 2, H / 2 + 12);
+    ctx.fillText("Enter濡??ㅼ떆 ?쒖옉", W / 2, H / 2 + 12);
   }
   ctx.textAlign = "left";
 }
@@ -1161,7 +1189,7 @@ function drawEndScreen() {
 function startGame() {
   gameState = "play";
   messagePulse = 0;
-  notice = "DUNGEON FIELD";
+  notice = "?섏쟾 ?꾨뱶";
   noticeTimer = 1.8;
 }
 
@@ -1192,7 +1220,7 @@ function resetGame() {
   items = [];
   map = buildMap(stage);
   enemies = buildEnemies(stage);
-  notice = "DUNGEON FIELD";
+  notice = "?섏쟾 ?꾨뱶";
   noticeTimer = 0;
 }
 
