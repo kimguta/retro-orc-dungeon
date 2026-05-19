@@ -38,6 +38,9 @@ const player = {
   maxHp: 100,
   rage: 0,
   maxRage: 100,
+  level: 1,
+  xp: 0,
+  nextXp: 60,
   weaponLevel: 1,
 };
 
@@ -46,6 +49,7 @@ let stage = 1;
 let map = buildMap(stage);
 let enemies = buildEnemies(stage);
 let items = [];
+let projectiles = [];
 
 const keys = new Set();
 const depths = new Array(RAYS).fill(MAX_DEPTH);
@@ -66,15 +70,22 @@ let noticeTimer = 0;
 
 function enemy(type, x, y) {
   const stageBonus = stage - 1;
+  const stats = enemyStats(type, stageBonus);
   return {
     type,
     x,
     y,
-    hp: type === "boss" ? 8 + stageBonus * 4 : 2 + stageBonus,
-    maxHp: type === "boss" ? 8 + stageBonus * 4 : 2 + stageBonus,
-    radius: type === "boss" ? 0.42 : 0.32,
-    speed: type === "boss" ? 0.62 + stageBonus * 0.045 : 0.78 + stageBonus * 0.055,
-    damage: type === "boss" ? 18 + stageBonus * 4 : 10 + stageBonus * 2,
+    hp: stats.hp,
+    maxHp: stats.hp,
+    radius: stats.radius,
+    speed: stats.speed,
+    damage: stats.damage,
+    xp: stats.xp,
+    attackRange: stats.attackRange,
+    windup: stats.windup,
+    cooldown: stats.cooldown,
+    projectile: stats.projectile,
+    boss: stats.boss,
     attackTimer: 0,
     attackWindup: 0,
     hitFlash: 0,
@@ -88,26 +99,42 @@ function enemy(type, x, y) {
   };
 }
 
+function enemyStats(type, stageBonus) {
+  const stats = {
+    skeleton: { hp: 1 + Math.floor(stageBonus * 0.7), speed: 1.02 + stageBonus * 0.06, damage: 7 + stageBonus, radius: 0.27, xp: 12 + stageBonus * 3, attackRange: 0.62, windup: 0.28, cooldown: 0.72 },
+    orc: { hp: 2 + stageBonus, speed: 0.78 + stageBonus * 0.055, damage: 10 + stageBonus * 2, radius: 0.32, xp: 18 + stageBonus * 4, attackRange: 0.72, windup: 0.36, cooldown: 0.95 },
+    ogre: { hp: 7 + stageBonus * 2, speed: 0.46 + stageBonus * 0.03, damage: 22 + stageBonus * 3, radius: 0.48, xp: 42 + stageBonus * 7, attackRange: 0.92, windup: 0.62, cooldown: 1.35 },
+    warlock: { hp: 3 + stageBonus, speed: 0.54 + stageBonus * 0.035, damage: 12 + stageBonus * 2, radius: 0.3, xp: 34 + stageBonus * 6, attackRange: 4.2, windup: 0.55, cooldown: 1.45, projectile: true },
+    skeletonKing: { hp: 12 + stageBonus * 4, speed: 0.56 + stageBonus * 0.035, damage: 18 + stageBonus * 3, radius: 0.42, xp: 90 + stageBonus * 12, attackRange: 0.9, windup: 0.5, cooldown: 1.1, boss: true },
+    boss: { hp: 8 + stageBonus * 4, speed: 0.62 + stageBonus * 0.045, damage: 18 + stageBonus * 4, radius: 0.42, xp: 80 + stageBonus * 12, attackRange: 0.82, windup: 0.48, cooldown: 1.15, boss: true },
+  };
+  return stats[type] || stats.orc;
+}
+
 function buildEnemies(nextStage) {
   const previousStage = stage;
   stage = nextStage;
   const pool = [
+    ["skeleton", 13.3, 2.2],
     ["orc", 14.2, 2.0],
     ["orc", 17.0, 2.5],
+    ["warlock", 16.5, 4.7],
     ["orc", 15.4, 5.9],
+    ["skeleton", 12.7, 5.8],
     ["orc", 17.4, 5.5],
+    ["ogre", 18.0, 4.6],
     ["orc", 13.6, 6.0],
     ["orc", 12.2, 2.1],
     ["orc", 14.8, 3.3],
-    ["orc", 18.0, 4.6],
+    ["warlock", 18.1, 2.3],
   ];
-  const count = Math.min(pool.length, 4 + Math.ceil(nextStage / 2));
+  const count = Math.min(pool.length, 3 + Math.ceil(nextStage / 2));
   const offset = (nextStage - 1) % pool.length;
   const layout = [];
   for (let i = 0; i < count; i += 1) {
     layout.push(pool[(offset + i) % pool.length]);
   }
-  layout.push(["boss", nextStage % 2 ? 17.2 : 16.4, 11.1]);
+  layout.push([nextStage % 3 === 0 ? "skeletonKing" : "boss", nextStage % 2 ? 17.2 : 16.4, 11.1]);
   const built = layout.map(([type, x, y]) => enemy(type, x, y));
   stage = previousStage;
   return built;
@@ -135,6 +162,53 @@ function spawnDamagePop(x, y, value, boss) {
 
 function addRage(amount) {
   player.rage = Math.min(player.maxRage, player.rage + amount);
+}
+
+function gainXp(amount) {
+  player.xp += amount;
+  while (player.xp >= player.nextXp) {
+    player.xp -= player.nextXp;
+    player.level += 1;
+    player.nextXp = Math.floor(player.nextXp * 1.34 + 18);
+    player.maxHp += 12;
+    player.hp = player.maxHp;
+    player.maxRage = Math.min(160, player.maxRage + 8);
+    if (player.level === 3 || player.level === 6 || player.level === 9) player.weaponLevel += 1;
+    notice = `LEVEL ${player.level}`;
+    noticeTimer = 2.2;
+  }
+}
+
+function spawnProjectile(e, ux, uy) {
+  projectiles.push({
+    x: e.x + ux * 0.35,
+    y: e.y + uy * 0.35,
+    vx: ux * 3.2,
+    vy: uy * 3.2,
+    damage: e.damage,
+    life: 2.6,
+    bob: Math.random() * Math.PI * 2,
+  });
+}
+
+function enemyLabel(e) {
+  const names = {
+    skeleton: "SKELETON",
+    skeletonKing: "SKELETON KING",
+    ogre: "OGRE",
+    warlock: "WARLOCK",
+    boss: "ORC CHIEF",
+    orc: "ORC",
+  };
+  return names[e.type] || "ENEMY";
+}
+
+function miniMapEnemyColor(e) {
+  if (e.type === "skeleton" || e.type === "skeletonKing") return "#d8d0ad";
+  if (e.type === "ogre") return "#9aaa55";
+  if (e.type === "warlock") return "#b75cff";
+  if (e.boss) return "#d33";
+  return "#45ba58";
 }
 
 function buildMap(nextStage) {
@@ -245,6 +319,24 @@ function update(dt) {
     damagePops[i].rise += dt * 0.28;
     if (damagePops[i].life <= 0) damagePops.splice(i, 1);
   }
+  for (let i = projectiles.length - 1; i >= 0; i -= 1) {
+    const p = projectiles[i];
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.life -= dt;
+    if (isWall(p.x, p.y) || p.life <= 0) {
+      projectiles.splice(i, 1);
+      continue;
+    }
+    if (Math.hypot(player.x - p.x, player.y - p.y) < 0.34) {
+      player.hp = Math.max(0, player.hp - p.damage);
+      player.hurt = 1;
+      addRage(6);
+      screenShake = Math.max(screenShake, 0.6);
+      projectiles.splice(i, 1);
+      if (player.hp <= 0) gameState = "over";
+    }
+  }
 
   for (const e of enemies) {
     if (e.dead) continue;
@@ -260,37 +352,45 @@ function update(dt) {
     }
     if (!started) continue;
     if (e.type === "orc" && player.x < 9.5) continue;
-    if (e.type === "boss" && player.y < 8.7) continue;
+    if (e.boss && player.y < 8.7) continue;
     if (e.stun > 0) continue;
 
     const dx = player.x - e.x;
     const dy = player.y - e.y;
     const dist = Math.hypot(dx, dy);
-    const attackRange = e.type === "boss" ? 0.82 : 0.72;
+    const attackRange = e.attackRange;
     if (e.attackWindup > 0) {
       e.attackWindup = Math.max(0, e.attackWindup - dt);
-      e.step += dt * (e.type === "boss" ? 3.2 : 4.4);
+      e.step += dt * (e.boss ? 3.2 : 4.4);
       e.attackPose = Math.max(e.attackPose, 0.45);
       if (e.attackWindup === 0) {
-        if (dist <= attackRange + 0.12) {
+        if (e.projectile && dist <= attackRange + 0.6 && hasLineOfSight(e)) {
+          spawnProjectile(e, dx / dist, dy / dist);
+          e.attackPose = 1;
+        } else if (!e.projectile && dist <= attackRange + 0.12) {
           player.hp = Math.max(0, player.hp - e.damage);
           player.hurt = 1;
-          addRage(e.type === "boss" ? 12 : 7);
+          addRage(e.boss ? 12 : 7);
           e.attackPose = 1;
           screenShake = Math.max(screenShake, e.type === "boss" ? 1 : 0.55);
           if (player.hp <= 0) gameState = "over";
         }
-        e.attackTimer = e.type === "boss" ? 1.15 : 0.95;
+        e.attackTimer = e.cooldown;
       }
       continue;
     }
-    if (dist > attackRange) {
+    if (e.projectile && dist < 2.4) {
+      const speed = e.speed * dt;
+      moveActor(e, -(dx / dist) * speed, -(dy / dist) * speed, e.radius);
+      e.step += dt * 4.2;
+      e.moving = true;
+    } else if (dist > attackRange || (e.projectile && !hasLineOfSight(e))) {
       const speed = e.speed * dt;
       moveActor(e, (dx / dist) * speed, (dy / dist) * speed, e.radius);
-      e.step += dt * (e.type === "boss" ? 5.3 : 6.2);
+      e.step += dt * (e.boss ? 5.3 : 6.2);
       e.moving = true;
     } else if (e.attackTimer <= 0) {
-      e.attackWindup = e.type === "boss" ? 0.48 : 0.36;
+      e.attackWindup = e.windup;
       e.attackPose = 0.65;
     }
   }
@@ -313,7 +413,8 @@ function attack(kind = "normal") {
 
   const hitRange = kind === "special" ? 2.3 : 1.55;
   const hitAngle = kind === "special" ? 0.58 : 0.34;
-  const damage = kind === "special" ? player.weaponLevel * 2 + 2 : player.weaponLevel;
+  const baseDamage = player.weaponLevel + Math.floor((player.level - 1) / 2);
+  const damage = kind === "special" ? baseDamage * 2 + 2 : baseDamage;
   const hits = [];
   for (const e of enemies) {
     if (e.dead) continue;
@@ -343,19 +444,20 @@ function damageEnemy(target, damage, kind) {
   target.hitFlash = 1;
   target.attackWindup = 0;
   const pushAngle = Math.atan2(target.y - player.y, target.x - player.x);
-  const pushPower = target.type === "boss" ? (kind === "special" ? 2.1 : 1.35) : (kind === "special" ? 4.1 : 2.55);
+  const pushPower = target.boss ? (kind === "special" ? 2.1 : 1.35) : (kind === "special" ? 4.1 : 2.55);
   target.knockX = Math.cos(pushAngle) * pushPower;
   target.knockY = Math.sin(pushAngle) * pushPower;
-  target.stun = target.type === "boss" ? (kind === "special" ? 0.42 : 0.25) : (kind === "special" ? 0.68 : 0.42);
-  spawnDamagePop(target.x, target.y, damage, target.type === "boss");
-  if (kind !== "special") addRage(target.type === "boss" ? 16 : 22);
+  target.stun = target.boss ? (kind === "special" ? 0.42 : 0.25) : (kind === "special" ? 0.68 : 0.42);
+  spawnDamagePop(target.x, target.y, damage, target.boss);
+  if (kind !== "special") addRage(target.boss ? 16 : 22);
   if (target.hp <= 0) {
     target.dead = true;
     kills += 1;
-    if (kind !== "special") addRage(target.type === "boss" ? 30 : 16);
-    if (target.type === "boss") {
+    gainXp(target.xp);
+    if (kind !== "special") addRage(target.boss ? 30 : 16);
+    if (target.boss) {
       spawnItem("relic", target.x, target.y);
-      notice = stage < MAX_STAGE ? "BOSS DROPPED A GATE RELIC" : "BOSS DROPPED THE CHIEF TOKEN";
+      notice = stage < MAX_STAGE ? `${enemyLabel(target)} DROPPED A RELIC` : `${enemyLabel(target)} TOKEN CLAIMED`;
       noticeTimer = 3;
     } else if (Math.random() < 0.45) {
       spawnItem("health", target.x, target.y);
@@ -402,6 +504,7 @@ function advanceStage() {
   swingCooldown = 0;
   swingType = "normal";
   damagePops = [];
+  projectiles = [];
   started = false;
   map = buildMap(stage);
   enemies = buildEnemies(stage);
@@ -432,6 +535,7 @@ function draw() {
   }
   drawWorld();
   drawSprites();
+  drawProjectiles();
   drawDamagePops();
   drawItems();
   drawWeapon();
@@ -508,10 +612,48 @@ function drawSprites() {
 
   for (const s of visible) {
     const screenX = W / 2 + Math.tan(s.angle) * (W / FOV);
-    const size = Math.min(H * 1.45, (H / s.dist) * (s.e.type === "boss" ? 1.25 : 0.72));
+    const size = Math.min(H * 1.45, (H / s.dist) * spriteScale(s.e));
     const depthIndex = Math.floor((screenX / W) * RAYS);
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < s.dist - 0.2) continue;
-    drawOrc(s.e, screenX - size / 2, HALF_H - size * 0.55, size, s.dist);
+    drawEnemy(s.e, screenX - size / 2, HALF_H - size * 0.55, size, s.dist);
+  }
+}
+
+function spriteScale(e) {
+  if (e.type === "ogre") return 1.05;
+  if (e.boss) return 1.25;
+  if (e.type === "skeleton") return 0.62;
+  return 0.72;
+}
+
+function drawEnemy(e, x, y, size, dist) {
+  if (e.type === "skeleton" || e.type === "skeletonKing") drawSkeleton(e, x, y, size, dist);
+  else if (e.type === "warlock") drawWarlock(e, x, y, size, dist);
+  else drawOrc(e, x, y, size, dist);
+}
+
+function drawProjectiles() {
+  const visible = projectiles
+    .map((p) => {
+      const dx = p.x - player.x;
+      const dy = p.y - player.y;
+      return { p, dist: Math.hypot(dx, dy), angle: normAngle(Math.atan2(dy, dx) - player.angle) };
+    })
+    .filter((s) => Math.abs(s.angle) < FOV * 0.72)
+    .sort((a, b) => b.dist - a.dist);
+
+  for (const s of visible) {
+    const screenX = W / 2 + Math.tan(s.angle) * (W / FOV);
+    const size = Math.min(42, (H / s.dist) * 0.14);
+    const depthIndex = Math.floor((screenX / W) * RAYS);
+    if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < s.dist - 0.15) continue;
+    const y = HALF_H - size / 2 + Math.sin(s.p.bob + performance.now() * 0.01) * 3;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0.4, 1 - s.dist / 12);
+    rect(screenX - size / 2, y, size, size, "#53258c");
+    rect(screenX - size * 0.28, y + size * 0.18, size * 0.56, size * 0.56, "#b75cff");
+    rect(screenX - size * 0.12, y + size * 0.32, size * 0.24, size * 0.24, "#f0c8ff");
+    ctx.restore();
   }
 }
 
@@ -573,9 +715,73 @@ function drawItemSprite(item, x, y, size) {
   }
 }
 
+function drawSkeleton(e, x, y, size, dist) {
+  const px = Math.max(2, Math.floor(size / 16));
+  const king = e.type === "skeletonKing";
+  const flash = e.hitFlash > 0;
+  const walk = e.moving ? Math.sin(e.step) : 0;
+  const bob = e.moving ? Math.abs(Math.sin(e.step)) * px : 0;
+  const bone = flash ? "#fff4c8" : "#d8d0ad";
+  const shade = king ? "#8e7b55" : "#8f8870";
+  const eye = king ? "#e12621" : "#5ed1ff";
+  y += bob - e.attackPose * 3 * px;
+  x += walk * px * 0.3;
+  ctx.globalAlpha = Math.max(0.35, 1 - dist / 16);
+  if (king) {
+    rect(x + 4 * px, y + 1 * px, 8 * px, 2 * px, "#d6b14d");
+    rect(x + 5 * px, y - 1 * px, 2 * px, 3 * px, "#ffe28a");
+    rect(x + 10 * px, y - 1 * px, 2 * px, 3 * px, "#ffe28a");
+  }
+  rect(x + 4 * px, y + 4 * px, 9 * px, 8 * px, bone);
+  rect(x + 5 * px, y + 5 * px, 7 * px, 1 * px, "#f5edce");
+  rect(x + 5 * px, y + 8 * px, 2 * px, 2 * px, eye);
+  rect(x + 10 * px, y + 8 * px, 2 * px, 2 * px, eye);
+  rect(x + 7 * px, y + 10 * px, 3 * px, 1 * px, "#221a17");
+  rect(x + 6 * px, y + 13 * px, 5 * px, 2 * px, shade);
+  rect(x + 7 * px, y + 15 * px, 3 * px, 7 * px, bone);
+  rect(x + 4 * px, y + 17 * px, 9 * px, 1 * px, bone);
+  rect(x + 3 * px, y + 14 * px, 2 * px, 8 * px, bone);
+  rect(x + 12 * px, y + 14 * px, 2 * px, 8 * px, bone);
+  rect(x + (5 - Math.max(0, walk)) * px, y + 22 * px, 2 * px, 5 * px, bone);
+  rect(x + (10 + Math.max(0, walk)) * px, y + 22 * px, 2 * px, 5 * px, bone);
+  if (king) {
+    rect(x + 2 * px, y + 13 * px, 12 * px, 4 * px, "#292a36");
+    rect(x + 3 * px, y + 14 * px, 10 * px, 1 * px, "#5f6485");
+    rect(x + 13 * px, y + 13 * px, 2 * px, 13 * px, "#44351d");
+    rect(x + 14 * px, y + 10 * px, 1 * px, 7 * px, "#cfc6ad");
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawWarlock(e, x, y, size, dist) {
+  const px = Math.max(2, Math.floor(size / 16));
+  const flash = e.hitFlash > 0;
+  const walk = e.moving ? Math.sin(e.step) : 0;
+  const bob = e.moving ? Math.abs(Math.sin(e.step)) * px : 0;
+  y += bob - e.attackPose * 2 * px;
+  x += walk * px * 0.22;
+  ctx.globalAlpha = Math.max(0.35, 1 - dist / 16);
+  rect(x + 3 * px, y + 5 * px, 11 * px, 18 * px, flash ? "#a982d8" : "#241334");
+  rect(x + 5 * px, y + 3 * px, 7 * px, 7 * px, flash ? "#d7b6ff" : "#3a1e58");
+  rect(x + 6 * px, y + 7 * px, 2 * px, 1 * px, "#d669ff");
+  rect(x + 10 * px, y + 7 * px, 2 * px, 1 * px, "#d669ff");
+  rect(x + 5 * px, y + 11 * px, 8 * px, 2 * px, "#111014");
+  rect(x + 2 * px, y + 13 * px, 4 * px, 9 * px, "#321b49");
+  rect(x + 12 * px, y + 13 * px, 4 * px, 9 * px, "#321b49");
+  rect(x + 13 * px, y + 18 * px, 3 * px, 3 * px, "#b75cff");
+  rect(x + 6 * px, y + 23 * px, 3 * px, 3 * px, "#100b16");
+  rect(x + 10 * px, y + 23 * px, 3 * px, 3 * px, "#100b16");
+  if (e.attackWindup > 0) {
+    rect(x + 12 * px, y + 16 * px, 5 * px, 5 * px, "#6d2eb2");
+    rect(x + 13 * px, y + 17 * px, 3 * px, 3 * px, "#efc9ff");
+  }
+  ctx.globalAlpha = 1;
+}
+
 function drawOrc(e, x, y, size, dist) {
   const px = Math.max(2, Math.floor(size / 16));
-  const dark = e.type === "boss";
+  const dark = e.boss || e.type === "ogre";
+  const ogre = e.type === "ogre";
   const flash = e.hitFlash > 0;
   const walk = e.moving ? Math.sin(e.step) : 0;
   const bob = e.moving ? Math.abs(Math.sin(e.step)) * px : 0;
@@ -584,10 +790,10 @@ function drawOrc(e, x, y, size, dist) {
   const hurt = e.hitFlash > 0.1;
   y += bob - attack * 3 * px + (winding ? 2 * px : 0);
   x += walk * px * 0.35 + (winding ? Math.sin(e.step + 1.2) * px * 0.2 : 0);
-  const skin = flash ? "#f6e9b8" : dark ? "#1d5f32" : "#2f9c45";
-  const skinLight = flash ? "#fff6cf" : dark ? "#3a8745" : "#5fc765";
-  const shadow = dark ? "#0e2817" : "#145b28";
-  const deepShadow = dark ? "#07130b" : "#0a3317";
+  const skin = flash ? "#f6e9b8" : ogre ? "#6b7f38" : dark ? "#1d5f32" : "#2f9c45";
+  const skinLight = flash ? "#fff6cf" : ogre ? "#9aaa55" : dark ? "#3a8745" : "#5fc765";
+  const shadow = ogre ? "#323d1d" : dark ? "#0e2817" : "#145b28";
+  const deepShadow = ogre ? "#181e10" : dark ? "#07130b" : "#0a3317";
   const armor = dark ? "#181818" : "#262728";
   const armorLight = dark ? "#3b3b3b" : "#46494a";
   const eye = dark ? "#e12621" : "#f0d447";
@@ -645,7 +851,13 @@ function drawOrc(e, x, y, size, dist) {
   rect(x + 10 * px, y + 24 * px, 4 * px, 1 * px, "#0b0b0b");
   rect(x + 12 * px, y + 5 * px, 1 * px, 8 * px, "rgba(0, 0, 0, 0.2)");
 
-  if (dark) {
+  if (ogre) {
+    rect(x + 2 * px, y + 1 * px, 3 * px, 5 * px, "#c7b98f");
+    rect(x + 11 * px, y + 1 * px, 3 * px, 5 * px, "#c7b98f");
+    rect(x + 1 * px, y + 12 * px, 5 * px, 7 * px, "#222");
+    rect(x + 11 * px, y + 12 * px, 5 * px, 7 * px, "#222");
+    rect(x + 4 * px, y + 15 * px, 9 * px, 2 * px, "#6f1414");
+  } else if (dark) {
     rect(x + 3 * px, y + 1 * px, 2 * px, 5 * px, "#c7b98f");
     rect(x + 12 * px, y + 1 * px, 2 * px, 5 * px, "#c7b98f");
     rect(x + 3 * px, y + 1 * px, 1 * px, 2 * px, "#fff0bd");
@@ -684,10 +896,19 @@ function drawWeapon() {
   const sway = swing > 0 ? 0 : Math.sin(performance.now() * 0.006) * 3;
   const reach = special ? lunge * 1.35 : lunge;
 
-  const nearX = W * (0.84 - reach * 0.19 + recoil * 0.05) + sway;
-  const nearY = H * (1.12 + recoil * 0.05 - reach * 0.05);
-  const farX = W * (0.59 - reach * 0.13);
-  const farY = H * (0.75 - reach * 0.24);
+  const sweep = special && swing > 0 ? Math.sin(progress * Math.PI) : 0;
+  const nearX = special
+    ? W * (0.72 + sweep * 0.2 + recoil * 0.03)
+    : W * (0.84 - reach * 0.19 + recoil * 0.05) + sway;
+  const nearY = special
+    ? H * (1.11 - sweep * 0.05)
+    : H * (1.12 + recoil * 0.05 - reach * 0.05);
+  const farX = special
+    ? W * (0.34 + sweep * 0.44)
+    : W * (0.59 - reach * 0.13);
+  const farY = special
+    ? H * (0.52 - sweep * 0.2)
+    : H * (0.75 - reach * 0.24);
   drawForwardPole(nearX, nearY, farX, farY, reach, special);
 
   if (hitSpark > 0) drawHitSpark();
@@ -721,7 +942,7 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false) {
   ctx.moveTo(nearX + nx * midW, nearY + ny * midW);
   ctx.lineTo(nearX - nx * midW, nearY - ny * midW);
   ctx.lineTo(farX - nx * farW, farY - ny * farW);
-  ctx.lineTo(farX + nx * farW * 0.45 + dx / len * tipLen, farY + ny * farW * 0.45 + dy / len * tipLen);
+  ctx.lineTo(farX + dx / len * tipLen, farY + dy / len * tipLen);
   ctx.lineTo(farX + nx * farW, farY + ny * farW);
   ctx.closePath();
   ctx.fill();
@@ -840,14 +1061,16 @@ function drawHud() {
   drawBar(24, H - 25, 196, 11, player.rage / player.maxRage, "#d77b23", "#2d1609");
   drawText(`RAGE ${Math.floor(player.rage)}`, 32, H - 15, 10, player.rage >= player.maxRage ? "#ffe39a" : "#d8b47b");
   drawText(`KILLS ${kills}`, 252, H - 25, 15, "#fff1bd");
-  drawText(`STAGE ${stage}/10`, 410, H - 25, 14, "#d7c27b");
+  drawText(`LV ${player.level}`, 410, H - 44, 14, "#ffe39a");
+  drawText(`XP ${player.xp}/${player.nextXp}`, 410, H - 25, 12, "#d7c27b");
+  drawText(`STAGE ${stage}/10`, 548, H - 25, 14, "#d7c27b");
   drawText(swordName(), W - 184, H - 25, 14, "#d7c27b");
   if (player.rage >= player.maxRage) drawText("RMB SPECIAL READY", W - 230, H - 48, 12, "#ffe39a");
 
-  const boss = enemies.find((e) => e.type === "boss" && !e.dead);
+  const boss = enemies.find((e) => e.boss && !e.dead);
   if (boss && (player.y >= 8.7 || boss.hp < boss.maxHp)) {
     drawBar(W - 260, 26, 220, 18, boss.hp / boss.maxHp, "#b91818", "#2a0c0c");
-    drawText("ORC CHIEF", W - 252, 40, 13, "#ffe08a");
+    drawText(enemyLabel(boss), W - 252, 40, 13, "#ffe08a");
   }
 
   if (player.hurt > 0) {
@@ -886,10 +1109,15 @@ function drawMiniMap() {
     ctx.fillRect(x0 + item.x * cell - 1, y0 + item.y * cell - 1, 3, 3);
   }
 
+  for (const p of projectiles) {
+    ctx.fillStyle = "#b75cff";
+    ctx.fillRect(x0 + p.x * cell - 1, y0 + p.y * cell - 1, 2, 2);
+  }
+
   for (const e of enemies) {
     if (e.dead) continue;
-    ctx.fillStyle = e.type === "boss" ? "#d33" : "#45ba58";
-    ctx.fillRect(x0 + e.x * cell - 1, y0 + e.y * cell - 1, e.type === "boss" ? 4 : 3, e.type === "boss" ? 4 : 3);
+    ctx.fillStyle = miniMapEnemyColor(e);
+    ctx.fillRect(x0 + e.x * cell - 1, y0 + e.y * cell - 1, e.boss ? 4 : 3, e.boss ? 4 : 3);
   }
 
   ctx.fillStyle = "#fff3b0";
@@ -987,12 +1215,18 @@ function resetGame() {
   player.hp = 100;
   player.hurt = 0;
   player.rage = 0;
+  player.maxHp = 100;
+  player.maxRage = 100;
+  player.level = 1;
+  player.xp = 0;
+  player.nextXp = 60;
   player.weaponLevel = 1;
   kills = 0;
   swing = 0;
   swingCooldown = 0;
   swingType = "normal";
   damagePops = [];
+  projectiles = [];
   hitSpark = 0;
   screenShake = 0;
   gameState = "start";
