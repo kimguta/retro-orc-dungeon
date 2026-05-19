@@ -8,8 +8,8 @@ const FOV = Math.PI / 3;
 const RAYS = 240;
 const MAX_DEPTH = 18;
 const TILE = 64;
-const TURN_SPEED = 2.35;
-const MOVE_SPEED = 3.15;
+const TURN_SPEED = 1.95;
+const MOVE_SPEED = 2.45;
 
 const BASE_MAP = [
   "####################",
@@ -57,6 +57,7 @@ let messagePulse = 0;
 let started = false;
 let hitSpark = 0;
 let screenShake = 0;
+let damagePops = [];
 let notice = "STAGE 1";
 let noticeTimer = 2.4;
 
@@ -69,9 +70,10 @@ function enemy(type, x, y) {
     hp: type === "boss" ? 8 + stageBonus * 4 : 2 + stageBonus,
     maxHp: type === "boss" ? 8 + stageBonus * 4 : 2 + stageBonus,
     radius: type === "boss" ? 0.42 : 0.32,
-    speed: type === "boss" ? 0.88 + stageBonus * 0.08 : 1.12 + stageBonus * 0.1,
+    speed: type === "boss" ? 0.62 + stageBonus * 0.045 : 0.78 + stageBonus * 0.055,
     damage: type === "boss" ? 18 + stageBonus * 4 : 10 + stageBonus * 2,
     attackTimer: 0,
+    attackWindup: 0,
     hitFlash: 0,
     stun: 0,
     knockX: 0,
@@ -114,6 +116,17 @@ function spawnItem(type, x, y) {
     x,
     y,
     bob: Math.random() * Math.PI * 2,
+  });
+}
+
+function spawnDamagePop(x, y, value, boss) {
+  damagePops.push({
+    x,
+    y,
+    value,
+    boss,
+    life: 0.72,
+    rise: 0,
   });
 }
 
@@ -211,7 +224,7 @@ function update(dt) {
   }
 
   player.angle = normAngle(player.angle);
-  swing = Math.max(0, swing - dt * 3.4);
+  swing = Math.max(0, swing - dt * 2.55);
   swingCooldown = Math.max(0, swingCooldown - dt);
   player.hurt = Math.max(0, player.hurt - dt * 3);
   hitSpark = Math.max(0, hitSpark - dt * 5);
@@ -219,6 +232,11 @@ function update(dt) {
   noticeTimer = Math.max(0, noticeTimer - dt);
   for (const item of items) {
     item.bob += dt * 4;
+  }
+  for (let i = damagePops.length - 1; i >= 0; i -= 1) {
+    damagePops[i].life -= dt;
+    damagePops[i].rise += dt * 0.28;
+    if (damagePops[i].life <= 0) damagePops.splice(i, 1);
   }
 
   for (const e of enemies) {
@@ -241,17 +259,31 @@ function update(dt) {
     const dx = player.x - e.x;
     const dy = player.y - e.y;
     const dist = Math.hypot(dx, dy);
-    if (dist > 0.65) {
+    const attackRange = e.type === "boss" ? 0.82 : 0.72;
+    if (e.attackWindup > 0) {
+      e.attackWindup = Math.max(0, e.attackWindup - dt);
+      e.step += dt * (e.type === "boss" ? 3.2 : 4.4);
+      e.attackPose = Math.max(e.attackPose, 0.45);
+      if (e.attackWindup === 0) {
+        if (dist <= attackRange + 0.12) {
+          player.hp = Math.max(0, player.hp - e.damage);
+          player.hurt = 1;
+          e.attackPose = 1;
+          screenShake = Math.max(screenShake, e.type === "boss" ? 1 : 0.55);
+          if (player.hp <= 0) gameState = "over";
+        }
+        e.attackTimer = e.type === "boss" ? 1.15 : 0.95;
+      }
+      continue;
+    }
+    if (dist > attackRange) {
       const speed = e.speed * dt;
       moveActor(e, (dx / dist) * speed, (dy / dist) * speed, e.radius);
-      e.step += dt * (e.type === "boss" ? 7 : 9);
+      e.step += dt * (e.type === "boss" ? 5.3 : 6.2);
       e.moving = true;
     } else if (e.attackTimer <= 0) {
-      player.hp = Math.max(0, player.hp - e.damage);
-      player.hurt = 1;
-      e.attackPose = 1;
-      e.attackTimer = e.type === "boss" ? 1.05 : 0.82;
-      if (player.hp <= 0) gameState = "over";
+      e.attackWindup = e.type === "boss" ? 0.48 : 0.36;
+      e.attackPose = 0.65;
     }
   }
 
@@ -262,7 +294,7 @@ function attack() {
   if (gameState !== "play" || swingCooldown > 0) return;
   started = true;
   swing = 1;
-  swingCooldown = 0.42;
+  swingCooldown = 0.54;
 
   let target = null;
   let best = Infinity;
@@ -282,11 +314,13 @@ function attack() {
   if (target) {
     target.hp -= player.weaponLevel;
     target.hitFlash = 1;
+    target.attackWindup = 0;
     const pushAngle = Math.atan2(target.y - player.y, target.x - player.x);
-    const pushPower = target.type === "boss" ? 2.2 : 4.0;
+    const pushPower = target.type === "boss" ? 1.35 : 2.55;
     target.knockX = Math.cos(pushAngle) * pushPower;
     target.knockY = Math.sin(pushAngle) * pushPower;
-    target.stun = target.type === "boss" ? 0.18 : 0.32;
+    target.stun = target.type === "boss" ? 0.25 : 0.42;
+    spawnDamagePop(target.x, target.y, player.weaponLevel, target.type === "boss");
     hitSpark = 1;
     screenShake = 1;
     if (target.hp <= 0) {
@@ -336,6 +370,7 @@ function advanceStage() {
   player.weaponLevel += 1;
   swing = 0;
   swingCooldown = 0;
+  damagePops = [];
   started = false;
   map = buildMap(stage);
   enemies = buildEnemies(stage);
@@ -364,6 +399,7 @@ function draw() {
   }
   drawWorld();
   drawSprites();
+  drawDamagePops();
   drawItems();
   drawWeapon();
   drawHud();
@@ -446,6 +482,27 @@ function drawSprites() {
   }
 }
 
+function drawDamagePops() {
+  for (const pop of damagePops) {
+    const dx = pop.x - player.x;
+    const dy = pop.y - player.y;
+    const dist = Math.hypot(dx, dy);
+    const angle = normAngle(Math.atan2(dy, dx) - player.angle);
+    if (Math.abs(angle) > FOV * 0.65 || !hasLineOfSight(pop)) continue;
+    const screenX = W / 2 + Math.tan(angle) * (W / FOV);
+    const depthIndex = Math.floor((screenX / W) * RAYS);
+    if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < dist - 0.2) continue;
+    const alpha = Math.max(0, pop.life / 0.72);
+    const y = HALF_H - H / Math.max(1, dist) * (0.34 + pop.rise);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.textAlign = "center";
+    drawText(`-${pop.value}`, screenX, y, pop.boss ? 20 : 16, pop.boss ? "#ffd34d" : "#fff1bd");
+    ctx.textAlign = "left";
+    ctx.restore();
+  }
+}
+
 function drawItems() {
   const visible = items
     .map((item) => {
@@ -490,9 +547,10 @@ function drawOrc(e, x, y, size, dist) {
   const walk = e.moving ? Math.sin(e.step) : 0;
   const bob = e.moving ? Math.abs(Math.sin(e.step)) * px : 0;
   const attack = e.attackPose;
+  const winding = e.attackWindup > 0;
   const hurt = e.hitFlash > 0.1;
-  y += bob - attack * 3 * px;
-  x += walk * px * 0.35;
+  y += bob - attack * 3 * px + (winding ? 2 * px : 0);
+  x += walk * px * 0.35 + (winding ? Math.sin(e.step + 1.2) * px * 0.2 : 0);
   const skin = flash ? "#f6e9b8" : dark ? "#1d5f32" : "#2f9c45";
   const skinLight = flash ? "#fff6cf" : dark ? "#3a8745" : "#5fc765";
   const shadow = dark ? "#0e2817" : "#145b28";
@@ -517,6 +575,11 @@ function drawOrc(e, x, y, size, dist) {
     rect(x + 10 * px, y + 8 * px, 3 * px, 1 * px, "#1b0c0a");
     rect(x + 5 * px, y + 7 * px, 3 * px, 1 * px, eye);
     rect(x + 10 * px, y + 7 * px, 3 * px, 1 * px, eye);
+  } else if (winding) {
+    rect(x + 5 * px, y + 8 * px, 3 * px, 1 * px, eye);
+    rect(x + 10 * px, y + 8 * px, 3 * px, 1 * px, eye);
+    rect(x + 6 * px, y + 7 * px, 2 * px, 1 * px, deepShadow);
+    rect(x + 9 * px, y + 7 * px, 2 * px, 1 * px, deepShadow);
   } else if (attack > 0) {
     rect(x + 5 * px, y + 8 * px, 3 * px, 2 * px, eye);
     rect(x + 10 * px, y + 8 * px, 3 * px, 2 * px, eye);
@@ -535,8 +598,8 @@ function drawOrc(e, x, y, size, dist) {
   rect(x + 5 * px, y + 16 * px, 7 * px, 1 * px, "#806a49");
   rect(x + 7 * px, y + 17 * px, 1 * px, 5 * px, "#141414");
   const armSwing = walk > 0 ? 1 : -1;
-  const leftArmY = y + (attack > 0 ? 16 * px : (14 + armSwing) * px);
-  const rightArmY = y + (attack > 0 ? 13 * px : (14 - armSwing) * px);
+  const leftArmY = y + (winding ? 12 * px : attack > 0 ? 16 * px : (14 + armSwing) * px);
+  const rightArmY = y + (winding ? 17 * px : attack > 0 ? 13 * px : (14 - armSwing) * px);
   rect(x + 1 * px, leftArmY, 4 * px, 4 * px, armorLight);
   rect(x + 12 * px, rightArmY, 4 * px, 4 * px, armorLight);
   rect(x + 1 * px, leftArmY + 4 * px, 3 * px, 5 * px, shadow);
@@ -580,16 +643,16 @@ function tri(x1, y1, x2, y2, x3, y3, color) {
 
 function drawWeapon() {
   const progress = swing > 0 ? 1 - swing : 0;
-  const lungeIn = Math.min(1, progress / 0.16);
-  const lungeOut = progress > 0.42 ? Math.max(0, 1 - (progress - 0.42) / 0.42) : 1;
+  const lungeIn = Math.min(1, progress / 0.22);
+  const lungeOut = progress > 0.5 ? Math.max(0, 1 - (progress - 0.5) / 0.42) : 1;
   const lunge = swing > 0 ? Math.min(lungeIn, lungeOut) : 0;
   const recoil = swing > 0 && progress > 0.72 ? (progress - 0.72) / 0.28 : 0;
   const sway = swing > 0 ? 0 : Math.sin(performance.now() * 0.006) * 3;
 
-  const nearX = W * (0.86 - lunge * 0.13 + recoil * 0.06) + sway;
-  const nearY = H * (1.14 + recoil * 0.06);
-  const farX = W * (0.61 - lunge * 0.1);
-  const farY = H * (0.75 - lunge * 0.25);
+  const nearX = W * (0.84 - lunge * 0.1 + recoil * 0.05) + sway;
+  const nearY = H * (1.12 + recoil * 0.05 - lunge * 0.02);
+  const farX = W * (0.59 - lunge * 0.06);
+  const farY = H * (0.75 - lunge * 0.14);
   drawForwardPole(nearX, nearY, farX, farY, lunge);
 
   if (hitSpark > 0) drawHitSpark();
@@ -602,10 +665,10 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge) {
   const nx = -dy / len;
   const ny = dx / len;
   const palette = swordPalette();
-  const nearW = 30 + lunge * 12;
-  const midW = 21 + lunge * 5;
-  const farW = 13 + lunge * 3;
-  const tipLen = 28 + lunge * 4;
+  const nearW = 34 + lunge * 10;
+  const midW = 24 + lunge * 4;
+  const farW = 17 + lunge * 2;
+  const tipLen = 18 + lunge * 4;
   const hiltX = nearX - dx / len * 46;
   const hiltY = nearY - dy / len * 46;
 
@@ -623,7 +686,7 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge) {
   ctx.moveTo(nearX + nx * midW, nearY + ny * midW);
   ctx.lineTo(nearX - nx * midW, nearY - ny * midW);
   ctx.lineTo(farX - nx * farW, farY - ny * farW);
-  ctx.lineTo(farX + dx / len * tipLen, farY + dy / len * tipLen);
+  ctx.lineTo(farX + nx * farW * 0.45 + dx / len * tipLen, farY + ny * farW * 0.45 + dy / len * tipLen);
   ctx.lineTo(farX + nx * farW, farY + ny * farW);
   ctx.closePath();
   ctx.fill();
@@ -744,7 +807,7 @@ function drawHud() {
   drawText(swordName(), W - 184, H - 22, 15, "#d7c27b");
 
   const boss = enemies.find((e) => e.type === "boss" && !e.dead);
-  if (boss) {
+  if (boss && (player.y >= 8.7 || boss.hp < boss.maxHp)) {
     drawBar(W - 260, 26, 220, 18, boss.hp / boss.maxHp, "#b91818", "#2a0c0c");
     drawText("ORC CHIEF", W - 252, 40, 13, "#ffe08a");
   }
@@ -868,6 +931,9 @@ function resetGame() {
   kills = 0;
   swing = 0;
   swingCooldown = 0;
+  damagePops = [];
+  hitSpark = 0;
+  screenShake = 0;
   gameState = "play";
   started = false;
   items = [];
@@ -903,7 +969,12 @@ window.addEventListener("keyup", (event) => {
 
 canvas.addEventListener("click", () => {
   if (!mouseActive) {
-    canvas.requestPointerLock?.();
+    try {
+      const lockRequest = canvas.requestPointerLock?.();
+      if (lockRequest && typeof lockRequest.catch === "function") lockRequest.catch(() => {});
+    } catch {
+      mouseActive = false;
+    }
   }
   attack();
 });
