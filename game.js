@@ -12,21 +12,24 @@ const TURN_SPEED = 1.95;
 const MOVE_SPEED = 2.45;
 
 const BASE_MAP = [
-  "####################",
-  "#........##........#",
-  "#........##........#",
-  "#........##........#",
-  "#..................#",
-  "#........##........#",
-  "#........##........#",
-  "########.######.####",
-  "########.######.####",
-  "#.................B#",
-  "#..................#",
-  "#..................#",
-  "#..................#",
-  "#.................B#",
-  "####################",
+  "################################",
+  "#......#........#..............#",
+  "#......#........#..####..####..#",
+  "#......#.......................#",
+  "#...............#..####........#",
+  "#####.#####.#####........#######",
+  "#.................####.........#",
+  "#..####..#####....#..#..####...#",
+  "#..#..............#..#.....#...#",
+  "#..#..######..#####..####..#...#",
+  "#.....#....................#...#",
+  "#####.#..#######..#######..#...#",
+  "#.....#........#...........#...#",
+  "#..#########...#..#####..###...#",
+  "#..............#.....#.........#",
+  "#..####..##########..#..#####..#",
+  "#....................#........B#",
+  "################################",
 ];
 
 const player = {
@@ -44,10 +47,9 @@ const player = {
   weaponLevel: 1,
 };
 
-const MAX_STAGE = 10;
 let stage = 1;
 let map = buildMap(stage);
-let enemies = buildEnemies(stage);
+let enemies = [];
 let items = [];
 let projectiles = [];
 
@@ -65,16 +67,34 @@ let started = false;
 let hitSpark = 0;
 let screenShake = 0;
 let damagePops = [];
-let notice = "STAGE 1";
+let notice = "DUNGEON FIELD";
 let noticeTimer = 0;
 
+const SPAWN_POINTS = [
+  { type: "skeleton", x: 11.5, y: 3.5 },
+  { type: "skeleton", x: 20.5, y: 3.5 },
+  { type: "orc", x: 15.5, y: 6.5 },
+  { type: "orc", x: 27.4, y: 6.7 },
+  { type: "warlock", x: 5.5, y: 10.5 },
+  { type: "skeleton", x: 16.5, y: 10.5 },
+  { type: "ogre", x: 24.5, y: 12.5 },
+  { type: "warlock", x: 29.2, y: 14.5 },
+  { type: "ogre", x: 20.5, y: 15.2 },
+  { type: "skeletonKing", x: 25.5, y: 16.1 },
+  { type: "boss", x: 29.5, y: 16.2 },
+];
+
+enemies = buildEnemies(stage);
+
 function enemy(type, x, y) {
-  const stageBonus = stage - 1;
+  const stageBonus = Math.max(stage - 1, Math.floor((player.level - 1) / 2));
   const stats = enemyStats(type, stageBonus);
   return {
     type,
     x,
     y,
+    spawnX: x,
+    spawnY: y,
     hp: stats.hp,
     maxHp: stats.hp,
     radius: stats.radius,
@@ -96,6 +116,7 @@ function enemy(type, x, y) {
     moving: false,
     attackPose: 0,
     dead: false,
+    respawnTimer: 0,
   };
 }
 
@@ -114,28 +135,7 @@ function enemyStats(type, stageBonus) {
 function buildEnemies(nextStage) {
   const previousStage = stage;
   stage = nextStage;
-  const pool = [
-    ["skeleton", 13.3, 2.2],
-    ["orc", 14.2, 2.0],
-    ["orc", 17.0, 2.5],
-    ["warlock", 16.5, 4.7],
-    ["orc", 15.4, 5.9],
-    ["skeleton", 12.7, 5.8],
-    ["orc", 17.4, 5.5],
-    ["ogre", 18.0, 4.6],
-    ["orc", 13.6, 6.0],
-    ["orc", 12.2, 2.1],
-    ["orc", 14.8, 3.3],
-    ["warlock", 18.1, 2.3],
-  ];
-  const count = Math.min(pool.length, 3 + Math.ceil(nextStage / 2));
-  const offset = (nextStage - 1) % pool.length;
-  const layout = [];
-  for (let i = 0; i < count; i += 1) {
-    layout.push(pool[(offset + i) % pool.length]);
-  }
-  layout.push([nextStage % 3 === 0 ? "skeletonKing" : "boss", nextStage % 2 ? 17.2 : 16.4, 11.1]);
-  const built = layout.map(([type, x, y]) => enemy(type, x, y));
+  const built = SPAWN_POINTS.map(({ type, x, y }) => enemy(type, x, y));
   stage = previousStage;
   return built;
 }
@@ -191,6 +191,18 @@ function spawnProjectile(e, ux, uy) {
   });
 }
 
+function reviveEnemy(e) {
+  const revived = enemy(e.type, e.spawnX, e.spawnY);
+  Object.assign(e, revived);
+}
+
+function respawnDelay(e) {
+  if (e.boss) return 42;
+  if (e.type === "ogre") return 24;
+  if (e.type === "warlock") return 20;
+  return 12;
+}
+
 function enemyLabel(e) {
   const names = {
     skeleton: "SKELETON",
@@ -211,30 +223,8 @@ function miniMapEnemyColor(e) {
   return "#45ba58";
 }
 
-function buildMap(nextStage) {
-  const rows = BASE_MAP.map((row) => row.split(""));
-  const variants = [
-    [[12, 2], [12, 3], [16, 5], [3, 11], [4, 11]],
-    [[14, 2], [15, 2], [12, 5], [13, 5], [11, 11], [12, 11]],
-    [[17, 3], [17, 4], [11, 2], [6, 10], [6, 11], [14, 12]],
-    [[13, 3], [14, 4], [15, 5], [4, 12], [10, 10], [15, 10]],
-  ];
-  const chosen = variants[(nextStage - 1) % variants.length];
-  for (const [x, y] of chosen) {
-    if (nextStage === 1 && y < 7) continue;
-    if (rows[y] && rows[y][x] === ".") rows[y][x] = "#";
-  }
-  if (nextStage >= 4) {
-    for (const [x, y] of [[10, 3], [18, 6], [9, 10], [16, 12]]) {
-      if (rows[y] && rows[y][x] === ".") rows[y][x] = "#";
-    }
-  }
-  rows[4][9] = ".";
-  rows[7][8] = ".";
-  rows[8][8] = ".";
-  rows[7][15] = ".";
-  rows[8][15] = ".";
-  return rows.map((row) => row.join(""));
+function buildMap() {
+  return BASE_MAP.slice();
 }
 
 function isWall(x, y) {
@@ -339,7 +329,13 @@ function update(dt) {
   }
 
   for (const e of enemies) {
-    if (e.dead) continue;
+    if (e.dead) {
+      e.respawnTimer = Math.max(0, e.respawnTimer - dt);
+      if (e.respawnTimer === 0 && Math.hypot(player.x - e.spawnX, player.y - e.spawnY) > 6) {
+        reviveEnemy(e);
+      }
+      continue;
+    }
     e.moving = false;
     e.hitFlash = Math.max(0, e.hitFlash - dt * 6);
     e.attackTimer = Math.max(0, e.attackTimer - dt);
@@ -351,8 +347,6 @@ function update(dt) {
       e.knockY *= Math.pow(0.04, dt);
     }
     if (!started) continue;
-    if (e.type === "orc" && player.x < 9.5) continue;
-    if (e.boss && player.y < 8.7) continue;
     if (e.stun > 0) continue;
 
     const dx = player.x - e.x;
@@ -372,7 +366,7 @@ function update(dt) {
           player.hurt = 1;
           addRage(e.boss ? 12 : 7);
           e.attackPose = 1;
-          screenShake = Math.max(screenShake, e.type === "boss" ? 1 : 0.55);
+          screenShake = Math.max(screenShake, e.boss ? 1 : 0.55);
           if (player.hp <= 0) gameState = "over";
         }
         e.attackTimer = e.cooldown;
@@ -452,14 +446,18 @@ function damageEnemy(target, damage, kind) {
   if (kind !== "special") addRage(target.boss ? 16 : 22);
   if (target.hp <= 0) {
     target.dead = true;
+    target.respawnTimer = respawnDelay(target);
+    target.attackWindup = 0;
+    target.knockX = 0;
+    target.knockY = 0;
     kills += 1;
     gainXp(target.xp);
     if (kind !== "special") addRage(target.boss ? 30 : 16);
     if (target.boss) {
-      spawnItem("relic", target.x, target.y);
-      notice = stage < MAX_STAGE ? `${enemyLabel(target)} DROPPED A RELIC` : `${enemyLabel(target)} TOKEN CLAIMED`;
-      noticeTimer = 3;
-    } else if (Math.random() < 0.45) {
+      if (Math.random() < 0.7) spawnItem("health", target.x, target.y);
+      notice = `${enemyLabel(target)} DEFEATED`;
+      noticeTimer = 2.4;
+    } else if (Math.random() < 0.36) {
       spawnItem("health", target.x, target.y);
     }
   }
@@ -475,44 +473,8 @@ function collectItems() {
       notice = "HEALTH RESTORED";
       noticeTimer = 1.6;
       items.splice(i, 1);
-    } else if (item.type === "relic") {
-      items.splice(i, 1);
-      if (stage < MAX_STAGE) {
-        gameState = "stageClear";
-        messagePulse = 0;
-        notice = `STAGE ${stage} COMPLETE`;
-        noticeTimer = 2;
-      } else {
-        player.weaponLevel += 1;
-        notice = "CHIEF TOKEN CLAIMED";
-        noticeTimer = 2;
-        gameState = "clear";
-      }
     }
   }
-}
-
-function advanceStage() {
-  stage += 1;
-  player.x = 4.5;
-  player.y = 4.5;
-  player.angle = 0;
-  player.hp = Math.min(player.maxHp, player.hp + 45);
-  player.rage = Math.min(player.maxRage, player.rage + 35);
-  player.weaponLevel += 1;
-  swing = 0;
-  swingCooldown = 0;
-  swingType = "normal";
-  damagePops = [];
-  projectiles = [];
-  started = false;
-  map = buildMap(stage);
-  enemies = buildEnemies(stage);
-  items = [];
-  notice = `STAGE ${stage} - SWORD UPGRADED`;
-  noticeTimer = 3;
-  gameState = "play";
-  messagePulse = 0;
 }
 
 function hasLineOfSight(e) {
@@ -1056,19 +1018,19 @@ function drawHud() {
   ctx.fillRect(0, H - 70, W, 70);
   ctx.fillStyle = "rgba(255, 225, 140, 0.1)";
   ctx.fillRect(0, H - 70, W, 2);
-  drawBar(24, H - 52, 196, 18, player.hp / 100, "#d42f2f", "#3f1212");
+  drawBar(24, H - 52, 196, 18, player.hp / player.maxHp, "#d42f2f", "#3f1212");
   drawText(`HP ${player.hp}`, 32, H - 38, 13, "#fff1bd");
   drawBar(24, H - 25, 196, 11, player.rage / player.maxRage, "#d77b23", "#2d1609");
   drawText(`RAGE ${Math.floor(player.rage)}`, 32, H - 15, 10, player.rage >= player.maxRage ? "#ffe39a" : "#d8b47b");
   drawText(`KILLS ${kills}`, 252, H - 25, 15, "#fff1bd");
   drawText(`LV ${player.level}`, 410, H - 44, 14, "#ffe39a");
   drawText(`XP ${player.xp}/${player.nextXp}`, 410, H - 25, 12, "#d7c27b");
-  drawText(`STAGE ${stage}/10`, 548, H - 25, 14, "#d7c27b");
+  drawText("FIELD", 548, H - 25, 14, "#d7c27b");
   drawText(swordName(), W - 184, H - 25, 14, "#d7c27b");
   if (player.rage >= player.maxRage) drawText("RMB SPECIAL READY", W - 230, H - 48, 12, "#ffe39a");
 
   const boss = enemies.find((e) => e.boss && !e.dead);
-  if (boss && (player.y >= 8.7 || boss.hp < boss.maxHp)) {
+  if (boss && (Math.hypot(player.x - boss.x, player.y - boss.y) < 8 || boss.hp < boss.maxHp)) {
     drawBar(W - 260, 26, 220, 18, boss.hp / boss.maxHp, "#b91818", "#2a0c0c");
     drawText(enemyLabel(boss), W - 252, 40, 13, "#ffe08a");
   }
@@ -1181,7 +1143,6 @@ function drawEndScreen() {
   ctx.font = gameState === "start" ? "46px Courier New" : "54px Courier New";
   let title = "GAME OVER";
   if (gameState === "start") title = "RETRO ORC DUNGEON";
-  if (gameState === "stageClear") title = `STAGE ${stage} COMPLETE`;
   if (gameState === "clear") title = "DUNGEON CLEARED";
   ctx.fillText(title, W / 2, H / 2 - 72);
   ctx.fillStyle = "#d9c99a";
@@ -1189,11 +1150,8 @@ function drawEndScreen() {
   if (gameState === "start") {
     ctx.fillText("LEFT CLICK / SPACE: ATTACK", W / 2, H / 2 - 18);
     ctx.fillText("RIGHT CLICK: RAGE SPECIAL", W / 2, H / 2 + 12);
-    ctx.fillText("PRESS ENTER OR CLICK TO START", W / 2, H / 2 + 58);
-  } else if (gameState === "stageClear") {
-    ctx.fillText(`STAGE ${stage + 1}/10 READY`, W / 2, H / 2 - 14);
-    ctx.fillText("SWORD UPGRADED - HP RESTORED", W / 2, H / 2 + 16);
-    ctx.fillText("PRESS ENTER OR CLICK FOR NEXT STAGE", W / 2, H / 2 + 58);
+    ctx.fillText("HUNT, LEVEL UP, AND SURVIVE THE FIELD", W / 2, H / 2 + 42);
+    ctx.fillText("PRESS ENTER OR CLICK TO START", W / 2, H / 2 + 76);
   } else {
     ctx.fillText("Press Enter to restart", W / 2, H / 2 + 12);
   }
@@ -1203,7 +1161,7 @@ function drawEndScreen() {
 function startGame() {
   gameState = "play";
   messagePulse = 0;
-  notice = `STAGE ${stage}`;
+  notice = "DUNGEON FIELD";
   noticeTimer = 1.8;
 }
 
@@ -1234,7 +1192,7 @@ function resetGame() {
   items = [];
   map = buildMap(stage);
   enemies = buildEnemies(stage);
-  notice = "STAGE 1";
+  notice = "DUNGEON FIELD";
   noticeTimer = 0;
 }
 
@@ -1250,11 +1208,6 @@ window.addEventListener("keydown", (event) => {
   if (event.code === "Enter" && gameState === "start") {
     event.preventDefault();
     startGame();
-    return;
-  }
-  if (event.code === "Enter" && gameState === "stageClear") {
-    event.preventDefault();
-    advanceStage();
     return;
   }
   keys.add(event.code);
@@ -1278,10 +1231,6 @@ canvas.addEventListener("click", () => {
     startGame();
     return;
   }
-  if (gameState === "stageClear") {
-    advanceStage();
-    return;
-  }
   if (!mouseActive) {
     try {
       const lockRequest = canvas.requestPointerLock?.();
@@ -1302,10 +1251,6 @@ canvas.addEventListener("mousedown", (event) => {
   event.preventDefault();
   if (gameState === "start") {
     startGame();
-    return;
-  }
-  if (gameState === "stageClear") {
-    advanceStage();
     return;
   }
   attack("special");
