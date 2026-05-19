@@ -49,7 +49,7 @@ const player = {
   level: 1,
   xp: 0,
   nextXp: 60,
-  weaponLevel: 1,
+  weaponLevel: 0,
 };
 
 let stage = 1;
@@ -150,11 +150,12 @@ function buildEnemies(nextStage) {
   return built;
 }
 
-function spawnItem(type, x, y) {
+function spawnItem(type, x, y, value = 0) {
   items.push({
     type,
     x,
     y,
+    value,
     bob: Math.random() * Math.PI * 2,
   });
 }
@@ -183,7 +184,6 @@ function gainXp(amount) {
     player.maxHp += 12;
     player.hp = player.maxHp;
     player.maxRage = Math.min(160, player.maxRage + 8);
-    if (player.level === 3 || player.level === 6 || player.level === 9) player.weaponLevel += 1;
     notice = `레벨 ${player.level}`;
     noticeTimer = 2.2;
   }
@@ -213,6 +213,49 @@ function respawnDelay(e) {
   return 12;
 }
 
+function handlePlayerDeath() {
+  if (player.weaponLevel > 0) {
+    spawnItem("weapon", player.x, player.y, player.weaponLevel);
+  }
+  player.x = 4.5;
+  player.y = 4.5;
+  player.angle = 0;
+  player.hp = player.maxHp;
+  player.hurt = 0;
+  player.rage = 0;
+  player.weaponLevel = 0;
+  swing = 0;
+  swingCooldown = 0;
+  swingType = "normal";
+  projectiles = [];
+  damagePops = [];
+  started = false;
+  notice = "마을에서 부활 - 검을 되찾으세요";
+  noticeTimer = 3.2;
+}
+
+function dropLoot(target) {
+  if (target.boss) {
+    spawnItem("scroll", target.x, target.y);
+    if (Math.random() < 0.75) spawnItem("health", target.x + 0.25, target.y);
+    return;
+  }
+
+  const roll = Math.random();
+  if (target.type === "ogre" || target.type === "warlock") {
+    if (roll < 0.12) spawnItem("scroll", target.x, target.y);
+    else if (roll < 0.34) spawnItem("rage", target.x, target.y);
+    else if (roll < 0.54) spawnItem("xp", target.x, target.y);
+    else if (roll < 0.7) spawnItem("health", target.x, target.y);
+    return;
+  }
+
+  if (roll < 0.05) spawnItem("scroll", target.x, target.y);
+  else if (roll < 0.23) spawnItem("rage", target.x, target.y);
+  else if (roll < 0.4) spawnItem("xp", target.x, target.y);
+  else if (roll < 0.58) spawnItem("health", target.x, target.y);
+}
+
 function enemyLabel(e) {
   const names = {
     skeleton: "스켈레톤",
@@ -231,6 +274,15 @@ function miniMapEnemyColor(e) {
   if (e.type === "warlock") return "#b75cff";
   if (e.boss) return "#d33";
   return "#45ba58";
+}
+
+function itemColor(item) {
+  if (item.type === "health") return "#e33b32";
+  if (item.type === "rage") return "#e47c25";
+  if (item.type === "xp") return "#45a8ff";
+  if (item.type === "scroll") return "#f2d58a";
+  if (item.type === "weapon") return "#fff1bd";
+  return "#e3c75b";
 }
 
 function buildMap() {
@@ -258,6 +310,10 @@ function moveActor(actor, dx, dy, radius = 0.18) {
   if (!isWall(actor.x, ny + Math.sign(dy) * radius) && !isWall(actor.x - radius, ny) && !isWall(actor.x + radius, ny)) {
     actor.y = ny;
   }
+}
+
+function isTown(x = player.x, y = player.y) {
+  return x < 8 && y < 6;
 }
 
 function castRay(angle) {
@@ -335,7 +391,7 @@ function update(dt) {
       addRage(6);
       screenShake = Math.max(screenShake, 0.6);
       projectiles.splice(i, 1);
-      if (player.hp <= 0) gameState = "over";
+      if (player.hp <= 0) handlePlayerDeath();
     }
   }
 
@@ -357,7 +413,7 @@ function update(dt) {
       e.knockX *= Math.pow(0.04, dt);
       e.knockY *= Math.pow(0.04, dt);
     }
-    if (!started) continue;
+    if (!started || isTown()) continue;
     if (e.stun > 0) continue;
 
     const dx = player.x - e.x;
@@ -378,7 +434,7 @@ function update(dt) {
           addRage(e.boss ? 12 : 7);
           e.attackPose = 1;
           screenShake = Math.max(screenShake, e.boss ? 1 : 0.55);
-          if (player.hp <= 0) gameState = "over";
+          if (player.hp <= 0) handlePlayerDeath();
         }
         e.attackTimer = e.cooldown;
       }
@@ -418,7 +474,7 @@ function attack(kind = "normal") {
 
   const hitRange = kind === "special" ? 2.3 : 1.55;
   const hitAngle = kind === "special" ? 0.58 : 0.34;
-  const baseDamage = player.weaponLevel + Math.floor((player.level - 1) / 2);
+  const baseDamage = 1 + player.weaponLevel + Math.floor((player.level - 1) / 2);
   const damage = kind === "special" ? baseDamage * 2 + 2 : baseDamage;
   const hits = [];
   for (const e of enemies) {
@@ -464,13 +520,9 @@ function damageEnemy(target, damage, kind) {
     kills += 1;
     gainXp(target.xp);
     if (kind !== "special") addRage(target.boss ? 30 : 16);
-    if (target.boss) {
-      if (Math.random() < 0.7) spawnItem("health", target.x, target.y);
-      notice = `${enemyLabel(target)} 처치`;
-      noticeTimer = 2.4;
-    } else if (Math.random() < 0.36) {
-      spawnItem("health", target.x, target.y);
-    }
+    dropLoot(target);
+    notice = `${enemyLabel(target)} 처치`;
+    noticeTimer = 2.4;
   }
 }
 
@@ -483,6 +535,26 @@ function collectItems() {
       player.hp = Math.min(player.maxHp, player.hp + 28);
       notice = "체력 회복";
       noticeTimer = 1.6;
+      items.splice(i, 1);
+    } else if (item.type === "rage") {
+      addRage(45);
+      notice = "분노 충전";
+      noticeTimer = 1.6;
+      items.splice(i, 1);
+    } else if (item.type === "xp") {
+      gainXp(35 + player.level * 6);
+      notice = "경험치 획득";
+      noticeTimer = 1.6;
+      items.splice(i, 1);
+    } else if (item.type === "scroll") {
+      player.weaponLevel += 1;
+      notice = `강화 주문서 - 검 +${player.weaponLevel}`;
+      noticeTimer = 2.2;
+      items.splice(i, 1);
+    } else if (item.type === "weapon") {
+      player.weaponLevel = Math.max(player.weaponLevel, item.value);
+      notice = `검 +${item.value} 회수`;
+      noticeTimer = 2.4;
       items.splice(i, 1);
     }
   }
@@ -679,6 +751,28 @@ function drawItemSprite(item, x, y, size) {
     rect(x + 4 * px, y + 3 * px, 2 * px, 4 * px, "#fff0bf");
     rect(x + 3 * px, y + 4 * px, 4 * px, 2 * px, "#fff0bf");
     rect(x + 2 * px, y + 8 * px, 6 * px, 1 * px, "#0b0504");
+  } else if (item.type === "rage") {
+    rect(x + 2 * px, y + 2 * px, 6 * px, 6 * px, "#3a102b");
+    rect(x + 3 * px, y + 1 * px, 4 * px, 8 * px, "#d66a21");
+    rect(x + 4 * px, y + 2 * px, 2 * px, 6 * px, "#ffcf62");
+    rect(x + 2 * px, y + 8 * px, 6 * px, 1 * px, "#0b0504");
+  } else if (item.type === "xp") {
+    rect(x + 2 * px, y + 2 * px, 6 * px, 6 * px, "#102642");
+    rect(x + 3 * px, y + 3 * px, 4 * px, 4 * px, "#45a8ff");
+    rect(x + 4 * px, y + 1 * px, 2 * px, 8 * px, "#bfe8ff");
+    rect(x + 1 * px, y + 4 * px, 8 * px, 2 * px, "#45a8ff");
+  } else if (item.type === "scroll") {
+    rect(x + 2 * px, y + 1 * px, 6 * px, 8 * px, "#3d2b12");
+    rect(x + 3 * px, y + 2 * px, 4 * px, 6 * px, "#f2d58a");
+    rect(x + 4 * px, y + 3 * px, 2 * px, 1 * px, "#9d5a22");
+    rect(x + 4 * px, y + 5 * px, 2 * px, 1 * px, "#9d5a22");
+    rect(x + 1 * px, y + 1 * px, 2 * px, 2 * px, "#fff2b8");
+  } else if (item.type === "weapon") {
+    const palette = swordPalette(item.value);
+    rect(x + 4 * px, y + 1 * px, 2 * px, 7 * px, palette.blade);
+    rect(x + 5 * px, y + 1 * px, 1 * px, 7 * px, palette.highlight);
+    rect(x + 2 * px, y + 6 * px, 6 * px, 1 * px, palette.guard);
+    rect(x + 4 * px, y + 7 * px, 2 * px, 3 * px, "#9b6333");
   } else {
     rect(x + 2 * px, y + 2 * px, 6 * px, 6 * px, "#21160f");
     rect(x + 3 * px, y + 1 * px, 4 * px, 8 * px, "#d0ae52");
@@ -915,10 +1009,11 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showT
   const nx = -dy / len;
   const ny = dx / len;
   const palette = swordPalette();
-  const nearW = 34 + lunge * 10;
-  const midW = 24 + lunge * 4;
-  const farW = 17 + lunge * 2;
-  const tipLen = 18 + lunge * 8;
+  const upgradeScale = Math.min(12, player.weaponLevel) * 1.25;
+  const nearW = 34 + upgradeScale + lunge * 10;
+  const midW = 24 + upgradeScale * 0.7 + lunge * 4;
+  const farW = 17 + upgradeScale * 0.4 + lunge * 2;
+  const tipLen = 18 + upgradeScale * 0.6 + lunge * 8;
   const hiltX = nearX - dx / len * 46;
   const hiltY = nearY - dy / len * 46;
 
@@ -986,20 +1081,27 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showT
   }
 }
 
-function swordPalette() {
-  if (player.weaponLevel >= 5) {
+function swordPalette(level = player.weaponLevel) {
+  if (level >= 8) {
+    return { blade: "#f8f6d8", highlight: "#ffffff", shadow: "#6e5a1e", guard: "#f1c232", trail: "rgba(255, 245, 180, 0.5)", specialTrail: "rgba(255, 245, 180, 0.72)" };
+  }
+  if (level >= 5) {
     return { blade: "#f1c232", highlight: "#fff0a6", shadow: "#5b4315", guard: "#c18a24", trail: "rgba(255, 220, 72, 0.45)", specialTrail: "rgba(255, 235, 92, 0.72)" };
   }
-  if (player.weaponLevel >= 2) {
+  if (level >= 3) {
+    return { blade: "#7c53d9", highlight: "#ddcfff", shadow: "#211046", guard: "#6b42b8", trail: "rgba(150, 96, 255, 0.42)", specialTrail: "rgba(166, 110, 255, 0.68)" };
+  }
+  if (level >= 2) {
     return { blade: "#c83b34", highlight: "#ffd0c0", shadow: "#4a1511", guard: "#91302a", trail: "rgba(255, 90, 70, 0.42)", specialTrail: "rgba(255, 74, 45, 0.68)" };
+  }
+  if (level >= 1) {
+    return { blade: "#a7d8f0", highlight: "#ffffff", shadow: "#28485a", guard: "#5c8da8", trail: "rgba(160, 220, 255, 0.34)", specialTrail: "rgba(180, 230, 255, 0.64)" };
   }
   return { blade: "#d8d8d2", highlight: "#ffffff", shadow: "#686860", guard: "#9a8b68", trail: "rgba(255, 255, 255, 0.34)", specialTrail: "rgba(255, 238, 186, 0.64)" };
 }
 
 function swordName() {
-  if (player.weaponLevel >= 5) return "황금검";
-  if (player.weaponLevel >= 2) return "붉은검";
-  return "흰검";
+  return `검 +${player.weaponLevel}`;
 }
 
 function drawThrustHead(cx, tipY, s, jab) {
@@ -1057,7 +1159,7 @@ function drawHud() {
   drawText(`처치 ${kills}`, 252, H - 25, 15, "#fff1bd");
   drawText(`레벨 ${player.level}`, 410, H - 44, 14, "#ffe39a");
   drawText(`경험치 ${player.xp}/${player.nextXp}`, 410, H - 25, 12, "#d7c27b");
-  drawText("필드", 580, H - 25, 14, "#d7c27b");
+  drawText(isTown() ? "마을" : "필드", 580, H - 25, 14, isTown() ? "#ffe39a" : "#d7c27b");
   drawText(swordName(), W - 184, H - 25, 14, "#d7c27b");
   if (player.rage >= player.maxRage) drawText("우클릭 분노공격 준비", W - 250, H - 48, 13, "#ffe39a");
 
@@ -1099,7 +1201,7 @@ function drawMiniMap() {
   }
 
   for (const item of items) {
-    ctx.fillStyle = item.type === "health" ? "#e33b32" : "#e3c75b";
+    ctx.fillStyle = itemColor(item);
     ctx.fillRect(x0 + item.x * cell - 1, y0 + item.y * cell - 1, 3, 3);
   }
 
@@ -1191,7 +1293,7 @@ function drawEndScreen() {
 function startGame() {
   gameState = "play";
   messagePulse = 0;
-  notice = "던전 필드";
+  notice = "마을";
   noticeTimer = 1.8;
 }
 
@@ -1208,7 +1310,7 @@ function resetGame() {
   player.level = 1;
   player.xp = 0;
   player.nextXp = 60;
-  player.weaponLevel = 1;
+  player.weaponLevel = 0;
   kills = 0;
   swing = 0;
   swingCooldown = 0;
