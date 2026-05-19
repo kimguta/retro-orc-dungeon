@@ -11,8 +11,9 @@ Controls:
 - `WASD`: move
 - `Left / Right Arrow`: rotate view
 - `Mouse`: rotate view after clicking the canvas
-- `Mouse click / Space`: attack with the sword
-- `Enter`: restart after game over or clear
+- `Left mouse / Space`: normal sword attack
+- `Right mouse`: rage special attack when the rage bar is full
+- `Enter`: start, advance after stage clear, or restart after game over / clear
 
 ## Game
 
@@ -29,6 +30,8 @@ Controls:
 - The orc chief drops a relic that advances to the next stage
 - The sword upgrades from white to red to gold as stages advance
 - A minimap shows walls, the player, enemies, and dropped items
+- A rage bar fills from combat and unlocks a stronger right-click special attack
+- Stage clear screens summarize completion before the next stage starts
 
 ## GitHub Pages
 
