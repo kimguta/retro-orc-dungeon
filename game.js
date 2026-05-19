@@ -306,6 +306,7 @@ function update(dt) {
 
   player.angle = normAngle(player.angle);
   swing = Math.max(0, swing - dt * 2.55);
+  if (swing === 0) swingType = "normal";
   swingCooldown = Math.max(0, swingCooldown - dt);
   player.hurt = Math.max(0, player.hurt - dt * 3);
   hitSpark = Math.max(0, hitSpark - dt * 5);
@@ -860,7 +861,7 @@ function tri(x1, y1, x2, y2, x3, y3, color) {
 
 function drawWeapon() {
   const progress = swing > 0 ? 1 - swing : 0;
-  const special = swingType === "special";
+  const special = swingType === "special" && swing > 0;
   if (special) {
     drawSpecialSword(progress);
     if (hitSpark > 0) drawHitSpark();
@@ -885,23 +886,26 @@ function drawWeapon() {
 function drawSpecialSword(progress) {
   const palette = swordPalette();
   const arc = Math.sin(progress * Math.PI);
-  const sweep = progress - 0.5;
-  const hiltX = W * (0.74 + sweep * 0.28);
-  const hiltY = H * (1.12 - arc * 0.03);
-  const tipX = W * (0.24 + progress * 0.52);
-  const tipY = H * (0.62 - arc * 0.18);
-  drawForwardPole(hiltX, hiltY, tipX, tipY, 0.85 + arc * 0.45, false, false);
+  const returnEase = progress < 0.62 ? progress / 0.62 : Math.max(0, 1 - (progress - 0.62) / 0.38);
+  const sweep = Math.sin(returnEase * Math.PI);
+  const hiltX = W * (0.82 - sweep * 0.08);
+  const hiltY = H * (1.12 - sweep * 0.04);
+  const tipX = W * (0.6 - sweep * 0.22);
+  const tipY = H * (0.74 - sweep * 0.24);
+  drawForwardPole(hiltX, hiltY, tipX, tipY, 0.82 + sweep * 0.36, false, false);
 
-  ctx.save();
-  ctx.globalAlpha = 0.28 + arc * 0.28;
-  ctx.strokeStyle = palette.specialTrail;
-  ctx.lineWidth = 18;
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.moveTo(W * 0.24, H * 0.67);
-  ctx.quadraticCurveTo(W * 0.52, H * 0.38 - arc * 36, W * 0.82, H * 0.61);
-  ctx.stroke();
-  ctx.restore();
+  if (progress > 0.18 && progress < 0.58) {
+    ctx.save();
+    ctx.globalAlpha = 0.16 + arc * 0.18;
+    ctx.strokeStyle = palette.specialTrail;
+    ctx.lineWidth = 10;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(W * 0.36, H * 0.64);
+    ctx.quadraticCurveTo(W * 0.52, H * 0.46, W * 0.72, H * 0.6);
+    ctx.stroke();
+    ctx.restore();
+  }
 }
 
 function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showTrail = true) {
