@@ -17,33 +17,34 @@ const MOVE_SPEED = 2.1;
 const SPECIAL_RAGE_COST = 40;
 const BERSERK_DRAIN_PER_SECOND = 7.5;
 const DEATH_RESPAWN_SECONDS = 5;
+const SAVE_KEY = "shadowCitadelProgressV1";
 
 const BASE_MAP = [
   "################################################",
-  "#.......#.....#.............#.......#.....#....#",
-  "#...........#.#.###########.#.###.#.#.###.#.#..#",
-  "#...........#.....#.#.......#.#.......#...#.#..#",
-  "#..........##...#.#.#...#######.#...###...#.#..#",
-  "#.......#.....#...#...#.........#.....#.#...#..#",
-  "#..###..#.#####.###.###.###########.###.#.###..#",
-  "#......##...#.......#...#...........#...#.#....#",
-  "#.####.####.#.#...#####.#.#...#.###.#...###.#..#",
-  "#....#..#.#.#.#.......#...#.#...#.....#.....#..#",
-  "###..##.#.#.#.#.###.#.#####.#.#.#####.#.#####..#",
-  "#....#..#.#...#.#...#.......#.#.#.....#.#...#..#",
-  "#.##.####.#...#.###.###...###.###.#...#.#...#..#",
-  "#.......#.#...#...#.#...#...#.....#.#.#.#...#..#",
-  "#.#####.#.#######.#.#.#.###.#.#####.#.#.###.#..#",
-  "#.......#.......#.....#...#.#.......#.......#..#",
-  "#.....#..##.###.#...#####.#.#...###.###...###..#",
-  "#.###.#.....#...#.#.#.....#...#...#.......#....#",
-  "#...#.#...#####.#.#.#.#####.#####.#########.##.#",
-  "###.#.#.......#.#.#.#.....#.....#.....#.....#..#",
-  "#...#.#...#...#.#.#####...#####.#...#.#.#...#..#",
-  "#.###.#...#...#.....#.....#...#.....#...#......#",
-  "#.....#...#.#######.#.#####.#.#####...#####....#",
-  "#######...#...........#.....#................B.#",
-  "#.........#.....#.....#.....#.....#.....#......#",
+  "#........###...###.........##.####....####.....#",
+  "#........##......#..........#.##.........#.....#",
+  "#..............................................#",
+  "#........##......###........#............####..#",
+  "#........####..#####...######.#######....####..#",
+  "#####.####.....###.....#...##....#.......#.....#",
+  "#..............................................#",
+  "#####.####.......#.........##.####....##.......#",
+  "#####.#######....#####...####.#######......##..#",
+  "##....#####........##.......#.####.............#",
+  "#..............................................#",
+  "##......##.........#...........###......##.....#",
+  "##......####.....###...#####...#####...######..#",
+  "#.......##.......#......####.............####..#",
+  "#..............................................#",
+  "#..............###......####.............#.....#",
+  "#..........#.....###...###.......#.....###.....#",
+  "##.....................#.........#.............#",
+  "#..............................................#",
+  "#..............................................#",
+  "#........................###.......##.....##...#",
+  "#..#.....................####.##...##.####.....#",
+  "#............................................B.#",
+  "####......###......#.......##.####....####.....#",
   "################################################",
 ];
 
@@ -72,6 +73,7 @@ const keys = new Set();
 const depths = new Array(RAYS).fill(MAX_DEPTH);
 let last = performance.now();
 let kills = 0;
+loadProgress();
 let swing = 0;
 let swingCooldown = 0;
 let swingType = "normal";
@@ -103,7 +105,7 @@ const SPAWN_POINTS = [
   { type: "orc", x: 39.5, y: 3.5 },
   { type: "skeleton", x: 13.5, y: 5.5 },
   { type: "orc", x: 21.5, y: 5.5 },
-  { type: "warlock", x: 31.5, y: 5.5 },
+  { type: "warlock", x: 29.5, y: 5.5 },
   { type: "ogre", x: 39.5, y: 5.5 },
   { type: "skeleton", x: 11.5, y: 7.5 },
   { type: "orc", x: 19.5, y: 7.5 },
@@ -112,7 +114,7 @@ const SPAWN_POINTS = [
   { type: "orc", x: 43.5, y: 7.5 },
   { type: "skeleton", x: 15.5, y: 9.5 },
   { type: "ogre", x: 23.5, y: 9.5 },
-  { type: "orc", x: 35.5, y: 9.5 },
+  { type: "orc", x: 37.5, y: 9.5 },
   { type: "warlock", x: 41.5, y: 9.5 },
   { type: "deathKnight", x: 17.5, y: 11.5 },
   { type: "skeleton", x: 25.5, y: 11.5 },
@@ -137,12 +139,12 @@ const SPAWN_POINTS = [
   { type: "skeleton", x: 15.5, y: 21.5 },
   { type: "orc", x: 23.5, y: 21.5 },
   { type: "skeletonKing", x: 33.5, y: 21.5 },
-  { type: "boss", x: 43.5, y: 21.5 },
+  { type: "boss", x: 44.5, y: 21.5 },
   { type: "skeleton", x: 3.5, y: 11.5 },
   { type: "orc", x: 4.5, y: 11.5 },
   { type: "skeleton", x: 3.5, y: 13.5 },
   { type: "orc", x: 6.5, y: 13.5 },
-  { type: "warlock", x: 11.5, y: 13.5 },
+  { type: "warlock", x: 12.5, y: 13.5 },
   { type: "skeleton", x: 2.5, y: 15.5 },
   { type: "orc", x: 6.5, y: 15.5 },
   { type: "ogre", x: 13.5, y: 15.5 },
@@ -168,6 +170,26 @@ const SPAWN_POINTS = [
   { type: "skeleton", x: 8.5, y: 23.5 },
   { type: "orc", x: 17.5, y: 23.5 },
   { type: "ogre", x: 21.5, y: 23.5 },
+  { type: "skeleton", x: 7.5, y: 3.5 },
+  { type: "orc", x: 13.5, y: 5.5 },
+  { type: "warlock", x: 17.5, y: 7.5 },
+  { type: "skeleton", x: 27.5, y: 7.5 },
+  { type: "orc", x: 33.5, y: 7.5 },
+  { type: "ogre", x: 42.5, y: 7.5 },
+  { type: "skeleton", x: 13.5, y: 11.5 },
+  { type: "orc", x: 31.5, y: 11.5 },
+  { type: "warlock", x: 45.5, y: 11.5 },
+  { type: "skeleton", x: 5.5, y: 15.5 },
+  { type: "orc", x: 25.5, y: 15.5 },
+  { type: "ogre", x: 41.5, y: 15.5 },
+  { type: "skeleton", x: 18.5, y: 19.5 },
+  { type: "orc", x: 29.5, y: 19.5 },
+  { type: "warlock", x: 37.5, y: 19.5 },
+  { type: "skeleton", x: 45.5, y: 19.5 },
+  { type: "orc", x: 3.5, y: 23.5 },
+  { type: "warlock", x: 29.5, y: 23.5 },
+  { type: "skeleton", x: 37.5, y: 23.5 },
+  { type: "ogre", x: 43.5, y: 23.5 },
   { type: "orc", x: 46.4, y: 2.5 },
   { type: "skeleton", x: 46.4, y: 5.5 },
   { type: "warlock", x: 46.4, y: 9.5 },
@@ -287,6 +309,40 @@ function buildEnemies(nextStage) {
   return built;
 }
 
+function saveProgress() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      level: player.level,
+      xp: player.xp,
+      nextXp: player.nextXp,
+      maxHp: player.maxHp,
+      maxRage: player.maxRage,
+      weaponLevel: player.weaponLevel,
+      kills,
+    }));
+  } catch (_) {
+    // Storage can be unavailable in private or restricted browser contexts.
+  }
+}
+
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    player.level = Math.max(1, Number(data.level) || player.level);
+    player.xp = Math.max(0, Number(data.xp) || 0);
+    player.nextXp = Math.max(60, Number(data.nextXp) || player.nextXp);
+    player.maxHp = Math.max(100, Number(data.maxHp) || player.maxHp);
+    player.hp = player.maxHp;
+    player.maxRage = Math.max(100, Number(data.maxRage) || player.maxRage);
+    player.weaponLevel = Math.max(0, Number(data.weaponLevel) || 0);
+    kills = Math.max(0, Number(data.kills) || 0);
+  } catch (_) {
+    localStorage.removeItem(SAVE_KEY);
+  }
+}
+
 function spawnItem(type, x, y, value = 0) {
   items.push({
     type,
@@ -359,6 +415,7 @@ function gainXp(amount) {
     player.maxRage = Math.min(160, player.maxRage + 8);
     notice = `레벨 ${player.level}`;
     noticeTimer = 2.2;
+    saveProgress();
   }
 }
 
@@ -737,7 +794,7 @@ function update(dt) {
         } else if (e.projectile && dist <= attackRange + 0.6 && hasLineOfSight(e)) {
           spawnProjectile(e, dx / dist, dy / dist);
           e.attackPose = 1;
-        } else if (!e.projectile && dist <= attackRange + 0.18) {
+        } else if (!e.projectile && dist <= attackRange + 0.18 && hasLineOfSight(e)) {
           player.hp = Math.max(0, player.hp - e.damage);
           player.hurt = 1;
           addRage(e.boss ? 12 : 7);
@@ -757,12 +814,12 @@ function update(dt) {
       moveActor(e, -(dx / dist) * speed, -(dy / dist) * speed, e.radius);
       e.step += dt * 4.2;
       e.moving = true;
-    } else if (dist > attackRange || (e.projectile && !hasLineOfSight(e))) {
+    } else if (dist > attackRange || !hasLineOfSight(e)) {
       const speed = e.speed * dt;
       moveActor(e, (dx / dist) * speed, (dy / dist) * speed, e.radius);
       e.step += dt * (e.boss ? 5.3 : 6.2);
       e.moving = true;
-    } else if (e.attackTimer <= 0) {
+    } else if (e.attackTimer <= 0 && hasLineOfSight(e)) {
       e.attackWindup = e.windup;
       e.attackPose = 0.65;
     }
@@ -858,6 +915,7 @@ function damageEnemy(target, damage, kind) {
     gainXp(target.xp);
     if (kind !== "special") addRage(target.boss ? 30 : 16);
     dropLoot(target);
+    saveProgress();
     notice = `${enemyLabel(target)} 처치`;
     noticeTimer = 2.4;
   }
@@ -895,6 +953,7 @@ function collectItems() {
       player.weaponLevel += 1;
       notice = `강화 주문서 - 검 +${player.weaponLevel}`;
       noticeTimer = 2.2;
+      saveProgress();
       items.splice(i, 1);
     } else if (item.type === "legendScroll") {
       player.weaponLevel += 3;
@@ -902,11 +961,13 @@ function collectItems() {
       addRage(player.maxRage);
       notice = `발록의 전리품 - 검 +${player.weaponLevel}`;
       noticeTimer = 3.2;
+      saveProgress();
       items.splice(i, 1);
     } else if (item.type === "weapon") {
       player.weaponLevel = Math.max(player.weaponLevel, item.value);
       notice = `검 +${item.value} 회수`;
       noticeTimer = 2.4;
+      saveProgress();
       items.splice(i, 1);
     }
   }
@@ -971,29 +1032,37 @@ function drawWorld() {
     const light = Math.max(58, 232 - fixedDist * 13);
     const mortar = hit.shadeSeed ? 0.82 : 1;
     const hitTown = isTown(hit.x, hit.y);
-    const wallR = hitTown ? 0.78 : 0.65;
-    const wallG = hitTown ? 0.52 : 0.42;
-    const wallB = hitTown ? 0.33 : 0.28;
+    const wallR = hitTown ? 0.58 : 0.48;
+    const wallG = hitTown ? 0.56 : 0.49;
+    const wallB = hitTown ? 0.52 : 0.47;
     ctx.fillStyle = `rgb(${Math.floor(light * wallR * mortar)}, ${Math.floor(light * wallG * mortar)}, ${Math.floor(light * wallB * mortar)})`;
     ctx.fillRect(x, y, colW, wallH);
 
-    const block = Math.max(10, wallH / 7);
-    const brickY = y + (Math.floor(hit.y * 5 + hit.x * 2) % 6) * block;
-    ctx.fillStyle = "rgba(255, 217, 145, 0.11)";
-    ctx.fillRect(x, brickY, colW, Math.max(1, wallH / 42));
-    ctx.fillStyle = "rgba(31, 18, 12, 0.18)";
-    ctx.fillRect(x, y, colW, Math.max(1, wallH / 36));
-    if (r % 10 === 0) {
-      ctx.fillStyle = "rgba(255, 226, 160, 0.07)";
-      ctx.fillRect(x, y + wallH * 0.1, colW, wallH * 0.72);
+    const block = Math.max(14, wallH / 9);
+    const rowOffset = (Math.floor(hit.y * 3 + hit.x * 2) % 3) * (block / 3);
+    const joint = Math.max(1, wallH / 54);
+    ctx.fillStyle = "rgba(235, 232, 216, 0.2)";
+    for (let by = y + rowOffset; by < y + wallH; by += block) {
+      ctx.fillRect(x, by, colW, joint);
+    }
+    ctx.fillStyle = "rgba(9, 8, 7, 0.28)";
+    ctx.fillRect(x, y, colW, Math.max(1, wallH / 44));
+    if (r % 18 === 0) {
+      const seamY = y + (Math.floor(hit.x * 5 + hit.y * 7) % 7) * block + block * 0.2;
+      ctx.fillStyle = "rgba(20, 18, 16, 0.26)";
+      ctx.fillRect(x, seamY, Math.max(1, colW), block * 0.55);
+    }
+    if (r % 11 === 0) {
+      ctx.fillStyle = "rgba(255, 255, 235, 0.1)";
+      ctx.fillRect(x, y + wallH * 0.1, colW, wallH * 0.56);
     }
 
     ctx.fillStyle = `rgba(18, 12, 10, ${Math.min(townView ? 0.22 : 0.34, fixedDist / 18)})`;
     ctx.fillRect(x, y, colW, wallH);
 
-    if (r % 5 === 0) {
-      ctx.fillStyle = "rgba(15, 9, 7, 0.28)";
-      ctx.fillRect(x, y, 1, wallH);
+    if (r % 23 === 0) {
+      ctx.fillStyle = "rgba(8, 7, 6, 0.2)";
+      ctx.fillRect(x, y + wallH * 0.18, 1, wallH * 0.32);
     }
   }
 
@@ -1359,6 +1428,9 @@ function drawSkeleton(e, x, y, size, dist) {
   rect(x + 7 * px, y + 10 * px, 3 * px, hurt ? 2 * px : 1 * px, "#221a17");
   rect(x + 6 * px, y + 13 * px, 5 * px, 2 * px, shade);
   rect(x + 7 * px, y + 15 * px, 3 * px, 7 * px, bone);
+  rect(x + 6 * px, y + 17 * px, 1 * px, 4 * px, shade);
+  rect(x + 11 * px, y + 17 * px, 1 * px, 4 * px, shade);
+  rect(x + 6 * px, y + 19 * px, 6 * px, 1 * px, "#f5edce");
   rect(x + 4 * px, y + 17 * px, 9 * px, 1 * px, bone);
   rect(x + 3 * px, y + (e.attackPose > 0 ? 12 : 14) * px, 2 * px, 8 * px, bone);
   rect(x + 12 * px, y + (e.attackPose > 0 ? 16 : 14) * px, 2 * px, 8 * px, bone);
@@ -1396,6 +1468,7 @@ function drawWarlock(e, x, y, size, dist) {
   rect(x + 6 * px, y + 7 * px, 2 * px, 1 * px, lord ? "#ff6aff" : "#d669ff");
   rect(x + 10 * px, y + 7 * px, 2 * px, 1 * px, lord ? "#ff6aff" : "#d669ff");
   rect(x + 5 * px, y + 11 * px, 8 * px, 2 * px, "#111014");
+  rect(x + 7 * px, y + 13 * px, 4 * px, 1 * px, lord ? "#7e33c5" : "#5b2c83");
   rect(x + 2 * px, y + (e.attackPose > 0 ? 11 : 13) * px, 4 * px, 9 * px, "#321b49");
   rect(x + 12 * px, y + (e.attackPose > 0 ? 16 : 13) * px, 4 * px, 9 * px, "#321b49");
   rect(x + 13 * px, y + 18 * px, 3 * px, 3 * px, lord ? "#ff7cff" : "#b75cff");
@@ -1509,6 +1582,9 @@ function drawOrc(e, x, y, size, dist) {
 
   rect(x + 3 * px, y + 13 * px, 11 * px, 9 * px, armor);
   rect(x + 4 * px, y + 13 * px, 8 * px, 1 * px, armorLight);
+  rect(x + 5 * px, y + 15 * px, 1 * px, 1 * px, "#b7a06e");
+  rect(x + 11 * px, y + 15 * px, 1 * px, 1 * px, "#b7a06e");
+  rect(x + 8 * px, y + 18 * px, 3 * px, 1 * px, "#0a0a0a");
   rect(x + 5 * px, y + 16 * px, 7 * px, 1 * px, "#806a49");
   rect(x + 7 * px, y + 17 * px, 1 * px, 5 * px, "#141414");
   const armSwing = walk > 0 ? 1 : -1;
@@ -2163,6 +2239,9 @@ function startGame() {
 }
 
 function resetGame() {
+  try {
+    localStorage.removeItem(SAVE_KEY);
+  } catch (_) {}
   stage = 1;
   player.x = 4.5;
   player.y = 4.5;
