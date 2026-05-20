@@ -206,12 +206,12 @@ const SPAWN_POINTS = [
 
 const TOWN_NPCS = [
   {
-    name: "마을 장로",
+    name: "안전지대 관리인",
     x: 2.2,
     y: 2.25,
     hp: 30,
     maxHp: 30,
-    line: "안녕하세요. 밖은 위험하니 검을 잃으면 꼭 다시 찾아오세요.",
+    line: "안전지대 밖은 위험합니다. 검을 잃으면 표시를 따라 꼭 회수하세요.",
   },
 ];
 
@@ -305,9 +305,30 @@ function isMidBossType(type) {
 function buildEnemies(nextStage) {
   const previousStage = stage;
   stage = nextStage;
-  const built = SPAWN_POINTS.map(({ type, x, y }) => enemy(type, x, y));
+  const built = SPAWN_POINTS.map(({ type, x, y }) => enemy(zoneSpawnType(type, x, y), x, y));
   stage = previousStage;
   return built;
+}
+
+function zoneSpawnType(original, x, y) {
+  if (original === "balrog") return original;
+  const safeDist = Math.hypot(x - 4.5, y - 4.5);
+  const balrogDist = Math.hypot(x - 45.5, y - 23.5);
+  const progress = Math.max(0, Math.min(1, safeDist / Math.max(0.001, safeDist + balrogDist)));
+  const seed = spawnSeed(x, y);
+  if (original === "boss" && progress > 0.72) return "boss";
+  if (progress < 0.18) return seed < 0.72 ? "skeleton" : "orc";
+  if (progress < 0.34) return seed < 0.48 ? "skeleton" : seed < 0.86 ? "orc" : "warlock";
+  if (progress < 0.52) return seed < 0.4 ? "orc" : seed < 0.72 ? "warlock" : "ogre";
+  if (progress < 0.68) return seed < 0.28 ? "warlock" : seed < 0.62 ? "ogre" : "skeletonKing";
+  if (progress < 0.83) return seed < 0.24 ? "ogre" : seed < 0.48 ? "skeletonKing" : seed < 0.72 ? "deathKnight" : "warlockLord";
+  if (progress < 0.95) return seed < 0.24 ? "deathKnight" : seed < 0.52 ? "ogreLord" : seed < 0.8 ? "warlockLord" : "boss";
+  return seed < 0.34 ? "boss" : seed < 0.67 ? "ogreLord" : "warlockLord";
+}
+
+function spawnSeed(x, y) {
+  const n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+  return n - Math.floor(n);
 }
 
 function saveProgress() {
@@ -519,7 +540,7 @@ function respawnPlayer() {
   berserk = false;
   deathTimer = 0;
   gameState = "play";
-  notice = "마을에서 부활 - 검을 되찾으세요";
+  notice = "세이프티 존에서 부활 - 검을 되찾으세요";
   noticeTimer = 3.2;
 }
 
@@ -649,7 +670,7 @@ function nearestTownNpc(range = 1.35) {
 function interact() {
   const nearby = nearestTownNpc();
   if (!nearby) {
-    notice = isTown() ? "대화할 사람이 가까이 없습니다" : "마을 사람은 마을에 있습니다";
+    notice = isTown() ? "대화할 사람이 가까이 없습니다" : "관리인은 세이프티 존에 있습니다";
     noticeTimer = 1.6;
     return;
   }
@@ -1935,7 +1956,7 @@ function drawHud() {
   drawText(`처치 ${kills}`, 252, H - 28, 15, "#fff1bd");
   drawText(`레벨 ${player.level}`, 410, H - 50, 14, "#ffe39a");
   drawText(`경험치 ${player.xp}/${player.nextXp}`, 410, H - 28, 12, "#d7c27b");
-  drawText(isTown() ? "마을" : "필드", 580, H - 28, 14, isTown() ? "#ffe39a" : "#d7c27b");
+  drawText(isTown() ? "세이프티 존" : "필드", 580, H - 28, 14, isTown() ? "#ffe39a" : "#d7c27b");
   drawText(swordName(), W - 184, H - 28, 14, "#d7c27b");
   if (berserk) drawText("광폭화: 공속/공격력/이속 +50%, 특수공격 무제한", W - 390, H - 52, 13, "#ffb199");
   else if (player.rage >= SPECIAL_RAGE_COST) drawText(`우클릭 특수공격 - 분노 ${SPECIAL_RAGE_COST}`, W - 290, H - 52, 13, "#ffe39a");
@@ -2010,7 +2031,7 @@ function drawHud() {
   drawText(`레벨 ${player.level}`, 528, panelY + 42, 15, "#ffe39a");
   drawText(`경험치 ${player.xp}/${player.nextXp}`, 528, panelY + 72, 13, "#d7c27b");
   drawText(`처치 ${kills}`, 650, panelY + 42, 15, "#fff1bd");
-  drawText(isTown() ? "마을" : "필드", 650, panelY + 72, 13, isTown() ? "#ffe39a" : "#d7c27b");
+  drawText(isTown() ? "세이프티 존" : "필드", 650, panelY + 72, 13, isTown() ? "#ffe39a" : "#d7c27b");
 
   drawHudPanel(W - 336, panelY + 16, 318, 86);
   drawText(swordName(), W - 316, panelY + 45, 16, "#ffe39a");
@@ -2102,7 +2123,7 @@ function drawHud() {
   drawText(`LV ${player.level}`, statX + 20, panelY + 50, 16, "#f3c46e");
   drawText(`XP ${player.xp}/${player.nextXp}`, statX + 20, panelY + 80, 13, "#cdb681");
   drawText(`KILL ${kills}`, statX + 148, panelY + 50, 15, "#f4dfbd");
-  drawText(isTown() ? "TOWN" : "FIELD", statX + 148, panelY + 80, 13, isTown() ? "#f3c46e" : "#cdb681");
+  drawText(isTown() ? "SAFE ZONE" : "FIELD", statX + 148, panelY + 80, 13, isTown() ? "#f3c46e" : "#cdb681");
 
   const weaponX = Math.max(statX + 302, W - 344);
   drawHudPanel(weaponX, panelY + 18, 326, 90);
@@ -2324,7 +2345,7 @@ function drawEndScreen() {
     ctx.fillText("사냥하고, 성장하고, 던전에서 버티세요", W / 2, H / 2 + 48);
     ctx.fillText("Enter 또는 클릭으로 시작", W / 2, H / 2 + 84);
   } else if (gameState === "dead") {
-    ctx.fillText(`${Math.ceil(deathTimer)}초 후 마을에서 부활합니다`, W / 2, H / 2 + 12);
+    ctx.fillText(`${Math.ceil(deathTimer)}초 후 세이프티 존에서 부활합니다`, W / 2, H / 2 + 12);
     ctx.fillText("강화된 검은 죽은 자리에 떨어졌습니다", W / 2, H / 2 + 48);
   } else {
     ctx.fillText("Enter로 다시 시작", W / 2, H / 2 + 12);
@@ -2335,7 +2356,7 @@ function drawEndScreen() {
 function startGame() {
   gameState = "play";
   messagePulse = 0;
-  notice = "마을";
+  notice = "세이프티 존";
   noticeTimer = 1.8;
 }
 
