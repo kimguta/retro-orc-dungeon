@@ -173,7 +173,7 @@ function enemy(type, x, y) {
   const stats = enemyStats(type, stageBonus);
   const level = enemyLevel(type, stageBonus);
   const levelBonus = Math.max(0, level - 1);
-  const hpScale = type === "balrog" ? 4.4 : stats.boss ? 1.2 : 0.65;
+  const hpScale = type === "balrog" ? 7.2 : stats.boss ? 2.35 : 1.55;
   const hp = Math.max(1, stats.hp + Math.floor(levelBonus * hpScale));
   return {
     type,
@@ -227,16 +227,16 @@ function enemyLevel(type, stageBonus) {
 
 function enemyStats(type, stageBonus) {
   const stats = {
-    skeleton: { hp: 1 + Math.floor(stageBonus * 0.7), speed: 1.02 + stageBonus * 0.06, damage: 7 + stageBonus, radius: 0.27, xp: 12 + stageBonus * 3, attackRange: 1.15, windup: 0.28, cooldown: 0.72 },
-    orc: { hp: 2 + stageBonus, speed: 0.78 + stageBonus * 0.055, damage: 10 + stageBonus * 2, radius: 0.32, xp: 18 + stageBonus * 4, attackRange: 1.28, windup: 0.36, cooldown: 0.95 },
-    ogre: { hp: 7 + stageBonus * 2, speed: 0.46 + stageBonus * 0.03, damage: 22 + stageBonus * 3, radius: 0.48, xp: 42 + stageBonus * 7, attackRange: 1.6, windup: 0.62, cooldown: 1.35 },
-    warlock: { hp: 3 + stageBonus, speed: 0.54 + stageBonus * 0.035, damage: 12 + stageBonus * 2, radius: 0.3, xp: 34 + stageBonus * 6, attackRange: 4.75, windup: 0.55, cooldown: 1.45, projectile: true },
-    skeletonKing: { hp: 12 + stageBonus * 4, speed: 0.56 + stageBonus * 0.035, damage: 18 + stageBonus * 3, radius: 0.42, xp: 90 + stageBonus * 12, attackRange: 1.58, windup: 0.5, cooldown: 1.1, boss: true },
-    boss: { hp: 8 + stageBonus * 4, speed: 0.62 + stageBonus * 0.045, damage: 18 + stageBonus * 4, radius: 0.42, xp: 80 + stageBonus * 12, attackRange: 1.5, windup: 0.48, cooldown: 1.15, boss: true },
-    deathKnight: { hp: 24 + stageBonus * 4, speed: 0.68 + stageBonus * 0.035, damage: 24 + stageBonus * 3, radius: 0.43, xp: 130 + stageBonus * 16, attackRange: 1.65, windup: 0.48, cooldown: 1.02, boss: true },
-    ogreLord: { hp: 42 + stageBonus * 6, speed: 0.42 + stageBonus * 0.025, damage: 34 + stageBonus * 4, radius: 0.58, xp: 190 + stageBonus * 20, attackRange: 1.85, windup: 0.66, cooldown: 1.28, boss: true },
-    warlockLord: { hp: 28 + stageBonus * 4, speed: 0.48 + stageBonus * 0.03, damage: 24 + stageBonus * 3, radius: 0.36, xp: 170 + stageBonus * 18, attackRange: 5.35, windup: 0.62, cooldown: 1.18, projectile: true, boss: true },
-    balrog: { hp: 170 + stageBonus * 12, speed: 0.5 + stageBonus * 0.025, damage: 55 + stageBonus * 6, radius: 0.72, xp: 900 + stageBonus * 50, attackRange: 2.75, windup: 0.68, cooldown: 1.18, boss: true },
+    skeleton: { hp: 5 + Math.floor(stageBonus * 1.6), speed: 1.02 + stageBonus * 0.06, damage: 7 + stageBonus, radius: 0.27, xp: 12 + stageBonus * 3, attackRange: 1.15, windup: 0.28, cooldown: 0.72 },
+    orc: { hp: 8 + stageBonus * 2, speed: 0.78 + stageBonus * 0.055, damage: 10 + stageBonus * 2, radius: 0.32, xp: 18 + stageBonus * 4, attackRange: 1.28, windup: 0.36, cooldown: 0.95 },
+    ogre: { hp: 18 + stageBonus * 4, speed: 0.46 + stageBonus * 0.03, damage: 22 + stageBonus * 3, radius: 0.48, xp: 42 + stageBonus * 7, attackRange: 1.6, windup: 0.62, cooldown: 1.35 },
+    warlock: { hp: 10 + stageBonus * 2, speed: 0.54 + stageBonus * 0.035, damage: 12 + stageBonus * 2, radius: 0.3, xp: 34 + stageBonus * 6, attackRange: 4.75, windup: 0.55, cooldown: 1.45, projectile: true },
+    skeletonKing: { hp: 38 + stageBonus * 8, speed: 0.56 + stageBonus * 0.035, damage: 18 + stageBonus * 3, radius: 0.42, xp: 90 + stageBonus * 12, attackRange: 1.58, windup: 0.5, cooldown: 1.1, boss: true },
+    boss: { hp: 32 + stageBonus * 7, speed: 0.62 + stageBonus * 0.045, damage: 18 + stageBonus * 4, radius: 0.42, xp: 80 + stageBonus * 12, attackRange: 1.5, windup: 0.48, cooldown: 1.15, boss: true },
+    deathKnight: { hp: 58 + stageBonus * 9, speed: 0.68 + stageBonus * 0.035, damage: 24 + stageBonus * 3, radius: 0.43, xp: 130 + stageBonus * 16, attackRange: 1.65, windup: 0.48, cooldown: 1.02, boss: true },
+    ogreLord: { hp: 86 + stageBonus * 12, speed: 0.42 + stageBonus * 0.025, damage: 34 + stageBonus * 4, radius: 0.58, xp: 190 + stageBonus * 20, attackRange: 1.85, windup: 0.66, cooldown: 1.28, boss: true },
+    warlockLord: { hp: 62 + stageBonus * 9, speed: 0.48 + stageBonus * 0.03, damage: 24 + stageBonus * 3, radius: 0.36, xp: 170 + stageBonus * 18, attackRange: 5.35, windup: 0.62, cooldown: 1.18, projectile: true, boss: true },
+    balrog: { hp: 260 + stageBonus * 22, speed: 0.5 + stageBonus * 0.025, damage: 55 + stageBonus * 6, radius: 0.72, xp: 900 + stageBonus * 50, attackRange: 2.75, windup: 0.68, cooldown: 1.18, boss: true },
   };
   return stats[type] || stats.orc;
 }
@@ -729,7 +729,7 @@ function attack(kind = "normal") {
 
   const hitRange = kind === "special" ? 3.05 : 2.15;
   const hitAngle = kind === "special" ? 0.62 : 0.38;
-  const baseDamage = 1 + player.weaponLevel + Math.floor((player.level - 1) / 2);
+  const baseDamage = 2 + player.weaponLevel + Math.floor((player.level - 1) / 3);
   const rageDamage = berserk ? 1.5 : 1;
   const damage = Math.ceil((kind === "special" ? baseDamage * 2 + 2 : baseDamage) * rageDamage);
   const hits = [];
