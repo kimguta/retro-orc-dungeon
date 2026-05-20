@@ -138,6 +138,36 @@ const SPAWN_POINTS = [
   { type: "orc", x: 23.5, y: 21.5 },
   { type: "skeletonKing", x: 33.5, y: 21.5 },
   { type: "boss", x: 43.5, y: 21.5 },
+  { type: "skeleton", x: 3.5, y: 11.5 },
+  { type: "orc", x: 4.5, y: 11.5 },
+  { type: "skeleton", x: 3.5, y: 13.5 },
+  { type: "orc", x: 6.5, y: 13.5 },
+  { type: "warlock", x: 11.5, y: 13.5 },
+  { type: "skeleton", x: 2.5, y: 15.5 },
+  { type: "orc", x: 6.5, y: 15.5 },
+  { type: "ogre", x: 13.5, y: 15.5 },
+  { type: "skeleton", x: 1.5, y: 16.5 },
+  { type: "orc", x: 4.5, y: 16.5 },
+  { type: "skeleton", x: 8.5, y: 16.5 },
+  { type: "orc", x: 5.5, y: 17.5 },
+  { type: "warlock", x: 9.5, y: 17.5 },
+  { type: "skeleton", x: 3.5, y: 18.5 },
+  { type: "orc", x: 7.5, y: 18.5 },
+  { type: "skeleton", x: 9.5, y: 18.5 },
+  { type: "ogre", x: 3.5, y: 19.5 },
+  { type: "orc", x: 10.5, y: 19.5 },
+  { type: "skeleton", x: 2.5, y: 20.5 },
+  { type: "warlock", x: 8.5, y: 20.5 },
+  { type: "orc", x: 12.5, y: 20.5 },
+  { type: "skeleton", x: 1.5, y: 21.5 },
+  { type: "orc", x: 9.5, y: 21.5 },
+  { type: "ogre", x: 15.5, y: 21.5 },
+  { type: "skeleton", x: 5.5, y: 22.5 },
+  { type: "orc", x: 11.5, y: 22.5 },
+  { type: "warlock", x: 19.5, y: 22.5 },
+  { type: "skeleton", x: 8.5, y: 23.5 },
+  { type: "orc", x: 17.5, y: 23.5 },
+  { type: "ogre", x: 21.5, y: 23.5 },
   { type: "orc", x: 46.4, y: 2.5 },
   { type: "skeleton", x: 46.4, y: 5.5 },
   { type: "warlock", x: 46.4, y: 9.5 },
@@ -368,11 +398,11 @@ function reviveEnemy(e) {
 }
 
 function respawnDelay(e) {
-  if (e.type === "balrog") return 180;
-  if (e.boss) return 42;
-  if (e.type === "ogre") return 24;
-  if (e.type === "warlock") return 20;
-  return 12;
+  if (e.type === "balrog") return 150;
+  if (e.boss) return 26;
+  if (e.type === "ogre") return 12;
+  if (e.type === "warlock") return 10;
+  return 6;
 }
 
 function startPlayerDeath() {
