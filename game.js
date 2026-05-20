@@ -24,23 +24,23 @@ const BASE_MAP = [
   "#.........#....................................#",
   "#........##.......#........#.......#...........#",
   "#.........#................#...................#",
-  "#...........###..###..##..#####....#...........#",
-  "#.........#........................#...........#",
-  "#.........#...#...#........#..###..###..##..##.#",
-  "#####..#..#....................................#",
-  "#.........#..####.#####..###..###.##...........#",
-  "#.........#.......#........#...................#",
-  "#.........#................#.......#...........#",
-  "#.................#............................#",
-  "#.#..##..##..##.#..........#...####..###..##...#",
-  "#.........#........................#...........#",
-  "#............##..###..###..###.##..#...........#",
-  "#.........#....................................#",
-  "#.........#................#.......#...........#",
-  "#..............................................#",
-  "#.#.###.#.###.##.##..........###..###..###..##.#",
-  "#.........................................#....#",
-  "#.........................................#....#",
+  "#...........###.####..###.#####.#..#...........#",
+  "#.........#.............#.......#..#....#......#",
+  "#.........#.###.###.###.####.####.####.####.##.#",
+  "#####..#..#.....#...............#.......#......#",
+  "#.........#..####.#####.####..###.##...........#",
+  "#.....#...#.....#.#.....#..#............#......#",
+  "#.....#...#.##.###.####.#######.####.####.###..#",
+  "#.....#........#..#.............#.......#......#",
+  "#.#..##..##..####.......#..#...####..###..##...#",
+  "#.........#.............#.......#..#....#......#",
+  "#.....#......###.###..###..###.##..#....#..#...#",
+  "#..##..##.#.#.#.#.#.##.#...#..#.###.###.#.##.#.#",
+  "#.....#...#.............#..#.....#.#....#..#...#",
+  "#.....#........#........#......................#",
+  "#.#.###.#.###.##.##..........###.####..###.###.#",
+  "#.....#.................#........#........##...#",
+  "#..#.###.###.###.####.###.####.###.###.####.#..#",
   "#.........#........................#...........#",
   "#................................####..##.###..#",
   "#.........#..................................B.#",
@@ -656,11 +656,17 @@ function castRay(angle) {
     const y = player.y + sin * dist;
     if (isWall(x, y)) {
       const shadeSeed = (Math.floor(x) + Math.floor(y)) % 2;
-      return { dist, x, y, shadeSeed };
+      const fx = x - Math.floor(x);
+      const fy = y - Math.floor(y);
+      const edgeX = Math.min(fx, 1 - fx);
+      const edgeY = Math.min(fy, 1 - fy);
+      const side = edgeX < edgeY ? "x" : "y";
+      const wallU = side === "x" ? fy : fx;
+      return { dist, x, y, shadeSeed, side, wallU };
     }
     dist += step;
   }
-  return { dist: MAX_DEPTH, x: player.x + cos * MAX_DEPTH, y: player.y + sin * MAX_DEPTH, shadeSeed: 0 };
+  return { dist: MAX_DEPTH, x: player.x + cos * MAX_DEPTH, y: player.y + sin * MAX_DEPTH, shadeSeed: 0, side: "x", wallU: 0 };
 }
 
 function update(dt) {
@@ -1044,31 +1050,44 @@ function drawWorld() {
     const x = (r / RAYS) * W;
     const colW = W / RAYS + 1;
     const y = HALF_H - wallH / 2;
-    const light = Math.max(70, 224 - fixedDist * 12);
-    const mortar = hit.shadeSeed ? 0.93 : 1;
+    const light = Math.max(72, 226 - fixedDist * 11);
+    const mortar = 1;
     const hitTown = isTown(hit.x, hit.y);
-    const wallR = hitTown ? 0.6 : 0.52;
-    const wallG = hitTown ? 0.59 : 0.53;
-    const wallB = hitTown ? 0.55 : 0.51;
+    const faceShade = hit.side === "x" ? 1 : 0.84;
+    const wallR = hitTown ? 0.58 : 0.5;
+    const wallG = hitTown ? 0.58 : 0.51;
+    const wallB = hitTown ? 0.55 : 0.5;
     ctx.fillStyle = `rgb(${Math.floor(light * wallR * mortar)}, ${Math.floor(light * wallG * mortar)}, ${Math.floor(light * wallB * mortar)})`;
     ctx.fillRect(x, y, colW, wallH);
 
-    const block = Math.max(18, wallH / 7.5);
-    const rowOffset = (Math.floor(hit.x + hit.y) % 2) * (block * 0.45);
-    const joint = Math.max(1, wallH / 68);
-    ctx.fillStyle = "rgba(236, 233, 214, 0.13)";
-    for (let by = y + rowOffset; by < y + wallH; by += block) {
+    ctx.fillStyle = `rgba(0, 0, 0, ${1 - faceShade})`;
+    ctx.fillRect(x, y, colW, wallH);
+
+    const blockH = Math.max(42, wallH / 4.6);
+    const row = Math.floor((hit.y + hit.x) * 2.1);
+    const offsetU = row % 2 ? 0.14 : 0;
+    const joint = Math.max(1, wallH / 92);
+    ctx.fillStyle = "rgba(235, 232, 212, 0.08)";
+    for (let by = y + blockH * 0.28; by < y + wallH; by += blockH) {
       ctx.fillRect(x, by, colW, joint);
     }
-    ctx.fillStyle = "rgba(12, 11, 10, 0.18)";
-    ctx.fillRect(x, y, colW, Math.max(1, wallH / 44));
-    if (r % 17 === 0) {
-      const nickY = y + ((Math.floor(hit.x * 11 + hit.y * 5) % 9) / 10) * wallH;
-      ctx.fillStyle = "rgba(255, 250, 220, 0.08)";
-      ctx.fillRect(x, nickY, colW, Math.max(1, wallH / 72));
+    const u = (hit.wallU + offsetU) % 1;
+    if ((r + Math.floor(hit.x * 13 + hit.y * 17)) % 31 === 0) {
+      const nickY = y + (0.22 + ((Math.floor(hit.x * 7 + hit.y * 9) % 5) * 0.12)) * wallH;
+      ctx.fillStyle = "rgba(255, 250, 220, 0.07)";
+      ctx.fillRect(x, nickY, colW, Math.max(1, wallH / 80));
+    }
+    if (wallH > 90 && u > 0.18 && u < 0.82 && (r + Math.floor(hit.x * 3 + hit.y * 5)) % 9 === 0) {
+      ctx.fillStyle = "rgba(255, 255, 235, 0.035)";
+      ctx.fillRect(x, y + wallH * 0.12, colW, wallH * 0.18);
     }
 
-    ctx.fillStyle = `rgba(18, 16, 14, ${Math.min(townView ? 0.18 : 0.29, fixedDist / 20)})`;
+    ctx.fillStyle = "rgba(8, 7, 6, 0.18)";
+    ctx.fillRect(x, y, colW, Math.max(1, wallH / 38));
+    ctx.fillStyle = "rgba(255, 250, 220, 0.045)";
+    ctx.fillRect(x, y + wallH * 0.07, colW, wallH * 0.5);
+
+    ctx.fillStyle = `rgba(18, 16, 14, ${Math.min(townView ? 0.16 : 0.27, fixedDist / 22)})`;
     ctx.fillRect(x, y, colW, wallH);
   }
 
