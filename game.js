@@ -21,30 +21,30 @@ const SAVE_KEY = "shadowCitadelProgressV1";
 
 const BASE_MAP = [
   "################################################",
-  "#........###...###.........##.####....####.....#",
-  "#........##......#..........#.##.........#.....#",
   "#..............................................#",
-  "#........##......###........#............####..#",
-  "#........####..#####...######.#######....####..#",
-  "#####.####.....###.....#...##....#.......#.....#",
+  "#........#........#........#.......#...........#",
+  "#..........................#...................#",
+  "#...........###..###..##..#####....#...........#",
+  "#........#.........................#...........#",
+  "#........#....#...#........#..###..###..##..##.#",
+  "#........#.....................................#",
+  "#.........#..####.#####..###..###.##...........#",
+  "#.........#.......#........#...................#",
+  "#.........#................#.......#...........#",
+  "#.................#............................#",
+  "#.#..##..##..##.#..........#...####..###..##...#",
+  "#.........#........................#...........#",
+  "#............##..###..###..###.##..#...........#",
+  "#.........#....................................#",
+  "#.........#................#.......#...........#",
   "#..............................................#",
-  "#####.####.......#.........##.####....##.......#",
-  "#####.#######....#####...####.#######......##..#",
-  "##....#####........##.......#.####.............#",
+  "#.#.###.#.###.##.##..........###..###..###..##.#",
+  "#.........................................#....#",
+  "#.........................................#....#",
+  "#.........#........................#...........#",
+  "#................................####..##.###..#",
+  "#.........#..................................B.#",
   "#..............................................#",
-  "##......##.........#...........###......##.....#",
-  "##......####.....###...#####...#####...######..#",
-  "#.......##.......#......####.............####..#",
-  "#..............................................#",
-  "#..............###......####.............#.....#",
-  "#..........#.....###...###.......#.....###.....#",
-  "##.....................#.........#.............#",
-  "#..............................................#",
-  "#..............................................#",
-  "#........................###.......##.....##...#",
-  "#..#.....................####.##...##.####.....#",
-  "#............................................B.#",
-  "####......###......#.......##.####....####.....#",
   "################################################",
 ];
 
@@ -1029,41 +1029,32 @@ function drawWorld() {
     const x = (r / RAYS) * W;
     const colW = W / RAYS + 1;
     const y = HALF_H - wallH / 2;
-    const light = Math.max(58, 232 - fixedDist * 13);
-    const mortar = hit.shadeSeed ? 0.82 : 1;
+    const light = Math.max(70, 224 - fixedDist * 12);
+    const mortar = hit.shadeSeed ? 0.93 : 1;
     const hitTown = isTown(hit.x, hit.y);
-    const wallR = hitTown ? 0.58 : 0.48;
-    const wallG = hitTown ? 0.56 : 0.49;
-    const wallB = hitTown ? 0.52 : 0.47;
+    const wallR = hitTown ? 0.6 : 0.52;
+    const wallG = hitTown ? 0.59 : 0.53;
+    const wallB = hitTown ? 0.55 : 0.51;
     ctx.fillStyle = `rgb(${Math.floor(light * wallR * mortar)}, ${Math.floor(light * wallG * mortar)}, ${Math.floor(light * wallB * mortar)})`;
     ctx.fillRect(x, y, colW, wallH);
 
-    const block = Math.max(14, wallH / 9);
-    const rowOffset = (Math.floor(hit.y * 3 + hit.x * 2) % 3) * (block / 3);
-    const joint = Math.max(1, wallH / 54);
-    ctx.fillStyle = "rgba(235, 232, 216, 0.2)";
+    const block = Math.max(18, wallH / 7.5);
+    const rowOffset = (Math.floor(hit.x + hit.y) % 2) * (block * 0.45);
+    const joint = Math.max(1, wallH / 68);
+    ctx.fillStyle = "rgba(236, 233, 214, 0.13)";
     for (let by = y + rowOffset; by < y + wallH; by += block) {
       ctx.fillRect(x, by, colW, joint);
     }
-    ctx.fillStyle = "rgba(9, 8, 7, 0.28)";
+    ctx.fillStyle = "rgba(12, 11, 10, 0.18)";
     ctx.fillRect(x, y, colW, Math.max(1, wallH / 44));
-    if (r % 18 === 0) {
-      const seamY = y + (Math.floor(hit.x * 5 + hit.y * 7) % 7) * block + block * 0.2;
-      ctx.fillStyle = "rgba(20, 18, 16, 0.26)";
-      ctx.fillRect(x, seamY, Math.max(1, colW), block * 0.55);
-    }
-    if (r % 11 === 0) {
-      ctx.fillStyle = "rgba(255, 255, 235, 0.1)";
-      ctx.fillRect(x, y + wallH * 0.1, colW, wallH * 0.56);
+    if (r % 17 === 0) {
+      const nickY = y + ((Math.floor(hit.x * 11 + hit.y * 5) % 9) / 10) * wallH;
+      ctx.fillStyle = "rgba(255, 250, 220, 0.08)";
+      ctx.fillRect(x, nickY, colW, Math.max(1, wallH / 72));
     }
 
-    ctx.fillStyle = `rgba(18, 12, 10, ${Math.min(townView ? 0.22 : 0.34, fixedDist / 18)})`;
+    ctx.fillStyle = `rgba(18, 16, 14, ${Math.min(townView ? 0.18 : 0.29, fixedDist / 20)})`;
     ctx.fillRect(x, y, colW, wallH);
-
-    if (r % 23 === 0) {
-      ctx.fillStyle = "rgba(8, 7, 6, 0.2)";
-      ctx.fillRect(x, y + wallH * 0.18, 1, wallH * 0.32);
-    }
   }
 
   ctx.fillStyle = "rgba(255, 196, 94, 0.08)";
@@ -1846,10 +1837,16 @@ function drawHud() {
   drawMiniMap();
   drawCrosshair();
   if (berserk) {
-    ctx.fillStyle = "rgba(170, 18, 8, 0.18)";
+    const pulse = 0.45 + Math.sin(performance.now() * 0.012) * 0.16;
+    const furyGlow = ctx.createRadialGradient(W / 2, H / 2, W * 0.1, W / 2, H / 2, W * 0.62);
+    furyGlow.addColorStop(0, `rgba(255, 130, 42, ${0.05 * pulse})`);
+    furyGlow.addColorStop(0.58, `rgba(190, 38, 18, ${0.1 * pulse})`);
+    furyGlow.addColorStop(1, `rgba(90, 8, 5, ${0.28 * pulse})`);
+    ctx.fillStyle = furyGlow;
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = "rgba(255, 68, 42, 0.12)";
-    ctx.fillRect(0, 0, W, HALF_H);
+    ctx.strokeStyle = `rgba(255, 118, 42, ${0.55 + pulse * 0.25})`;
+    ctx.lineWidth = 6;
+    ctx.strokeRect(4, 4, W - 8, H - 8);
   }
   ctx.fillStyle = "rgba(8, 6, 5, 0.58)";
   ctx.fillRect(0, H - 82, W, 82);
@@ -1884,7 +1881,13 @@ function drawHud() {
   }
 
   if (player.hurt > 0) {
-    ctx.fillStyle = `rgba(155, 0, 0, ${player.hurt * 0.25})`;
+    ctx.fillStyle = `rgba(255, 245, 220, ${player.hurt * 0.13})`;
+    ctx.fillRect(0, 0, W, H);
+    const hurtVignette = ctx.createRadialGradient(W / 2, H / 2, W * 0.2, W / 2, H / 2, W * 0.68);
+    hurtVignette.addColorStop(0, "rgba(0,0,0,0)");
+    hurtVignette.addColorStop(0.7, `rgba(90, 0, 0, ${player.hurt * 0.1})`);
+    hurtVignette.addColorStop(1, `rgba(120, 0, 0, ${player.hurt * 0.42})`);
+    ctx.fillStyle = hurtVignette;
     ctx.fillRect(0, 0, W, H);
   }
 
@@ -1902,10 +1905,16 @@ function drawHud() {
   drawMiniMap();
   drawCrosshair();
   if (berserk) {
-    ctx.fillStyle = "rgba(170, 18, 8, 0.18)";
+    const pulse = 0.45 + Math.sin(performance.now() * 0.012) * 0.16;
+    const furyGlow = ctx.createRadialGradient(W / 2, H / 2, W * 0.1, W / 2, H / 2, W * 0.62);
+    furyGlow.addColorStop(0, `rgba(255, 130, 42, ${0.05 * pulse})`);
+    furyGlow.addColorStop(0.58, `rgba(190, 38, 18, ${0.1 * pulse})`);
+    furyGlow.addColorStop(1, `rgba(90, 8, 5, ${0.28 * pulse})`);
+    ctx.fillStyle = furyGlow;
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = "rgba(255, 68, 42, 0.12)";
-    ctx.fillRect(0, 0, W, HALF_H);
+    ctx.strokeStyle = `rgba(255, 118, 42, ${0.55 + pulse * 0.25})`;
+    ctx.lineWidth = 6;
+    ctx.strokeRect(4, 4, W - 8, H - 8);
   }
 
   const hudH = 118;
@@ -1950,7 +1959,13 @@ function drawHud() {
   }
 
   if (player.hurt > 0) {
-    ctx.fillStyle = `rgba(155, 0, 0, ${player.hurt * 0.25})`;
+    ctx.fillStyle = `rgba(255, 245, 220, ${player.hurt * 0.13})`;
+    ctx.fillRect(0, 0, W, H);
+    const hurtVignette = ctx.createRadialGradient(W / 2, H / 2, W * 0.2, W / 2, H / 2, W * 0.68);
+    hurtVignette.addColorStop(0, "rgba(0,0,0,0)");
+    hurtVignette.addColorStop(0.7, `rgba(90, 0, 0, ${player.hurt * 0.1})`);
+    hurtVignette.addColorStop(1, `rgba(120, 0, 0, ${player.hurt * 0.42})`);
+    ctx.fillStyle = hurtVignette;
     ctx.fillRect(0, 0, W, H);
   }
 
@@ -1982,10 +1997,16 @@ function drawHud() {
   drawMiniMap();
   drawCrosshair();
   if (berserk) {
-    ctx.fillStyle = "rgba(170, 18, 8, 0.18)";
+    const pulse = 0.45 + Math.sin(performance.now() * 0.012) * 0.16;
+    const furyGlow = ctx.createRadialGradient(W / 2, H / 2, W * 0.1, W / 2, H / 2, W * 0.62);
+    furyGlow.addColorStop(0, `rgba(255, 130, 42, ${0.05 * pulse})`);
+    furyGlow.addColorStop(0.58, `rgba(190, 38, 18, ${0.1 * pulse})`);
+    furyGlow.addColorStop(1, `rgba(90, 8, 5, ${0.28 * pulse})`);
+    ctx.fillStyle = furyGlow;
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = "rgba(255, 68, 42, 0.12)";
-    ctx.fillRect(0, 0, W, HALF_H);
+    ctx.strokeStyle = `rgba(255, 118, 42, ${0.55 + pulse * 0.25})`;
+    ctx.lineWidth = 6;
+    ctx.strokeRect(4, 4, W - 8, H - 8);
   }
 
   const hudH = 126;
@@ -2033,7 +2054,13 @@ function drawHud() {
   }
 
   if (player.hurt > 0) {
-    ctx.fillStyle = `rgba(155, 0, 0, ${player.hurt * 0.25})`;
+    ctx.fillStyle = `rgba(255, 245, 220, ${player.hurt * 0.13})`;
+    ctx.fillRect(0, 0, W, H);
+    const hurtVignette = ctx.createRadialGradient(W / 2, H / 2, W * 0.2, W / 2, H / 2, W * 0.68);
+    hurtVignette.addColorStop(0, "rgba(0,0,0,0)");
+    hurtVignette.addColorStop(0.7, `rgba(90, 0, 0, ${player.hurt * 0.1})`);
+    hurtVignette.addColorStop(1, `rgba(120, 0, 0, ${player.hurt * 0.42})`);
+    ctx.fillStyle = hurtVignette;
     ctx.fillRect(0, 0, W, H);
   }
 
