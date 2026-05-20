@@ -94,6 +94,7 @@ const SPAWN_POINTS = [
   { type: "orc", x: 27.4, y: 6.7 },
   { type: "warlock", x: 5.5, y: 10.5 },
   { type: "skeleton", x: 16.5, y: 10.5 },
+  { type: "deathKnight", x: 18.5, y: 12.5 },
   { type: "ogre", x: 24.5, y: 12.5 },
   { type: "warlock", x: 29.2, y: 14.5 },
   { type: "ogre", x: 20.5, y: 15.2 },
@@ -103,6 +104,8 @@ const SPAWN_POINTS = [
   { type: "orc", x: 15.5, y: 18.5 },
   { type: "warlock", x: 29.5, y: 18.5 },
   { type: "ogre", x: 32.5, y: 20.5 },
+  { type: "ogreLord", x: 34.5, y: 17.5 },
+  { type: "warlockLord", x: 38.5, y: 22.5 },
   { type: "skeletonKing", x: 37.5, y: 20.5 },
   { type: "balrog", x: 42.5, y: 24.5 },
 ];
@@ -163,6 +166,7 @@ function enemy(type, x, y) {
     attackPose: 0,
     dead: false,
     respawnTimer: 0,
+    respawns: 0,
   };
 }
 
@@ -174,9 +178,12 @@ function enemyLevel(type, stageBonus) {
     ogre: 5,
     skeletonKing: 9,
     boss: 10,
+    deathKnight: 12,
+    ogreLord: 14,
+    warlockLord: 15,
     balrog: 35,
   }[type] || 2;
-  const variance = type === "balrog" ? 7 : (type === "skeletonKing" || type === "boss") ? 5 : 4;
+  const variance = type === "balrog" ? 7 : isMidBossType(type) ? 6 : (type === "skeletonKing" || type === "boss") ? 5 : 4;
   return base + stageBonus + Math.floor(Math.random() * variance);
 }
 
@@ -188,9 +195,16 @@ function enemyStats(type, stageBonus) {
     warlock: { hp: 3 + stageBonus, speed: 0.54 + stageBonus * 0.035, damage: 12 + stageBonus * 2, radius: 0.3, xp: 34 + stageBonus * 6, attackRange: 4.2, windup: 0.55, cooldown: 1.45, projectile: true },
     skeletonKing: { hp: 12 + stageBonus * 4, speed: 0.56 + stageBonus * 0.035, damage: 18 + stageBonus * 3, radius: 0.42, xp: 90 + stageBonus * 12, attackRange: 0.9, windup: 0.5, cooldown: 1.1, boss: true },
     boss: { hp: 8 + stageBonus * 4, speed: 0.62 + stageBonus * 0.045, damage: 18 + stageBonus * 4, radius: 0.42, xp: 80 + stageBonus * 12, attackRange: 0.82, windup: 0.48, cooldown: 1.15, boss: true },
-    balrog: { hp: 170 + stageBonus * 12, speed: 0.5 + stageBonus * 0.025, damage: 55 + stageBonus * 6, radius: 0.62, xp: 900 + stageBonus * 50, attackRange: 1.12, windup: 0.62, cooldown: 1.2, boss: true },
+    deathKnight: { hp: 24 + stageBonus * 4, speed: 0.68 + stageBonus * 0.035, damage: 24 + stageBonus * 3, radius: 0.43, xp: 130 + stageBonus * 16, attackRange: 0.92, windup: 0.48, cooldown: 1.02, boss: true },
+    ogreLord: { hp: 42 + stageBonus * 6, speed: 0.42 + stageBonus * 0.025, damage: 34 + stageBonus * 4, radius: 0.58, xp: 190 + stageBonus * 20, attackRange: 1.05, windup: 0.66, cooldown: 1.28, boss: true },
+    warlockLord: { hp: 28 + stageBonus * 4, speed: 0.48 + stageBonus * 0.03, damage: 24 + stageBonus * 3, radius: 0.36, xp: 170 + stageBonus * 18, attackRange: 4.8, windup: 0.62, cooldown: 1.18, projectile: true, boss: true },
+    balrog: { hp: 170 + stageBonus * 12, speed: 0.5 + stageBonus * 0.025, damage: 55 + stageBonus * 6, radius: 0.72, xp: 900 + stageBonus * 50, attackRange: 1.85, windup: 0.68, cooldown: 1.18, boss: true },
   };
   return stats[type] || stats.orc;
+}
+
+function isMidBossType(type) {
+  return type === "deathKnight" || type === "ogreLord" || type === "warlockLord";
 }
 
 function buildEnemies(nextStage) {
@@ -247,20 +261,38 @@ function gainXp(amount) {
 }
 
 function spawnProjectile(e, ux, uy) {
+  const fire = e.type === "balrog";
   projectiles.push({
     x: e.x + ux * 0.35,
     y: e.y + uy * 0.35,
-    vx: ux * 3.2,
-    vy: uy * 3.2,
-    damage: e.damage,
-    life: 2.6,
+    vx: ux * (fire ? 4.1 : 3.2),
+    vy: uy * (fire ? 4.1 : 3.2),
+    damage: fire ? Math.ceil(e.damage * 0.72) : e.damage,
+    life: fire ? 1.8 : 2.6,
+    radius: fire ? 0.48 : 0.34,
+    type: fire ? "fire" : "magic",
     bob: Math.random() * Math.PI * 2,
   });
 }
 
 function reviveEnemy(e) {
+  const respawns = (e.respawns || 0) + 1;
   const revived = enemy(e.type, e.spawnX, e.spawnY);
+  if (revived.boss) {
+    const extraLevel = respawns * (revived.type === "balrog" ? 7 : 3);
+    const hpBoost = extraLevel * (revived.type === "balrog" ? 13 : 5);
+    revived.level += extraLevel;
+    revived.maxHp += hpBoost;
+    revived.hp = revived.maxHp;
+    revived.damage += extraLevel * (revived.type === "balrog" ? 2 : 1);
+    revived.xp += extraLevel * 10;
+  }
+  revived.respawns = respawns;
   Object.assign(e, revived);
+  if (e.boss) {
+    notice = `${enemyLabel(e)} 더 강하게 부활`;
+    noticeTimer = 2.2;
+  }
 }
 
 function respawnDelay(e) {
@@ -351,8 +383,11 @@ function enemyLabel(e) {
   const names = {
     skeleton: "스켈레톤",
     skeletonKing: "스켈레톤 킹",
+    deathKnight: "데스 나이트",
     ogre: "오우거",
+    ogreLord: "오우거 군주",
     warlock: "워록",
+    warlockLord: "워록 군주",
     boss: "오크 대장",
     balrog: "발록",
     orc: "오크",
@@ -362,9 +397,10 @@ function enemyLabel(e) {
 
 function miniMapEnemyColor(e) {
   if (e.type === "balrog") return "#ff3b1f";
+  if (isMidBossType(e.type)) return "#ff9a3d";
   if (e.type === "skeleton" || e.type === "skeletonKing") return "#d8d0ad";
-  if (e.type === "ogre") return "#9aaa55";
-  if (e.type === "warlock") return "#b75cff";
+  if (e.type === "ogre" || e.type === "ogreLord") return "#9aaa55";
+  if (e.type === "warlock" || e.type === "warlockLord") return "#b75cff";
   if (e.boss) return "#d33";
   return "#45ba58";
 }
@@ -536,11 +572,11 @@ function update(dt) {
       projectiles.splice(i, 1);
       continue;
     }
-    if (Math.hypot(player.x - p.x, player.y - p.y) < 0.34) {
+    if (Math.hypot(player.x - p.x, player.y - p.y) < (p.radius || 0.34)) {
       player.hp = Math.max(0, player.hp - p.damage);
       player.hurt = 1;
       addRage(6);
-      screenShake = Math.max(screenShake, 0.6);
+      screenShake = Math.max(screenShake, p.type === "fire" ? 1.2 : 0.6);
       projectiles.splice(i, 1);
       if (player.hp <= 0) startPlayerDeath();
     }
@@ -576,7 +612,14 @@ function update(dt) {
       e.step += dt * (e.boss ? 3.2 : 4.4);
       e.attackPose = Math.max(e.attackPose, 0.45);
       if (e.attackWindup === 0) {
-        if (e.projectile && dist <= attackRange + 0.6 && hasLineOfSight(e)) {
+        if (e.type === "balrog") {
+          if (dist <= attackRange + 0.6) {
+            balrogSlam(e, dist);
+          } else if (dist <= 5.2 && hasLineOfSight(e)) {
+            spawnProjectile(e, dx / dist, dy / dist);
+            e.attackPose = 1;
+          }
+        } else if (e.projectile && dist <= attackRange + 0.6 && hasLineOfSight(e)) {
           spawnProjectile(e, dx / dist, dy / dist);
           e.attackPose = 1;
         } else if (!e.projectile && dist <= attackRange + 0.12) {
@@ -591,7 +634,10 @@ function update(dt) {
       }
       continue;
     }
-    if (e.projectile && dist < 2.4) {
+    if (e.type === "balrog" && dist < 5.1 && dist > attackRange + 0.4 && hasLineOfSight(e) && e.attackTimer <= 0) {
+      e.attackWindup = e.windup * 1.1;
+      e.attackPose = 0.85;
+    } else if (e.projectile && dist < 2.4) {
       const speed = e.speed * dt;
       moveActor(e, -(dx / dist) * speed, -(dy / dist) * speed, e.radius);
       e.step += dt * 4.2;
@@ -608,6 +654,20 @@ function update(dt) {
   }
 
   collectItems();
+}
+
+function balrogSlam(e, dist) {
+  const falloff = Math.max(0.62, 1 - Math.max(0, dist - 0.9) * 0.18);
+  const damage = Math.ceil(e.damage * 1.25 * falloff);
+  player.hp = Math.max(0, player.hp - damage);
+  player.hurt = 1;
+  addRage(18);
+  e.attackPose = 1;
+  screenShake = Math.max(screenShake, 2.2);
+  hitSpark = Math.max(hitSpark, 0.8);
+  notice = "발록의 화염 강타";
+  noticeTimer = 1.2;
+  if (player.hp <= 0) startPlayerDeath();
 }
 
 function attack(kind = "normal") {
@@ -656,12 +716,15 @@ function attack(kind = "normal") {
 function damageEnemy(target, damage, kind) {
   target.hp -= damage;
   target.hitFlash = 1;
-  target.attackWindup = 0;
   const pushAngle = Math.atan2(target.y - player.y, target.x - player.x);
-  const pushPower = target.boss ? (kind === "special" ? 2.1 : 1.35) : (kind === "special" ? 4.1 : 2.55);
+  const stunned = Math.random() < stunChance(target, kind);
+  const pushPower = target.boss ? (kind === "special" ? 1.65 : 0.95) : (kind === "special" ? 3.25 : 1.9);
   target.knockX = Math.cos(pushAngle) * pushPower;
   target.knockY = Math.sin(pushAngle) * pushPower;
-  target.stun = target.boss ? (kind === "special" ? 0.42 : 0.25) : (kind === "special" ? 0.68 : 0.42);
+  if (stunned) {
+    target.attackWindup = 0;
+    target.stun = target.boss ? (kind === "special" ? 0.36 : 0.18) : (kind === "special" ? 0.58 : 0.34);
+  }
   spawnDamagePop(target.x, target.y, damage, target.boss);
   if (kind !== "special") addRage(target.boss ? 16 : 22);
   if (target.hp <= 0) {
@@ -677,6 +740,14 @@ function damageEnemy(target, damage, kind) {
     notice = `${enemyLabel(target)} 처치`;
     noticeTimer = 2.4;
   }
+}
+
+function stunChance(target, kind) {
+  const levelGap = player.level - (target.level || 1);
+  const base = kind === "special" ? 0.36 : 0.17;
+  const bossPenalty = target.type === "balrog" ? 0.24 : target.boss ? 0.12 : 0;
+  const min = target.type === "balrog" ? 0.025 : target.boss ? 0.045 : 0.08;
+  return Math.max(min, Math.min(0.82, base + levelGap * 0.035 - bossPenalty));
 }
 
 function collectItems() {
@@ -835,7 +906,9 @@ function drawSprites() {
 }
 
 function spriteScale(e) {
-  if (e.type === "balrog") return 1.55;
+  if (e.type === "balrog") return 2.08;
+  if (e.type === "ogreLord") return 1.35;
+  if (e.type === "deathKnight" || e.type === "warlockLord") return 1.32;
   if (e.type === "ogre") return 1.05;
   if (e.boss) return 1.25;
   if (e.type === "skeleton") return 0.62;
@@ -844,8 +917,8 @@ function spriteScale(e) {
 
 function drawEnemy(e, x, y, size, dist) {
   if (e.type === "balrog") drawBalrog(e, x, y, size, dist);
-  else if (e.type === "skeleton" || e.type === "skeletonKing") drawSkeleton(e, x, y, size, dist);
-  else if (e.type === "warlock") drawWarlock(e, x, y, size, dist);
+  else if (e.type === "skeleton" || e.type === "skeletonKing" || e.type === "deathKnight") drawSkeleton(e, x, y, size, dist);
+  else if (e.type === "warlock" || e.type === "warlockLord") drawWarlock(e, x, y, size, dist);
   else drawOrc(e, x, y, size, dist);
 }
 
@@ -969,15 +1042,16 @@ function drawProjectiles() {
 
   for (const s of visible) {
     const screenX = W / 2 + Math.tan(s.angle) * (W / FOV);
-    const size = Math.min(42, (H / s.dist) * 0.14);
+    const fire = s.p.type === "fire";
+    const size = Math.min(fire ? 62 : 42, (H / s.dist) * (fire ? 0.22 : 0.14));
     const depthIndex = Math.floor((screenX / W) * RAYS);
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < s.dist - 0.15) continue;
     const y = HALF_H - size / 2 + Math.sin(s.p.bob + performance.now() * 0.01) * 3;
     ctx.save();
     ctx.globalAlpha = Math.max(0.4, 1 - s.dist / 12);
-    rect(screenX - size / 2, y, size, size, "#53258c");
-    rect(screenX - size * 0.28, y + size * 0.18, size * 0.56, size * 0.56, "#b75cff");
-    rect(screenX - size * 0.12, y + size * 0.32, size * 0.24, size * 0.24, "#f0c8ff");
+    rect(screenX - size / 2, y, size, size, fire ? "#6d1208" : "#53258c");
+    rect(screenX - size * 0.28, y + size * 0.18, size * 0.56, size * 0.56, fire ? "#ff5a22" : "#b75cff");
+    rect(screenX - size * 0.12, y + size * 0.32, size * 0.24, size * 0.24, fire ? "#ffd25a" : "#f0c8ff");
     ctx.restore();
   }
 }
@@ -1070,13 +1144,14 @@ function drawItemSprite(item, x, y, size) {
 
 function drawSkeleton(e, x, y, size, dist) {
   const px = Math.max(2, Math.floor(size / 16));
-  const king = e.type === "skeletonKing";
+  const deathKnight = e.type === "deathKnight";
+  const king = e.type === "skeletonKing" || deathKnight;
   const flash = e.hitFlash > 0;
   const walk = e.moving ? Math.sin(e.step) : 0;
   const bob = e.moving ? Math.abs(Math.sin(e.step)) * px : 0;
-  const bone = flash ? "#fff4c8" : "#d8d0ad";
-  const shade = king ? "#8e7b55" : "#8f8870";
-  const eye = king ? "#e12621" : "#5ed1ff";
+  const bone = flash ? "#fff4c8" : deathKnight ? "#a8a29a" : "#d8d0ad";
+  const shade = deathKnight ? "#20222b" : king ? "#8e7b55" : "#8f8870";
+  const eye = deathKnight ? "#ff6a22" : king ? "#e12621" : "#5ed1ff";
   y += bob - e.attackPose * 3 * px;
   x += walk * px * 0.3;
   ctx.globalAlpha = Math.max(0.35, 1 - dist / 16);
@@ -1098,30 +1173,39 @@ function drawSkeleton(e, x, y, size, dist) {
   rect(x + (5 - Math.max(0, walk)) * px, y + 22 * px, 2 * px, 5 * px, bone);
   rect(x + (10 + Math.max(0, walk)) * px, y + 22 * px, 2 * px, 5 * px, bone);
   if (king) {
-    rect(x + 2 * px, y + 13 * px, 12 * px, 4 * px, "#292a36");
-    rect(x + 3 * px, y + 14 * px, 10 * px, 1 * px, "#5f6485");
+    rect(x + 2 * px, y + 13 * px, 12 * px, 4 * px, deathKnight ? "#141820" : "#292a36");
+    rect(x + 3 * px, y + 14 * px, 10 * px, 1 * px, deathKnight ? "#6e7482" : "#5f6485");
     rect(x + 13 * px, y + 13 * px, 2 * px, 13 * px, "#44351d");
-    rect(x + 14 * px, y + 10 * px, 1 * px, 7 * px, "#cfc6ad");
+    rect(x + 14 * px, y + 10 * px, 1 * px, 7 * px, deathKnight ? "#d9dde4" : "#cfc6ad");
+    if (deathKnight) {
+      rect(x + 1 * px, y + 18 * px, 14 * px, 3 * px, "#0c1017");
+      rect(x + 3 * px, y + 17 * px, 10 * px, 1 * px, "#9aa3b4");
+    }
   }
   ctx.globalAlpha = 1;
 }
 
 function drawWarlock(e, x, y, size, dist) {
   const px = Math.max(2, Math.floor(size / 16));
+  const lord = e.type === "warlockLord";
   const flash = e.hitFlash > 0;
   const walk = e.moving ? Math.sin(e.step) : 0;
   const bob = e.moving ? Math.abs(Math.sin(e.step)) * px : 0;
   y += bob - e.attackPose * 2 * px;
   x += walk * px * 0.22;
   ctx.globalAlpha = Math.max(0.35, 1 - dist / 16);
-  rect(x + 3 * px, y + 5 * px, 11 * px, 18 * px, flash ? "#a982d8" : "#241334");
-  rect(x + 5 * px, y + 3 * px, 7 * px, 7 * px, flash ? "#d7b6ff" : "#3a1e58");
-  rect(x + 6 * px, y + 7 * px, 2 * px, 1 * px, "#d669ff");
-  rect(x + 10 * px, y + 7 * px, 2 * px, 1 * px, "#d669ff");
+  rect(x + 3 * px, y + 5 * px, 11 * px, 18 * px, flash ? "#a982d8" : lord ? "#170824" : "#241334");
+  rect(x + 5 * px, y + 3 * px, 7 * px, 7 * px, flash ? "#d7b6ff" : lord ? "#4b1465" : "#3a1e58");
+  if (lord) {
+    rect(x + 4 * px, y + 1 * px, 9 * px, 3 * px, "#68430c");
+    rect(x + 6 * px, y + 0 * px, 5 * px, 2 * px, "#f0b84a");
+  }
+  rect(x + 6 * px, y + 7 * px, 2 * px, 1 * px, lord ? "#ff6aff" : "#d669ff");
+  rect(x + 10 * px, y + 7 * px, 2 * px, 1 * px, lord ? "#ff6aff" : "#d669ff");
   rect(x + 5 * px, y + 11 * px, 8 * px, 2 * px, "#111014");
   rect(x + 2 * px, y + 13 * px, 4 * px, 9 * px, "#321b49");
   rect(x + 12 * px, y + 13 * px, 4 * px, 9 * px, "#321b49");
-  rect(x + 13 * px, y + 18 * px, 3 * px, 3 * px, "#b75cff");
+  rect(x + 13 * px, y + 18 * px, 3 * px, 3 * px, lord ? "#ff7cff" : "#b75cff");
   rect(x + 6 * px, y + 23 * px, 3 * px, 3 * px, "#100b16");
   rect(x + 10 * px, y + 23 * px, 3 * px, 3 * px, "#100b16");
   if (e.attackWindup > 0) {
@@ -1177,8 +1261,9 @@ function drawBalrog(e, x, y, size, dist) {
 
 function drawOrc(e, x, y, size, dist) {
   const px = Math.max(2, Math.floor(size / 16));
-  const dark = e.boss || e.type === "ogre";
-  const ogre = e.type === "ogre";
+  const ogreLord = e.type === "ogreLord";
+  const dark = e.boss || e.type === "ogre" || ogreLord;
+  const ogre = e.type === "ogre" || ogreLord;
   const flash = e.hitFlash > 0;
   const walk = e.moving ? Math.sin(e.step) : 0;
   const bob = e.moving ? Math.abs(Math.sin(e.step)) * px : 0;
@@ -1187,10 +1272,10 @@ function drawOrc(e, x, y, size, dist) {
   const hurt = e.hitFlash > 0.1;
   y += bob - attack * 3 * px + (winding ? 2 * px : 0);
   x += walk * px * 0.35 + (winding ? Math.sin(e.step + 1.2) * px * 0.2 : 0);
-  const skin = flash ? "#f6e9b8" : ogre ? "#6b7f38" : dark ? "#1d5f32" : "#2f9c45";
-  const skinLight = flash ? "#fff6cf" : ogre ? "#9aaa55" : dark ? "#3a8745" : "#5fc765";
-  const shadow = ogre ? "#323d1d" : dark ? "#0e2817" : "#145b28";
-  const deepShadow = ogre ? "#181e10" : dark ? "#07130b" : "#0a3317";
+  const skin = flash ? "#f6e9b8" : ogreLord ? "#4e5f29" : ogre ? "#6b7f38" : dark ? "#1d5f32" : "#2f9c45";
+  const skinLight = flash ? "#fff6cf" : ogreLord ? "#839448" : ogre ? "#9aaa55" : dark ? "#3a8745" : "#5fc765";
+  const shadow = ogreLord ? "#252d17" : ogre ? "#323d1d" : dark ? "#0e2817" : "#145b28";
+  const deepShadow = ogreLord ? "#11150c" : ogre ? "#181e10" : dark ? "#07130b" : "#0a3317";
   const armor = dark ? "#181818" : "#262728";
   const armorLight = dark ? "#3b3b3b" : "#46494a";
   const eye = dark ? "#e12621" : "#f0d447";
@@ -1253,7 +1338,11 @@ function drawOrc(e, x, y, size, dist) {
     rect(x + 11 * px, y + 1 * px, 3 * px, 5 * px, "#c7b98f");
     rect(x + 1 * px, y + 12 * px, 5 * px, 7 * px, "#222");
     rect(x + 11 * px, y + 12 * px, 5 * px, 7 * px, "#222");
-    rect(x + 4 * px, y + 15 * px, 9 * px, 2 * px, "#6f1414");
+    rect(x + 4 * px, y + 15 * px, 9 * px, 2 * px, ogreLord ? "#9b221a" : "#6f1414");
+    if (ogreLord) {
+      rect(x + 2 * px, y + 13 * px, 12 * px, 2 * px, "#d0aa48");
+      rect(x + 6 * px, y + 2 * px, 6 * px, 1 * px, "#1a0c08");
+    }
   } else if (dark) {
     rect(x + 3 * px, y + 1 * px, 2 * px, 5 * px, "#c7b98f");
     rect(x + 12 * px, y + 1 * px, 2 * px, 5 * px, "#c7b98f");
@@ -1610,15 +1699,21 @@ function drawMiniMap() {
   }
 
   for (const p of projectiles) {
-    ctx.fillStyle = "#b75cff";
+    ctx.fillStyle = p.type === "fire" ? "#ff5a22" : "#b75cff";
     ctx.fillRect(x0 + p.x * cell - 1, y0 + p.y * cell - 1, 2, 2);
   }
 
   for (const e of enemies) {
     if (e.dead) continue;
     ctx.fillStyle = miniMapEnemyColor(e);
-    const size = e.type === "balrog" ? 6 : e.boss ? 4 : 3;
-    ctx.fillRect(x0 + e.x * cell - Math.floor(size / 2), y0 + e.y * cell - Math.floor(size / 2), size, size);
+    const size = e.type === "balrog" ? 7 : e.boss ? 5 : 3;
+    const mx = x0 + e.x * cell - Math.floor(size / 2);
+    const my = y0 + e.y * cell - Math.floor(size / 2);
+    ctx.fillRect(mx, my, size, size);
+    if (e.boss) {
+      ctx.strokeStyle = e.type === "balrog" ? "#fff0a0" : "#ffd06a";
+      ctx.strokeRect(mx - 1, my - 1, size + 2, size + 2);
+    }
   }
 
   ctx.fillStyle = "#fff3b0";
