@@ -23,10 +23,10 @@ const BASE_MAP = [
   "################################################",
   "#.........#....................................#",
   "#........##.......#........#.......#...........#",
-  "#.........#................#...................#",
-  "#...........###.####..###.#####.#..#...........#",
-  "#.........#.............#.......#..#....#......#",
-  "#.........#.###.###.###.####.####.####.####.##.#",
+  "#.........#.##...#.......#.....................#",
+  "#...........#..####..###.#####.#..#............#",
+  "#.........#.#..#........#.......#..#....#......#",
+  "#.........#.#.#.###.###.####.####.####.####.##.#",
   "#####..#..#.....#...............#.......#......#",
   "#.........#..####.#####.####..###.##...........#",
   "#.....#...#.....#.#.....#..#............#......#",
@@ -170,7 +170,7 @@ const SPAWN_POINTS = [
   { type: "skeleton", x: 8.5, y: 23.5 },
   { type: "orc", x: 17.5, y: 23.5 },
   { type: "ogre", x: 21.5, y: 23.5 },
-  { type: "skeleton", x: 12.5, y: 3.5 },
+  { type: "skeleton", x: 16.5, y: 3.5 },
   { type: "orc", x: 13.5, y: 5.5 },
   { type: "warlock", x: 17.5, y: 7.5 },
   { type: "skeleton", x: 27.5, y: 7.5 },
@@ -396,13 +396,25 @@ function deathPalette(type) {
 }
 
 function addRage(amount) {
-  player.rage = Math.min(player.maxRage, player.rage + amount);
+  player.rage = Math.min(player.maxRage, player.rage + amount * rageGainMultiplier());
   if (!berserk && player.rage >= player.maxRage) {
     berserk = true;
     notice = "광폭화";
     noticeTimer = 1.8;
     screenShake = Math.max(screenShake, 0.8);
   }
+}
+
+function levelAttackBonus() {
+  return Math.floor((player.level - 1) / 2);
+}
+
+function levelSpeedMultiplier() {
+  return 1 + Math.min(0.16, (player.level - 1) * 0.012);
+}
+
+function rageGainMultiplier() {
+  return 1 + Math.min(0.3, (player.level - 1) * 0.025);
 }
 
 function gainXp(amount) {
@@ -413,7 +425,7 @@ function gainXp(amount) {
     player.nextXp = Math.floor(player.nextXp * 1.34 + 18);
     player.maxHp += 12;
     player.hp = player.maxHp;
-    player.maxRage = Math.min(160, player.maxRage + 8);
+    player.maxRage = Math.min(180, player.maxRage + 8);
     notice = `레벨 ${player.level}`;
     noticeTimer = 2.2;
     saveProgress();
@@ -693,7 +705,7 @@ function update(dt) {
     }
   }
 
-  const moveStep = MOVE_SPEED * (berserk ? 1.5 : 1) * dt;
+  const moveStep = MOVE_SPEED * levelSpeedMultiplier() * (berserk ? 1.5 : 1) * dt;
   const turnStep = TURN_SPEED * dt;
   if (keys.has("ArrowLeft")) player.angle -= turnStep;
   if (keys.has("ArrowRight")) player.angle += turnStep;
@@ -878,12 +890,13 @@ function attack(kind = "normal") {
   swing = 1;
   swingType = kind;
   const baseCooldown = kind === "special" ? 0.64 : 0.58;
-  swingCooldown = berserk ? baseCooldown * 0.42 : baseCooldown;
+  const levelCooldown = Math.max(0.88, 1 - (player.level - 1) * 0.008);
+  swingCooldown = (berserk ? baseCooldown * 0.42 : baseCooldown) * levelCooldown;
   if (kind === "special" && !berserk) player.rage = Math.max(0, player.rage - SPECIAL_RAGE_COST);
 
   const hitRange = kind === "special" ? 3.05 : 2.15;
   const hitAngle = kind === "special" ? 0.62 : 0.38;
-  const baseDamage = 2 + player.weaponLevel + Math.floor((player.level - 1) / 3);
+  const baseDamage = 2 + player.weaponLevel + levelAttackBonus();
   const rageDamage = berserk ? 1.5 : 1;
   const damage = Math.ceil((kind === "special" ? baseDamage * 2 + 2 : baseDamage) * rageDamage);
   const hits = [];
