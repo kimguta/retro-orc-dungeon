@@ -1889,13 +1889,86 @@ function drawHud() {
 }
 
 function drawHudPanel(x, y, w, h) {
-  ctx.fillStyle = "rgba(17, 12, 8, 0.86)";
+  ctx.fillStyle = "rgba(11, 8, 6, 0.9)";
   ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = "rgba(255, 235, 180, 0.06)";
-  ctx.fillRect(x + 2, y + 2, w - 4, 18);
-  ctx.strokeStyle = "rgba(216, 189, 118, 0.62)";
+  ctx.fillStyle = "rgba(214, 169, 86, 0.08)";
+  ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
+  ctx.fillRect(x + 5, y + h - 9, w - 10, 4);
+  ctx.strokeStyle = "rgba(142, 102, 49, 0.8)";
   ctx.lineWidth = 1;
   ctx.strokeRect(x, y, w, h);
+  ctx.strokeStyle = "rgba(255, 222, 146, 0.18)";
+  ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);
+}
+
+function drawHud() {
+  drawMiniMap();
+  drawCrosshair();
+  if (berserk) {
+    ctx.fillStyle = "rgba(170, 18, 8, 0.18)";
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "rgba(255, 68, 42, 0.12)";
+    ctx.fillRect(0, 0, W, HALF_H);
+  }
+
+  const hudH = 126;
+  const panelY = H - hudH;
+  const barW = Math.min(520, Math.max(380, W * 0.32));
+  ctx.fillStyle = "rgba(5, 4, 3, 0.86)";
+  ctx.fillRect(0, panelY, W, hudH);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.36)";
+  ctx.fillRect(0, panelY - 8, W, 8);
+
+  drawHudPanel(18, panelY + 18, barW + 112, 90);
+  drawText("HP", 40, panelY + 50, 16, "#f4dfbd");
+  drawBar(88, panelY + 30, barW, 24, player.hp / player.maxHp, "#b92d2b", "#2a0c0c", `${player.hp}/${player.maxHp}`);
+  drawText(berserk ? "FURY" : "RAGE", 40, panelY + 84, 14, berserk ? "#ffb199" : "#f3c46e");
+  drawBar(88, panelY + 66, barW, 22, player.rage / player.maxRage, berserk ? "#e64a21" : "#c36a20", "#241006", `${Math.floor(player.rage)}/${player.maxRage}`);
+
+  const statX = 150 + barW;
+  drawHudPanel(statX, panelY + 18, 280, 90);
+  drawText(`LV ${player.level}`, statX + 20, panelY + 50, 16, "#f3c46e");
+  drawText(`XP ${player.xp}/${player.nextXp}`, statX + 20, panelY + 80, 13, "#cdb681");
+  drawText(`KILL ${kills}`, statX + 148, panelY + 50, 15, "#f4dfbd");
+  drawText(isTown() ? "TOWN" : "FIELD", statX + 148, panelY + 80, 13, isTown() ? "#f3c46e" : "#cdb681");
+
+  const weaponX = Math.max(statX + 302, W - 344);
+  drawHudPanel(weaponX, panelY + 18, 326, 90);
+  drawText(swordName(), weaponX + 20, panelY + 52, 17, "#f3c46e");
+  if (berserk) drawText("광폭화: 특수공격 무제한", weaponX + 20, panelY + 82, 13, "#ffb199");
+  else if (player.rage >= SPECIAL_RAGE_COST) drawText("우클릭 특수공격 준비", weaponX + 20, panelY + 82, 13, "#f3c46e");
+  else drawText(`특수공격 분노 ${SPECIAL_RAGE_COST}`, weaponX + 20, panelY + 82, 13, "#9f8a60");
+
+  const hintX = Math.min(weaponX - 28, W - 520);
+  const droppedSword = lostWeapon();
+  if (hintX > statX + 298) {
+    if (droppedSword) drawText(`잃어버린 검: ${directionTo(droppedSword.x, droppedSword.y)}`, hintX, panelY + 82, 13, "#f4dfbd");
+    else {
+      const balrog = balrogEnemy();
+      drawText(balrog ? `목표: ${directionTo(balrog.x, balrog.y)}쪽 발록` : "목표 완료: 발록 처치", hintX, panelY + 82, 13, balrog ? "#ffb199" : "#f3c46e");
+    }
+  }
+
+  const boss = balrogEnemy() || enemies.find((e) => e.boss && !e.dead);
+  if (boss && (Math.hypot(player.x - boss.x, player.y - boss.y) < 8 || boss.hp < boss.maxHp)) {
+    drawBar(W - 320, 26, 280, 20, boss.hp / boss.maxHp, "#a91f1d", "#220909");
+    drawText(enemyLabel(boss), W - 312, 42, 13, "#f3c46e");
+  }
+
+  if (player.hurt > 0) {
+    ctx.fillStyle = `rgba(155, 0, 0, ${player.hurt * 0.25})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  drawInteractionHud();
+  drawDialogue();
+
+  if (noticeTimer > 0) {
+    ctx.textAlign = "center";
+    drawText(notice, W / 2, 82, 18, "#f3c46e");
+    ctx.textAlign = "left";
+  }
 }
 
 function drawInteractionHud() {
@@ -2025,29 +2098,31 @@ function drawCrosshair() {
 }
 
 function drawBar(x, y, w, h, pct, fill, bg, label = "") {
-  ctx.fillStyle = "rgba(0, 0, 0, 0.62)";
-  ctx.fillRect(x - 3, y - 3, w + 6, h + 6);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.72)";
+  ctx.fillRect(x - 4, y - 4, w + 8, h + 8);
   ctx.fillStyle = bg;
   ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
+  ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
   ctx.fillStyle = fill;
-  ctx.fillRect(x + 3, y + 3, Math.max(0, (w - 6) * pct), h - 6);
-  ctx.fillStyle = "rgba(255, 238, 177, 0.24)";
-  ctx.fillRect(x + 3, y + 3, Math.max(0, (w - 6) * pct), Math.max(2, Math.floor((h - 6) / 3)));
-  ctx.strokeStyle = "#ffe39a";
-  ctx.lineWidth = 2;
+  ctx.fillRect(x + 3, y + 3, Math.max(0, (w - 6) * Math.max(0, Math.min(1, pct))), h - 6);
+  ctx.fillStyle = "rgba(255, 238, 177, 0.18)";
+  ctx.fillRect(x + 3, y + 3, Math.max(0, (w - 6) * Math.max(0, Math.min(1, pct))), Math.max(2, Math.floor((h - 6) / 3)));
+  ctx.strokeStyle = "rgba(232, 196, 112, 0.72)";
+  ctx.lineWidth = 1;
   ctx.strokeRect(x, y, w, h);
   ctx.lineWidth = 1;
   if (label) {
     ctx.textAlign = "center";
-    drawText(label, x + w / 2, y + h - 4, Math.max(10, Math.min(12, h - 2)), "#fff7d6");
+    drawText(label, x + w / 2, y + h - 5, Math.max(11, Math.min(13, h - 2)), "#f6e7c2");
     ctx.textAlign = "left";
   }
 }
 
 function drawText(text, x, y, size, color) {
-  ctx.font = `500 ${size}px Noto Sans KR, Malgun Gothic, Apple SD Gothic Neo, sans-serif`;
+  ctx.font = `600 ${size}px Trebuchet MS, Noto Sans KR, Malgun Gothic, Apple SD Gothic Neo, sans-serif`;
   ctx.lineWidth = Math.max(2, Math.floor(size / 5));
-  ctx.strokeStyle = "rgba(5, 3, 2, 0.78)";
+  ctx.strokeStyle = "rgba(3, 2, 1, 0.86)";
   ctx.strokeText(text, x, y);
   ctx.fillStyle = color;
   ctx.fillText(text, x, y);
