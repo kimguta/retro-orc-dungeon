@@ -21,13 +21,13 @@ const SAVE_KEY = "shadowCitadelProgressV1";
 
 const BASE_MAP = [
   "################################################",
-  "#..............................................#",
-  "#........#........#........#.......#...........#",
-  "#..........................#...................#",
+  "#.........#....................................#",
+  "#........##.......#........#.......#...........#",
+  "#.........#................#...................#",
   "#...........###..###..##..#####....#...........#",
-  "#........#.........................#...........#",
-  "#........#....#...#........#..###..###..##..##.#",
-  "#........#.....................................#",
+  "#.........#........................#...........#",
+  "#.........#...#...#........#..###..###..##..##.#",
+  "#####..#..#....................................#",
   "#.........#..####.#####..###..###.##...........#",
   "#.........#.......#........#...................#",
   "#.........#................#.......#...........#",
@@ -170,7 +170,7 @@ const SPAWN_POINTS = [
   { type: "skeleton", x: 8.5, y: 23.5 },
   { type: "orc", x: 17.5, y: 23.5 },
   { type: "ogre", x: 21.5, y: 23.5 },
-  { type: "skeleton", x: 7.5, y: 3.5 },
+  { type: "skeleton", x: 12.5, y: 3.5 },
   { type: "orc", x: 13.5, y: 5.5 },
   { type: "warlock", x: 17.5, y: 7.5 },
   { type: "skeleton", x: 27.5, y: 7.5 },
@@ -258,6 +258,7 @@ function enemy(type, x, y) {
     step: Math.random() * Math.PI * 2,
     moving: false,
     attackPose: 0,
+    alert: 0,
     dead: false,
     respawnTimer: 0,
     respawns: 0,
@@ -767,6 +768,7 @@ function update(dt) {
     e.attackTimer = Math.max(0, e.attackTimer - dt);
     e.attackPose = Math.max(0, e.attackPose - dt * 5);
     e.stun = Math.max(0, e.stun - dt);
+    e.alert = Math.max(0, (e.alert || 0) - dt);
     if (Math.abs(e.knockX) > 0.01 || Math.abs(e.knockY) > 0.01) {
       moveActor(e, e.knockX * dt, e.knockY * dt, e.radius);
       e.knockX *= Math.pow(0.04, dt);
@@ -779,6 +781,10 @@ function update(dt) {
     const dy = player.y - e.y;
     const dist = Math.hypot(dx, dy);
     const attackRange = meleeReach(e);
+    const visible = hasLineOfSight(e);
+    const aware = e.alert > 0 || (dist <= aggroRange(e) && visible);
+    if (!aware) continue;
+    if (visible) e.alert = Math.max(e.alert, e.boss ? 4 : 2.4);
     if (e.attackWindup > 0) {
       e.attackWindup = Math.max(0, e.attackWindup - dt);
       e.step += dt * (e.boss ? 3.2 : 4.4);
@@ -787,14 +793,14 @@ function update(dt) {
         if (e.type === "balrog") {
           if (dist <= attackRange + 0.6) {
             balrogSlam(e, dist);
-          } else if (dist <= 5.2 && hasLineOfSight(e)) {
+          } else if (dist <= 5.2 && visible) {
             spawnProjectile(e, dx / dist, dy / dist);
             e.attackPose = 1;
           }
-        } else if (e.projectile && dist <= attackRange + 0.6 && hasLineOfSight(e)) {
+        } else if (e.projectile && dist <= attackRange + 0.6 && visible) {
           spawnProjectile(e, dx / dist, dy / dist);
           e.attackPose = 1;
-        } else if (!e.projectile && dist <= attackRange + 0.18 && hasLineOfSight(e)) {
+        } else if (!e.projectile && dist <= attackRange + 0.18 && visible) {
           player.hp = Math.max(0, player.hp - e.damage);
           player.hurt = 1;
           addRage(e.boss ? 12 : 7);
@@ -806,7 +812,7 @@ function update(dt) {
       }
       continue;
     }
-    if (e.type === "balrog" && dist < 5.1 && dist > attackRange + 0.4 && hasLineOfSight(e) && e.attackTimer <= 0) {
+    if (e.type === "balrog" && dist < 5.1 && dist > attackRange + 0.4 && visible && e.attackTimer <= 0) {
       e.attackWindup = e.windup * 1.1;
       e.attackPose = 0.85;
     } else if (e.projectile && dist < 2.4) {
@@ -814,12 +820,12 @@ function update(dt) {
       moveActor(e, -(dx / dist) * speed, -(dy / dist) * speed, e.radius);
       e.step += dt * 4.2;
       e.moving = true;
-    } else if (dist > attackRange || !hasLineOfSight(e)) {
+    } else if (dist > attackRange || !visible) {
       const speed = e.speed * dt;
       moveActor(e, (dx / dist) * speed, (dy / dist) * speed, e.radius);
       e.step += dt * (e.boss ? 5.3 : 6.2);
       e.moving = true;
-    } else if (e.attackTimer <= 0 && hasLineOfSight(e)) {
+    } else if (e.attackTimer <= 0 && visible) {
       e.attackWindup = e.windup;
       e.attackPose = 0.65;
     }
@@ -831,6 +837,14 @@ function update(dt) {
 function meleeReach(e) {
   if (e.projectile) return e.attackRange;
   return e.attackRange + (e.radius || 0) * 0.65 + 0.18;
+}
+
+function aggroRange(e) {
+  if (e.type === "balrog") return 11.5;
+  if (e.projectile) return e.boss ? 8.8 : 7.4;
+  if (e.boss) return 7.2;
+  if (e.type === "ogre") return 6.4;
+  return 5.8;
 }
 
 function balrogSlam(e, dist) {
@@ -893,6 +907,7 @@ function attack(kind = "normal") {
 function damageEnemy(target, damage, kind) {
   target.hp -= damage;
   target.hitFlash = 1;
+  target.alert = target.boss ? 12 : 7;
   const pushAngle = Math.atan2(target.y - player.y, target.x - player.x);
   const stunned = Math.random() < stunChance(target, kind);
   const pushPower = target.boss ? (kind === "special" ? 1.65 : 0.95) : (kind === "special" ? 3.25 : 1.9);
