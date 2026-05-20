@@ -21,13 +21,13 @@ const SAVE_KEY = "shadowCitadelProgressV1";
 
 const BASE_MAP = [
   "################################################",
-  "#.........#....................................#",
-  "#........##.......#........#.......#...........#",
-  "#.........#.##...#.......#.....................#",
-  "#...........#..####..###.#####.#..#............#",
-  "#.........#.#..#........#.......#..#....#......#",
-  "#.........#.#.#.###.###.####.####.####.####.##.#",
-  "#####..#..#.....#...............#.......#......#",
+  "#.......#.#...#........#........#........#.....#",
+  "#.......###.....######.########.####.###.###.#.#",
+  "#.......#.#..##..#.......#......#..............#",
+  "#..............................##.#......#.....#",
+  "#.......#.#.#.##.####.####.##..#.######.###.##.#",
+  "#########.#.#.#.##..###.#.##.####.#.#..##.#.#..#",
+  "#.#.#..#..#.....#...............#.......#......#",
   "#.........#..####.#####.####..###.##...........#",
   "#.....#...#.....#.#.....#..#............#......#",
   "#.....#...#.##.###.####.#######.####.####.###..#",
@@ -533,24 +533,25 @@ function dropLoot(target) {
     return;
   }
   if (target.boss) {
-    spawnItem("scroll", target.x, target.y);
-    if (Math.random() < 0.75) spawnItem("health", target.x + 0.25, target.y);
+    if (Math.random() < 0.7) spawnItem("scroll", target.x, target.y);
+    if (Math.random() < 0.9) spawnItem("health", target.x + 0.25, target.y);
+    if (Math.random() < 0.35) spawnItem("rage", target.x - 0.25, target.y);
     return;
   }
 
   const roll = Math.random();
   if (target.type === "ogre" || target.type === "warlock") {
-    if (roll < 0.12) spawnItem("scroll", target.x, target.y);
-    else if (roll < 0.34) spawnItem("rage", target.x, target.y);
-    else if (roll < 0.54) spawnItem("xp", target.x, target.y);
-    else if (roll < 0.7) spawnItem("health", target.x, target.y);
+    if (roll < 0.07) spawnItem("scroll", target.x, target.y);
+    else if (roll < 0.4) spawnItem("rage", target.x, target.y);
+    else if (roll < 0.56) spawnItem("xp", target.x, target.y);
+    else if (roll < 0.82) spawnItem("health", target.x, target.y);
     return;
   }
 
-  if (roll < 0.05) spawnItem("scroll", target.x, target.y);
-  else if (roll < 0.23) spawnItem("rage", target.x, target.y);
-  else if (roll < 0.4) spawnItem("xp", target.x, target.y);
-  else if (roll < 0.58) spawnItem("health", target.x, target.y);
+  if (roll < 0.025) spawnItem("scroll", target.x, target.y);
+  else if (roll < 0.32) spawnItem("rage", target.x, target.y);
+  else if (roll < 0.46) spawnItem("xp", target.x, target.y);
+  else if (roll < 0.72) spawnItem("health", target.x, target.y);
 }
 
 function enemyLabel(e) {
@@ -633,7 +634,7 @@ function moveActor(actor, dx, dy, radius = 0.18) {
 }
 
 function isTown(x = player.x, y = player.y) {
-  return x < 8 && y < 6;
+  return x < 7.8 && y < 5.8;
 }
 
 function nearestTownNpc(range = 1.35) {
@@ -1824,6 +1825,7 @@ function swordPalette(level = player.weaponLevel) {
     { at: 60, blade: "#50d060", highlight: "#caffcf", shadow: "#17451e", guard: "#348d40", trail: [88, 255, 116] },
     { at: 80, blade: "#43c7ff", highlight: "#e8fbff", shadow: "#12425a", guard: "#2788b0", trail: [75, 205, 255] },
     { at: 100, blade: "#b56cff", highlight: "#f0dcff", shadow: "#3b145f", guard: "#7a40ba", trail: [185, 108, 255] },
+    { at: 200, blade: "#080808", highlight: "#3a3a3a", shadow: "#000000", guard: "#171717", trail: [35, 35, 35] },
   ];
   const upper = stops.find((stop) => level <= stop.at) || stops[stops.length - 1];
   const lower = stops[Math.max(0, stops.indexOf(upper) - 1)];
