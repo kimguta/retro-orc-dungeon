@@ -1,12 +1,15 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
+const DPR = Math.min(2, window.devicePixelRatio || 1);
+const W = Math.max(1280, Math.round(window.innerWidth || canvas.width));
+const H = Math.max(720, Math.round(window.innerHeight || canvas.height));
+canvas.width = Math.round(W * DPR);
+canvas.height = Math.round(H * DPR);
+ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 ctx.imageSmoothingEnabled = false;
-
-const W = canvas.width;
-const H = canvas.height;
 const HALF_H = H / 2;
 const FOV = Math.PI / 3;
-const RAYS = 520;
+const RAYS = 760;
 const MAX_DEPTH = 18;
 const TILE = 64;
 const TURN_SPEED = 1.95;
@@ -904,6 +907,7 @@ function draw() {
   drawDeathParticles();
   drawDamagePops();
   drawItems();
+  drawVignette();
   drawWeapon();
   drawHud();
   if (gameState !== "play") drawEndScreen();
@@ -923,6 +927,7 @@ function drawWorld() {
   floor.addColorStop(1, townView ? "#2a2118" : "#1d1712");
   ctx.fillStyle = floor;
   ctx.fillRect(0, HALF_H, W, HALF_H);
+  drawFloorDetails(townView);
 
   for (let r = 0; r < RAYS; r += 1) {
     const rayAngle = player.angle - FOV / 2 + (r / RAYS) * FOV;
@@ -968,6 +973,38 @@ function drawWorld() {
     const ty = HALF_H + ((i * 71 + 41) % (H - HALF_H));
     ctx.fillRect(tx, ty, 2, 2);
   }
+}
+
+function drawFloorDetails(townView) {
+  ctx.save();
+  const lineColor = townView ? "rgba(255, 224, 160, 0.12)" : "rgba(232, 183, 116, 0.1)";
+  const darkLine = townView ? "rgba(41, 28, 18, 0.26)" : "rgba(13, 9, 7, 0.34)";
+  for (let i = 0; i < 18; i += 1) {
+    const t = i / 18;
+    const y = HALF_H + Math.pow(t, 1.75) * HALF_H;
+    ctx.globalAlpha = 0.04 + t * 0.12;
+    ctx.fillStyle = i % 2 ? lineColor : darkLine;
+    ctx.fillRect(0, y, W, Math.max(1, 1 + t * 2));
+  }
+  ctx.globalAlpha = townView ? 0.16 : 0.12;
+  ctx.strokeStyle = lineColor;
+  ctx.lineWidth = 1;
+  for (let i = -9; i <= 9; i += 1) {
+    ctx.beginPath();
+    ctx.moveTo(W / 2 + i * 82, H);
+    ctx.lineTo(W / 2 + i * 8, HALF_H + 12);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawVignette() {
+  const gradient = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.22, W / 2, H / 2, Math.max(W, H) * 0.68);
+  gradient.addColorStop(0, "rgba(0, 0, 0, 0)");
+  gradient.addColorStop(0.72, "rgba(0, 0, 0, 0.1)");
+  gradient.addColorStop(1, "rgba(0, 0, 0, 0.36)");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, W, H);
 }
 
 function drawSprites() {
@@ -1881,6 +1918,9 @@ function drawBar(x, y, w, h, pct, fill, bg, label = "") {
 
 function drawText(text, x, y, size, color) {
   ctx.font = `500 ${size}px Noto Sans KR, Malgun Gothic, Apple SD Gothic Neo, sans-serif`;
+  ctx.lineWidth = Math.max(2, Math.floor(size / 5));
+  ctx.strokeStyle = "rgba(5, 3, 2, 0.78)";
+  ctx.strokeText(text, x, y);
   ctx.fillStyle = color;
   ctx.fillText(text, x, y);
 }
