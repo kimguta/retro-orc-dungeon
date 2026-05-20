@@ -29,6 +29,7 @@ canvas {
   width: 100vw;
   height: 100vh;
   image-rendering: auto;
+  transform: translateZ(0);
   border: 0;
   background: #111;
   cursor: crosshair;
