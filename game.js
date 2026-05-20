@@ -43,8 +43,8 @@ const BASE_MAP = [
   "#..#.###.###.###.####.###.####.###.###.####.#..#",
   "#.........#........................#...........#",
   "#................................####..##.###..#",
-  "#.........#..................................B.#",
-  "#..............................................#",
+  "#.#...##...####...##...###....##..#....#.....B.#",
+  "#.##...##..#.....##..###...##..###...##..#...#.#",
   "################################################",
 ];
 
@@ -1817,22 +1817,45 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showT
 }
 
 function swordPalette(level = player.weaponLevel) {
-  if (level >= 8) {
-    return { blade: "#f8f6d8", highlight: "#ffffff", shadow: "#6e5a1e", guard: "#f1c232", trail: "rgba(255, 245, 180, 0.5)", specialTrail: "rgba(255, 245, 180, 0.72)" };
-  }
-  if (level >= 5) {
-    return { blade: "#f1c232", highlight: "#fff0a6", shadow: "#5b4315", guard: "#c18a24", trail: "rgba(255, 220, 72, 0.45)", specialTrail: "rgba(255, 235, 92, 0.72)" };
-  }
-  if (level >= 3) {
-    return { blade: "#7c53d9", highlight: "#ddcfff", shadow: "#211046", guard: "#6b42b8", trail: "rgba(150, 96, 255, 0.42)", specialTrail: "rgba(166, 110, 255, 0.68)" };
-  }
-  if (level >= 2) {
-    return { blade: "#c83b34", highlight: "#ffd0c0", shadow: "#4a1511", guard: "#91302a", trail: "rgba(255, 90, 70, 0.42)", specialTrail: "rgba(255, 74, 45, 0.68)" };
-  }
-  if (level >= 1) {
-    return { blade: "#a7d8f0", highlight: "#ffffff", shadow: "#28485a", guard: "#5c8da8", trail: "rgba(160, 220, 255, 0.34)", specialTrail: "rgba(180, 230, 255, 0.64)" };
-  }
-  return { blade: "#d8d8d2", highlight: "#ffffff", shadow: "#686860", guard: "#9a8b68", trail: "rgba(255, 255, 255, 0.34)", specialTrail: "rgba(255, 238, 186, 0.64)" };
+  const stops = [
+    { at: 0, blade: "#d8d8d2", highlight: "#ffffff", shadow: "#686860", guard: "#9a8b68", trail: [255, 255, 255] },
+    { at: 20, blade: "#c91f1f", highlight: "#ffd0c0", shadow: "#4a1111", guard: "#91302a", trail: [255, 74, 45] },
+    { at: 40, blade: "#f1c232", highlight: "#fff0a6", shadow: "#5b4315", guard: "#c18a24", trail: [255, 224, 80] },
+    { at: 60, blade: "#50d060", highlight: "#caffcf", shadow: "#17451e", guard: "#348d40", trail: [88, 255, 116] },
+    { at: 80, blade: "#43c7ff", highlight: "#e8fbff", shadow: "#12425a", guard: "#2788b0", trail: [75, 205, 255] },
+    { at: 100, blade: "#b56cff", highlight: "#f0dcff", shadow: "#3b145f", guard: "#7a40ba", trail: [185, 108, 255] },
+  ];
+  const upper = stops.find((stop) => level <= stop.at) || stops[stops.length - 1];
+  const lower = stops[Math.max(0, stops.indexOf(upper) - 1)];
+  const t = upper === lower ? 0 : Math.max(0, Math.min(1, (level - lower.at) / (upper.at - lower.at)));
+  const trail = [
+    Math.round(lerp(lower.trail[0], upper.trail[0], t)),
+    Math.round(lerp(lower.trail[1], upper.trail[1], t)),
+    Math.round(lerp(lower.trail[2], upper.trail[2], t)),
+  ];
+  return {
+    blade: mixColor(lower.blade, upper.blade, t),
+    highlight: mixColor(lower.highlight, upper.highlight, t),
+    shadow: mixColor(lower.shadow, upper.shadow, t),
+    guard: mixColor(lower.guard, upper.guard, t),
+    trail: `rgba(${trail[0]}, ${trail[1]}, ${trail[2]}, 0.42)`,
+    specialTrail: `rgba(${trail[0]}, ${trail[1]}, ${trail[2]}, 0.72)`,
+  };
+}
+
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+function mixColor(a, b, t) {
+  const ac = hexToRgb(a);
+  const bc = hexToRgb(b);
+  return `rgb(${Math.round(lerp(ac[0], bc[0], t))}, ${Math.round(lerp(ac[1], bc[1], t))}, ${Math.round(lerp(ac[2], bc[2], t))})`;
+}
+
+function hexToRgb(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
 function swordName() {
@@ -1885,10 +1908,12 @@ function drawHud() {
   drawCrosshair();
   if (berserk) {
     const pulse = 0.45 + Math.sin(performance.now() * 0.012) * 0.16;
+    ctx.fillStyle = `rgba(180, 18, 8, ${0.16 + pulse * 0.08})`;
+    ctx.fillRect(0, 0, W, H);
     const furyGlow = ctx.createRadialGradient(W / 2, H / 2, W * 0.1, W / 2, H / 2, W * 0.62);
-    furyGlow.addColorStop(0, `rgba(255, 130, 42, ${0.05 * pulse})`);
-    furyGlow.addColorStop(0.58, `rgba(190, 38, 18, ${0.1 * pulse})`);
-    furyGlow.addColorStop(1, `rgba(90, 8, 5, ${0.28 * pulse})`);
+    furyGlow.addColorStop(0, `rgba(255, 88, 36, ${0.08 * pulse})`);
+    furyGlow.addColorStop(0.58, `rgba(190, 22, 12, ${0.16 * pulse})`);
+    furyGlow.addColorStop(1, `rgba(80, 0, 0, ${0.38 * pulse})`);
     ctx.fillStyle = furyGlow;
     ctx.fillRect(0, 0, W, H);
     ctx.strokeStyle = `rgba(255, 118, 42, ${0.55 + pulse * 0.25})`;
