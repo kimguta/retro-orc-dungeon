@@ -10,7 +10,7 @@ body {
   overflow: hidden;
   background: #0b0a09;
   color: #e8d7a4;
-  font-family: "Noto Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  font-family: "Trebuchet MS", "Noto Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
 }
 
 body {
@@ -43,17 +43,17 @@ canvas {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 6px;
-  font-size: clamp(12px, 1.6vw, 15px);
-  font-weight: 500;
-  color: #f0d790;
+  gap: 5px;
+  font-size: clamp(11px, 1.4vw, 13px);
+  font-weight: 600;
+  color: #d8bd76;
   pointer-events: none;
-  opacity: 0.96;
+  opacity: 0.82;
 }
 
 .help span {
-  padding: 3px 7px;
-  border: 1px solid #5d452b;
-  background: rgba(10, 7, 5, 0.88);
+  padding: 3px 8px;
+  border: 1px solid rgba(142, 102, 49, 0.65);
+  background: rgba(7, 5, 4, 0.72);
   text-shadow: none;
 }
