@@ -621,7 +621,7 @@ function update(dt) {
   }
 
   player.angle = normAngle(player.angle);
-  swing = Math.max(0, swing - dt * 2.55);
+  swing = Math.max(0, swing - dt * (swingType === "special" ? 3.55 : 2.85));
   if (swing === 0) swingType = "normal";
   swingCooldown = Math.max(0, swingCooldown - dt);
   player.hurt = Math.max(0, player.hurt - dt * 3);
@@ -770,7 +770,7 @@ function attack(kind = "normal") {
   started = true;
   swing = 1;
   swingType = kind;
-  const baseCooldown = kind === "special" ? 0.82 : 0.62;
+  const baseCooldown = kind === "special" ? 0.64 : 0.58;
   swingCooldown = berserk ? baseCooldown * 0.42 : baseCooldown;
   if (kind === "special" && !berserk) player.rage = Math.max(0, player.rage - SPECIAL_RAGE_COST);
 
@@ -1024,11 +1024,22 @@ function drawSprites() {
     const depthIndex = Math.floor((screenX / W) * RAYS);
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < s.dist - 0.2) continue;
     const y = HALF_H - size * 0.55;
+    drawSpriteShadow(screenX, y + size * 0.78, size, s.e.boss ? 0.72 : 0.52, s.dist);
     drawEnemy(s.e, screenX - size / 2, y, size, s.dist);
     if (gameState === "play") {
       drawNameplate(screenX, y - Math.max(22, size * 0.08), Math.max(58, Math.min(118, size * 0.5)), enemyLabel(s.e), s.e.hp / s.e.maxHp, s.e.boss ? "#d33a32" : "#d8bd76");
     }
   }
+}
+
+function drawSpriteShadow(cx, y, size, scale, dist) {
+  ctx.save();
+  ctx.globalAlpha = Math.max(0.08, 0.34 - dist * 0.018);
+  ctx.fillStyle = "#050302";
+  ctx.beginPath();
+  ctx.ellipse(cx, y, size * scale * 0.42, Math.max(5, size * 0.055), 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 }
 
 function spriteScale(e) {
@@ -1302,7 +1313,8 @@ function drawSkeleton(e, x, y, size, dist) {
   const bone = flash ? "#fff4c8" : deathKnight ? "#a8a29a" : "#d8d0ad";
   const shade = deathKnight ? "#20222b" : king ? "#8e7b55" : "#8f8870";
   const eye = deathKnight ? "#ff6a22" : king ? "#e12621" : "#5ed1ff";
-  y += bob - e.attackPose * 3 * px;
+  const hurt = e.hitFlash > 0.12;
+  y += bob - e.attackPose * 3 * px + (hurt ? Math.sin(performance.now() * 0.09) * px : 0);
   x += walk * px * 0.3;
   ctx.globalAlpha = Math.max(0.35, 1 - dist / 16);
   if (king) {
@@ -1312,14 +1324,14 @@ function drawSkeleton(e, x, y, size, dist) {
   }
   rect(x + 4 * px, y + 4 * px, 9 * px, 8 * px, bone);
   rect(x + 5 * px, y + 5 * px, 7 * px, 1 * px, "#f5edce");
-  rect(x + 5 * px, y + 8 * px, 2 * px, 2 * px, eye);
-  rect(x + 10 * px, y + 8 * px, 2 * px, 2 * px, eye);
-  rect(x + 7 * px, y + 10 * px, 3 * px, 1 * px, "#221a17");
+  rect(x + 5 * px, y + (hurt ? 7 : 8) * px, 2 * px, hurt ? 1 * px : 2 * px, eye);
+  rect(x + 10 * px, y + (hurt ? 7 : 8) * px, 2 * px, hurt ? 1 * px : 2 * px, eye);
+  rect(x + 7 * px, y + 10 * px, 3 * px, hurt ? 2 * px : 1 * px, "#221a17");
   rect(x + 6 * px, y + 13 * px, 5 * px, 2 * px, shade);
   rect(x + 7 * px, y + 15 * px, 3 * px, 7 * px, bone);
   rect(x + 4 * px, y + 17 * px, 9 * px, 1 * px, bone);
-  rect(x + 3 * px, y + 14 * px, 2 * px, 8 * px, bone);
-  rect(x + 12 * px, y + 14 * px, 2 * px, 8 * px, bone);
+  rect(x + 3 * px, y + (e.attackPose > 0 ? 12 : 14) * px, 2 * px, 8 * px, bone);
+  rect(x + 12 * px, y + (e.attackPose > 0 ? 16 : 14) * px, 2 * px, 8 * px, bone);
   rect(x + (5 - Math.max(0, walk)) * px, y + 22 * px, 2 * px, 5 * px, bone);
   rect(x + (10 + Math.max(0, walk)) * px, y + 22 * px, 2 * px, 5 * px, bone);
   if (king) {
@@ -1341,7 +1353,8 @@ function drawWarlock(e, x, y, size, dist) {
   const flash = e.hitFlash > 0;
   const walk = e.moving ? Math.sin(e.step) : 0;
   const bob = e.moving ? Math.abs(Math.sin(e.step)) * px : 0;
-  y += bob - e.attackPose * 2 * px;
+  const hurt = e.hitFlash > 0.12;
+  y += bob - e.attackPose * 2 * px + (hurt ? Math.sin(performance.now() * 0.1) * px : 0);
   x += walk * px * 0.22;
   ctx.globalAlpha = Math.max(0.35, 1 - dist / 16);
   rect(x + 3 * px, y + 5 * px, 11 * px, 18 * px, flash ? "#a982d8" : lord ? "#170824" : "#241334");
@@ -1353,14 +1366,14 @@ function drawWarlock(e, x, y, size, dist) {
   rect(x + 6 * px, y + 7 * px, 2 * px, 1 * px, lord ? "#ff6aff" : "#d669ff");
   rect(x + 10 * px, y + 7 * px, 2 * px, 1 * px, lord ? "#ff6aff" : "#d669ff");
   rect(x + 5 * px, y + 11 * px, 8 * px, 2 * px, "#111014");
-  rect(x + 2 * px, y + 13 * px, 4 * px, 9 * px, "#321b49");
-  rect(x + 12 * px, y + 13 * px, 4 * px, 9 * px, "#321b49");
+  rect(x + 2 * px, y + (e.attackPose > 0 ? 11 : 13) * px, 4 * px, 9 * px, "#321b49");
+  rect(x + 12 * px, y + (e.attackPose > 0 ? 16 : 13) * px, 4 * px, 9 * px, "#321b49");
   rect(x + 13 * px, y + 18 * px, 3 * px, 3 * px, lord ? "#ff7cff" : "#b75cff");
   rect(x + 6 * px, y + 23 * px, 3 * px, 3 * px, "#100b16");
   rect(x + 10 * px, y + 23 * px, 3 * px, 3 * px, "#100b16");
   if (e.attackWindup > 0) {
-    rect(x + 12 * px, y + 16 * px, 5 * px, 5 * px, "#6d2eb2");
-    rect(x + 13 * px, y + 17 * px, 3 * px, 3 * px, "#efc9ff");
+    rect(x + 11 * px, y + 14 * px, 7 * px, 7 * px, "#6d2eb2");
+    rect(x + 12 * px, y + 15 * px, 5 * px, 5 * px, "#efc9ff");
   }
   ctx.globalAlpha = 1;
 }
@@ -1420,8 +1433,8 @@ function drawOrc(e, x, y, size, dist) {
   const attack = e.attackPose;
   const winding = e.attackWindup > 0;
   const hurt = e.hitFlash > 0.1;
-  y += bob - attack * 3 * px + (winding ? 2 * px : 0);
-  x += walk * px * 0.35 + (winding ? Math.sin(e.step + 1.2) * px * 0.2 : 0);
+  y += bob - attack * 3 * px + (winding ? 2 * px : 0) + (hurt ? Math.sin(performance.now() * 0.11) * px : 0);
+  x += walk * px * 0.35 + (winding ? Math.sin(e.step + 1.2) * px * 0.5 : 0) + (hurt ? Math.sin(performance.now() * 0.16) * px * 0.7 : 0);
   const skin = flash ? "#f6e9b8" : ogreLord ? "#4e5f29" : ogre ? "#6b7f38" : dark ? "#1d5f32" : "#2f9c45";
   const skinLight = flash ? "#fff6cf" : ogreLord ? "#839448" : ogre ? "#9aaa55" : dark ? "#3a8745" : "#5fc765";
   const shadow = ogreLord ? "#252d17" : ogre ? "#323d1d" : dark ? "#0e2817" : "#145b28";
@@ -1476,6 +1489,10 @@ function drawOrc(e, x, y, size, dist) {
   rect(x + 1 * px, leftArmY + 4 * px, 3 * px, 5 * px, shadow);
   rect(x + 14 * px, rightArmY + 4 * px, 3 * px, 5 * px, shadow);
   rect(x + 15 * px, rightArmY + 5 * px, 3 * px, 1 * px, "#8f7a50");
+  if (winding || attack > 0) {
+    rect(x + 14 * px, rightArmY + (attack > 0 ? 1 : 3) * px, 5 * px, 2 * px, "#b6975d");
+    rect(x + 17 * px, rightArmY + (attack > 0 ? -3 : 1) * px, 2 * px, 8 * px, "#3a2414");
+  }
   const legA = walk > 0 ? 1 : 0;
   rect(x + (5 - legA) * px, y + 21 * px, 3 * px, 3 * px, dark ? "#111" : "#1a1b1b");
   rect(x + (10 + legA) * px, y + 21 * px, 3 * px, 3 * px, dark ? "#111" : "#1a1b1b");
@@ -1548,23 +1565,28 @@ function drawWeapon() {
 
 function drawSpecialSword(progress) {
   const palette = swordPalette();
-  const t = progress < 0.72 ? progress / 0.72 : Math.max(0, 1 - (progress - 0.72) / 0.28);
-  const sweep = Math.sin(t * Math.PI * 0.5);
-  const settle = progress > 0.72 ? (progress - 0.72) / 0.28 : 0;
-  const hiltX = W * (0.82 - sweep * 0.24 + settle * 0.18);
-  const hiltY = H * (1.1 - sweep * 0.1 + settle * 0.12);
-  const tipX = W * (0.76 - sweep * 0.5 + settle * 0.34);
-  const tipY = H * (0.84 - sweep * 0.46 + settle * 0.34);
+  const charge = progress < 0.18 ? progress / 0.18 : 1;
+  const slashT = progress < 0.58 ? Math.max(0, (progress - 0.08) / 0.5) : Math.max(0, 1 - (progress - 0.58) / 0.26);
+  const sweep = Math.sin(Math.min(1, slashT) * Math.PI);
+  const settle = progress > 0.62 ? Math.min(1, (progress - 0.62) / 0.28) : 0;
+  const hiltX = W * (0.82 - sweep * 0.3 + settle * 0.24 + (1 - charge) * 0.05);
+  const hiltY = H * (1.1 - sweep * 0.12 + settle * 0.14);
+  const tipX = W * (0.82 - sweep * 0.58 + settle * 0.44);
+  const tipY = H * (0.9 - sweep * 0.56 + settle * 0.42);
 
-  if (progress > 0.08 && progress < 0.76) {
+  if (progress > 0.06 && progress < 0.62) {
     ctx.save();
-    ctx.globalAlpha = 0.16 + sweep * 0.22;
+    ctx.globalAlpha = 0.18 + sweep * 0.34;
     ctx.strokeStyle = palette.specialTrail;
-    ctx.lineWidth = 18;
+    ctx.lineWidth = 24;
     ctx.lineCap = "round";
     ctx.beginPath();
-    ctx.moveTo(W * 0.78, H * 0.78);
-    ctx.quadraticCurveTo(W * 0.5, H * 0.42, W * 0.26, H * 0.62);
+    ctx.moveTo(W * 0.86, H * 0.84);
+    ctx.quadraticCurveTo(W * 0.5, H * 0.32, W * 0.16, H * 0.58);
+    ctx.stroke();
+    ctx.globalAlpha *= 0.6;
+    ctx.strokeStyle = "#fff8d0";
+    ctx.lineWidth = 6;
     ctx.stroke();
     ctx.restore();
   }
@@ -1768,6 +1790,82 @@ function drawHud() {
     drawText(notice, W / 2, 82, 18, "#ffe39a");
     ctx.textAlign = "left";
   }
+}
+
+function drawHud() {
+  drawMiniMap();
+  drawCrosshair();
+  if (berserk) {
+    ctx.fillStyle = "rgba(170, 18, 8, 0.18)";
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "rgba(255, 68, 42, 0.12)";
+    ctx.fillRect(0, 0, W, HALF_H);
+  }
+
+  const hudH = 118;
+  const panelY = H - hudH;
+  ctx.fillStyle = "rgba(8, 6, 5, 0.78)";
+  ctx.fillRect(0, panelY, W, hudH);
+  ctx.fillStyle = "rgba(255, 225, 140, 0.14)";
+  ctx.fillRect(0, panelY, W, 2);
+  ctx.fillStyle = "rgba(255, 245, 190, 0.05)";
+  ctx.fillRect(0, panelY + 2, W, 24);
+
+  drawHudPanel(18, panelY + 16, 470, 86);
+  drawText("체력", 38, panelY + 44, 15, "#fff1bd");
+  drawBar(92, panelY + 27, 360, 22, player.hp / player.maxHp, "#d42f2f", "#3f1212", `${player.hp}/${player.maxHp}`);
+  drawText(berserk ? "광폭" : "분노", 38, panelY + 78, 15, berserk ? "#ffb199" : "#ffe39a");
+  drawBar(92, panelY + 61, 360, 22, player.rage / player.maxRage, berserk ? "#f04a22" : "#d77b23", "#2d1609", `${Math.floor(player.rage)}/${player.maxRage}`);
+
+  drawHudPanel(508, panelY + 16, 276, 86);
+  drawText(`레벨 ${player.level}`, 528, panelY + 42, 15, "#ffe39a");
+  drawText(`경험치 ${player.xp}/${player.nextXp}`, 528, panelY + 72, 13, "#d7c27b");
+  drawText(`처치 ${kills}`, 650, panelY + 42, 15, "#fff1bd");
+  drawText(isTown() ? "마을" : "필드", 650, panelY + 72, 13, isTown() ? "#ffe39a" : "#d7c27b");
+
+  drawHudPanel(W - 336, panelY + 16, 318, 86);
+  drawText(swordName(), W - 316, panelY + 45, 16, "#ffe39a");
+  if (berserk) drawText("광폭화: 특수공격 무제한", W - 316, panelY + 74, 13, "#ffb199");
+  else if (player.rage >= SPECIAL_RAGE_COST) drawText("우클릭 특수공격", W - 316, panelY + 74, 13, "#ffe39a");
+  else drawText(`특수공격 분노 ${SPECIAL_RAGE_COST}`, W - 316, panelY + 74, 13, "#a99363");
+
+  const droppedSword = lostWeapon();
+  if (droppedSword) {
+    drawText(`잃어버린 검: ${directionTo(droppedSword.x, droppedSword.y)}`, 808, panelY + 70, 13, "#fff1bd");
+  } else {
+    const balrog = balrogEnemy();
+    drawText(balrog ? `목표: ${directionTo(balrog.x, balrog.y)}쪽 발록 처치` : "목표 완료: 발록 처치", 808, panelY + 70, 13, balrog ? "#ffb199" : "#ffe39a");
+  }
+
+  const boss = balrogEnemy() || enemies.find((e) => e.boss && !e.dead);
+  if (boss && (Math.hypot(player.x - boss.x, player.y - boss.y) < 8 || boss.hp < boss.maxHp)) {
+    drawBar(W - 300, 26, 260, 20, boss.hp / boss.maxHp, "#b91818", "#2a0c0c");
+    drawText(enemyLabel(boss), W - 292, 42, 13, "#ffe08a");
+  }
+
+  if (player.hurt > 0) {
+    ctx.fillStyle = `rgba(155, 0, 0, ${player.hurt * 0.25})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  drawInteractionHud();
+  drawDialogue();
+
+  if (noticeTimer > 0) {
+    ctx.textAlign = "center";
+    drawText(notice, W / 2, 82, 18, "#ffe39a");
+    ctx.textAlign = "left";
+  }
+}
+
+function drawHudPanel(x, y, w, h) {
+  ctx.fillStyle = "rgba(17, 12, 8, 0.86)";
+  ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = "rgba(255, 235, 180, 0.06)";
+  ctx.fillRect(x + 2, y + 2, w - 4, 18);
+  ctx.strokeStyle = "rgba(216, 189, 118, 0.62)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, w, h);
 }
 
 function drawInteractionHud() {
