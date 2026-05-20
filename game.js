@@ -6,7 +6,7 @@ const W = canvas.width;
 const H = canvas.height;
 const HALF_H = H / 2;
 const FOV = Math.PI / 3;
-const RAYS = 240;
+const RAYS = 520;
 const MAX_DEPTH = 18;
 const TILE = 64;
 const TURN_SPEED = 1.95;
@@ -79,6 +79,7 @@ let started = false;
 let hitSpark = 0;
 let screenShake = 0;
 let damagePops = [];
+let deathParticles = [];
 let notice = "던전 필드";
 let noticeTimer = 0;
 let dialogueText = "";
@@ -274,6 +275,36 @@ function spawnDamagePop(x, y, value, boss) {
   });
 }
 
+function spawnDeathBurst(target) {
+  const palette = deathPalette(target.type);
+  const count = target.type === "balrog" ? 54 : target.boss ? 34 : target.type === "ogre" ? 28 : 20;
+  for (let i = 0; i < count; i += 1) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 0.45 + Math.random() * (target.boss ? 2.1 : 1.45);
+    deathParticles.push({
+      x: target.x + (Math.random() - 0.5) * target.radius,
+      y: target.y + (Math.random() - 0.5) * target.radius,
+      z: 0.2 + Math.random() * (target.boss ? 1.15 : 0.85),
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      vz: 0.9 + Math.random() * 2.4,
+      life: 0.55 + Math.random() * (target.boss ? 0.65 : 0.4),
+      maxLife: 0,
+      size: 0.035 + Math.random() * (target.boss ? 0.085 : 0.055),
+      color: palette[Math.floor(Math.random() * palette.length)],
+    });
+    deathParticles[deathParticles.length - 1].maxLife = deathParticles[deathParticles.length - 1].life;
+  }
+}
+
+function deathPalette(type) {
+  if (type === "balrog") return ["#ff5a22", "#d11e12", "#2a0907", "#ffd25a", "#111"];
+  if (type === "skeleton" || type === "skeletonKing" || type === "deathKnight") return ["#f2e8c9", "#cfc3a3", "#6b6251", "#2a2b32"];
+  if (type === "warlock" || type === "warlockLord") return ["#b75cff", "#53258c", "#241334", "#efc9ff"];
+  if (type === "ogre" || type === "ogreLord") return ["#9aaa55", "#4e5f29", "#202412", "#6f1414"];
+  return ["#5fc765", "#2f9c45", "#145b28", "#262728", "#f0d447"];
+}
+
 function addRage(amount) {
   player.rage = Math.min(player.maxRage, player.rage + amount);
   if (!berserk && player.rage >= player.maxRage) {
@@ -356,6 +387,7 @@ function startPlayerDeath() {
   swingType = "normal";
   projectiles = [];
   damagePops = [];
+  deathParticles = [];
   dialogueText = "";
   dialogueSpeaker = "";
   dialogueTimer = 0;
@@ -376,6 +408,7 @@ function respawnPlayer() {
   swingType = "normal";
   projectiles = [];
   damagePops = [];
+  deathParticles = [];
   started = false;
   dialogueText = "";
   dialogueSpeaker = "";
@@ -601,6 +634,17 @@ function update(dt) {
     damagePops[i].rise += dt * 0.28;
     if (damagePops[i].life <= 0) damagePops.splice(i, 1);
   }
+  for (let i = deathParticles.length - 1; i >= 0; i -= 1) {
+    const p = deathParticles[i];
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.z += p.vz * dt;
+    p.vx *= Math.pow(0.18, dt);
+    p.vy *= Math.pow(0.18, dt);
+    p.vz -= 4.8 * dt;
+    p.life -= dt;
+    if (p.life <= 0 || isWall(p.x, p.y)) deathParticles.splice(i, 1);
+  }
   for (let i = projectiles.length - 1; i >= 0; i -= 1) {
     const p = projectiles[i];
     p.x += p.vx * dt;
@@ -771,6 +815,7 @@ function damageEnemy(target, damage, kind) {
   spawnDamagePop(target.x, target.y, damage, target.boss);
   if (kind !== "special") addRage(target.boss ? 16 : 22);
   if (target.hp <= 0) {
+    spawnDeathBurst(target);
     target.dead = true;
     target.respawnTimer = respawnDelay(target);
     target.attackWindup = 0;
@@ -856,6 +901,7 @@ function draw() {
   drawSprites();
   drawTownSprites();
   drawProjectiles();
+  drawDeathParticles();
   drawDamagePops();
   drawItems();
   drawWeapon();
@@ -1116,6 +1162,30 @@ function drawDamagePops() {
     ctx.textAlign = "center";
     drawText(`-${pop.value}`, screenX, y, pop.boss ? 20 : 16, pop.boss ? "#ffd34d" : "#fff1bd");
     ctx.textAlign = "left";
+    ctx.restore();
+  }
+}
+
+function drawDeathParticles() {
+  const visible = deathParticles
+    .map((p) => {
+      const dx = p.x - player.x;
+      const dy = p.y - player.y;
+      return { p, dist: Math.hypot(dx, dy), angle: normAngle(Math.atan2(dy, dx) - player.angle) };
+    })
+    .filter((s) => Math.abs(s.angle) < FOV * 0.72 && hasLineOfSight(s.p))
+    .sort((a, b) => b.dist - a.dist);
+
+  for (const s of visible) {
+    const screenX = W / 2 + Math.tan(s.angle) * (W / FOV);
+    const depthIndex = Math.floor((screenX / W) * RAYS);
+    if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < s.dist - 0.18) continue;
+    const lift = (H / Math.max(0.45, s.dist)) * s.p.z * 0.34;
+    const size = Math.max(3, Math.min(18, (H / Math.max(0.3, s.dist)) * s.p.size));
+    const alpha = Math.max(0, s.p.life / s.p.maxLife);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    rect(screenX - size / 2, HALF_H - lift - size / 2, size, size, s.p.color);
     ctx.restore();
   }
 }
@@ -1423,45 +1493,45 @@ function drawWeapon() {
     if (hitSpark > 0) drawHitSpark();
     return;
   }
-  const lungeIn = Math.min(1, progress / (special ? 0.18 : 0.2));
-  const lungeOut = progress > 0.56 ? Math.max(0, 1 - (progress - 0.56) / 0.38) : 1;
-  const lunge = swing > 0 ? Math.min(lungeIn, lungeOut) : 0;
-  const recoil = swing > 0 && progress > 0.72 ? (progress - 0.72) / 0.28 : 0;
+  const windup = progress < 0.18 ? progress / 0.18 : 1;
+  const thrust = progress < 0.46 ? Math.sin((progress / 0.46) * Math.PI * 0.5) : Math.max(0, 1 - (progress - 0.46) / 0.36);
+  const lunge = swing > 0 ? thrust : 0;
+  const recoil = swing > 0 && progress > 0.58 ? Math.min(1, (progress - 0.58) / 0.32) : 0;
   const sway = swing > 0 ? 0 : Math.sin(performance.now() * 0.006) * 3;
-  const reach = special ? lunge * 1.35 : lunge;
+  const reach = lunge;
 
-  const nearX = W * (0.84 - reach * 0.19 + recoil * 0.05) + sway;
-  const nearY = H * (1.12 + recoil * 0.05 - reach * 0.05);
-  const farX = W * (0.59 - reach * 0.13);
-  const farY = H * (0.75 - reach * 0.24);
-  drawForwardPole(nearX, nearY, farX, farY, reach, special);
+  const nearX = W * (0.84 + (1 - windup) * 0.05 - reach * 0.23 + recoil * 0.06) + sway;
+  const nearY = H * (1.12 + (1 - windup) * 0.04 - reach * 0.08 + recoil * 0.05);
+  const farX = W * (0.62 - reach * 0.17);
+  const farY = H * (0.78 - reach * 0.32);
+  drawForwardPole(nearX, nearY, farX, farY, reach * 1.15, false, true);
 
   if (hitSpark > 0) drawHitSpark();
 }
 
 function drawSpecialSword(progress) {
   const palette = swordPalette();
-  const arc = Math.sin(progress * Math.PI);
-  const returnEase = progress < 0.62 ? progress / 0.62 : Math.max(0, 1 - (progress - 0.62) / 0.38);
-  const sweep = Math.sin(returnEase * Math.PI);
-  const hiltX = W * (0.82 - sweep * 0.08);
-  const hiltY = H * (1.12 - sweep * 0.04);
-  const tipX = W * (0.6 - sweep * 0.22);
-  const tipY = H * (0.74 - sweep * 0.24);
-  drawForwardPole(hiltX, hiltY, tipX, tipY, 0.82 + sweep * 0.36, false, false);
+  const t = progress < 0.72 ? progress / 0.72 : Math.max(0, 1 - (progress - 0.72) / 0.28);
+  const sweep = Math.sin(t * Math.PI * 0.5);
+  const settle = progress > 0.72 ? (progress - 0.72) / 0.28 : 0;
+  const hiltX = W * (0.82 - sweep * 0.24 + settle * 0.18);
+  const hiltY = H * (1.1 - sweep * 0.1 + settle * 0.12);
+  const tipX = W * (0.76 - sweep * 0.5 + settle * 0.34);
+  const tipY = H * (0.84 - sweep * 0.46 + settle * 0.34);
 
-  if (progress > 0.18 && progress < 0.58) {
+  if (progress > 0.08 && progress < 0.76) {
     ctx.save();
-    ctx.globalAlpha = 0.16 + arc * 0.18;
+    ctx.globalAlpha = 0.16 + sweep * 0.22;
     ctx.strokeStyle = palette.specialTrail;
-    ctx.lineWidth = 10;
+    ctx.lineWidth = 18;
     ctx.lineCap = "round";
     ctx.beginPath();
-    ctx.moveTo(W * 0.36, H * 0.64);
-    ctx.quadraticCurveTo(W * 0.52, H * 0.46, W * 0.72, H * 0.6);
+    ctx.moveTo(W * 0.78, H * 0.78);
+    ctx.quadraticCurveTo(W * 0.5, H * 0.42, W * 0.26, H * 0.62);
     ctx.stroke();
     ctx.restore();
   }
+  drawForwardPole(hiltX, hiltY, tipX, tipY, 1.0 + sweep * 0.55, true, false);
 }
 
 function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showTrail = true) {
@@ -1870,6 +1940,7 @@ function resetGame() {
   swingCooldown = 0;
   swingType = "normal";
   damagePops = [];
+  deathParticles = [];
   projectiles = [];
   hitSpark = 0;
   screenShake = 0;
