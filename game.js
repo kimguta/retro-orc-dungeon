@@ -279,7 +279,7 @@ function enemyStats(type, tierBonus) {
     deathKnight: { hp: 220 + growth * 31, speed: 0.68 + speedTier * 0.026, damage: 24 + growth * 1.9, radius: 0.43, xp: 360 + growth * 50, attackRange: 1.65, windup: 0.48, cooldown: 1.02, boss: true },
     ogreLord: { hp: 310 + growth * 42, speed: 0.42 + speedTier * 0.02, damage: 34 + growth * 2.25, radius: 0.58, xp: 470 + growth * 64, attackRange: 1.85, windup: 0.66, cooldown: 1.28, boss: true },
     warlockLord: { hp: 250 + growth * 35, speed: 0.48 + speedTier * 0.022, damage: 24 + growth * 1.95, radius: 0.36, xp: 430 + growth * 60, attackRange: 5.35, windup: 0.62, cooldown: 1.18, projectile: true, boss: true },
-    balrog: { hp: 1300 + growth * 118, speed: 0.5 + speedTier * 0.018, damage: 55 + growth * 3.5, radius: 0.9, xp: 2400 + growth * 210, attackRange: 3.05, windup: 0.68, cooldown: 1.18, boss: true },
+    balrog: { hp: 1300 + growth * 118, speed: 0.5 + speedTier * 0.018, damage: 55 + growth * 3.5, radius: 0.9, xp: 2400 + growth * 210, attackRange: 4.35, windup: 0.68, cooldown: 1.18, boss: true },
   };
   return stats[type] || stats.orc;
 }
@@ -880,7 +880,7 @@ function update(dt) {
         if (e.type === "balrog") {
           if (dist <= attackRange + 0.6) {
             balrogSlam(e, dist);
-          } else if (dist <= 5.2 && visible) {
+          } else if (dist <= 7.2 && visible) {
             spawnProjectile(e, dx / dist, dy / dist);
             e.attackPose = 1;
           }
@@ -898,7 +898,7 @@ function update(dt) {
       }
       continue;
     }
-    if (e.type === "balrog" && dist < 5.1 && dist > attackRange + 0.4 && visible && e.attackTimer <= 0) {
+    if (e.type === "balrog" && dist < 7.1 && dist > attackRange + 0.4 && visible && e.attackTimer <= 0) {
       e.attackWindup = e.windup * 1.1;
       e.attackPose = 0.85;
     } else if (e.projectile && dist < 2.4) {
@@ -1273,7 +1273,7 @@ function drawSprites() {
 }
 
 function spriteScale(e) {
-  if (e.type === "balrog") return 3.45 + Math.min(9, Math.max(0, e.dungeonTier - 1)) * 0.38;
+  if (e.type === "balrog") return 2.9 + Math.min(9, Math.max(0, e.dungeonTier - 1)) * 0.28;
   if (e.type === "ogreLord") return 1.58;
   if (e.type === "deathKnight" || e.type === "warlockLord") return 1.48;
   if (e.type === "ogre") return 1.05;
@@ -1667,7 +1667,7 @@ function drawWarlock(e, x, y, size, dist) {
 }
 
 function drawBalrog(e, x, y, size, dist) {
-  const px = Math.max(2, Math.floor(size / 18));
+  const px = Math.max(2, Math.floor(size / 30));
   const flash = e.hitFlash > 0;
   const walk = e.moving ? Math.sin(e.step) : 0;
   const bob = e.moving ? Math.abs(Math.sin(e.step)) * px * 0.7 : 0;
