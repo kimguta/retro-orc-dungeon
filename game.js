@@ -26,7 +26,7 @@ const LAST_NAME_KEY = "paperCitadelLastNameV1";
 const SOCKET_SERVER_URL =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "http://localhost:3000"
-    : (window.PAPER_CITADEL_SOCKET_URL || "");
+    : (window.PAPER_CITADEL_SOCKET_URL || "https://paper-citadel-server.onrender.com");
 
 const MAP_W = 64;
 const MAP_H = 36;
