@@ -73,6 +73,11 @@ let berserk = false;
 let deathTimer = 0;
 
 const SPAWN_POINTS = [
+  { type: "skeleton", x: 16.5, y: 5.5 },
+  { type: "skeleton", x: 17.5, y: 9.5 },
+  { type: "skeleton", x: 20.5, y: 11.5 },
+  { type: "orc", x: 23.5, y: 5.5 },
+  { type: "orc", x: 28.5, y: 3.5 },
   { type: "skeleton", x: 18.5, y: 8.5 },
   { type: "skeleton", x: 25.5, y: 10.5 },
   { type: "orc", x: 29.5, y: 6.5 },
@@ -87,12 +92,16 @@ const SPAWN_POINTS = [
   { type: "skeleton", x: 8.5, y: 24.5 },
   { type: "skeleton", x: 16.5, y: 22.5 },
   { type: "skeleton", x: 18.5, y: 17.5 },
+  { type: "skeleton", x: 6.5, y: 27.5 },
+  { type: "skeleton", x: 13.5, y: 27.5 },
   { type: "orc", x: 20.5, y: 23.5 },
   { type: "orc", x: 6.5, y: 20.5 },
   { type: "orc", x: 17.5, y: 20.5 },
   { type: "skeletonKing", x: 14.5, y: 24.5 },
   { type: "orc", x: 25.5, y: 19.5 },
   { type: "orc", x: 30.5, y: 19.5 },
+  { type: "orc", x: 24.5, y: 21.5 },
+  { type: "orc", x: 28.5, y: 17.5 },
   { type: "orc", x: 36.5, y: 19.5 },
   { type: "orc", x: 26.5, y: 23.5 },
   { type: "orc", x: 33.5, y: 23.5 },
@@ -105,6 +114,7 @@ const SPAWN_POINTS = [
   { type: "orc", x: 40.5, y: 26.5 },
   { type: "warlock", x: 43.5, y: 4.5 },
   { type: "warlock", x: 48.5, y: 5.5 },
+  { type: "warlock", x: 42.5, y: 8.5 },
   { type: "warlock", x: 57.5, y: 5.5 },
   { type: "warlock", x: 50.5, y: 8.5 },
   { type: "warlock", x: 45.5, y: 10.5 },
@@ -112,9 +122,11 @@ const SPAWN_POINTS = [
   { type: "warlock", x: 42.5, y: 14.5 },
   { type: "warlock", x: 58.5, y: 14.5 },
   { type: "warlock", x: 58.5, y: 10.5 },
+  { type: "warlock", x: 48.5, y: 13.5 },
   { type: "ogre", x: 56.5, y: 8.5 },
   { type: "warlockLord", x: 55.5, y: 13.5 },
   { type: "ogre", x: 47.5, y: 19.5 },
+  { type: "ogre", x: 45.5, y: 22.5 },
   { type: "ogre", x: 53.5, y: 19.5 },
   { type: "ogre", x: 58.5, y: 20.5 },
   { type: "ogre", x: 60.5, y: 18.5 },
@@ -122,10 +134,12 @@ const SPAWN_POINTS = [
   { type: "ogre", x: 56.5, y: 25.5 },
   { type: "ogre", x: 47.5, y: 27.5 },
   { type: "ogre", x: 53.5, y: 27.5 },
+  { type: "orc", x: 51.5, y: 22.5 },
   { type: "ogre", x: 61.5, y: 27.5 },
   { type: "orc", x: 60.5, y: 23.5 },
   { type: "ogreLord", x: 58.5, y: 27.5 },
   { type: "deathKnight", x: 31.5, y: 31.5 },
+  { type: "warlock", x: 34.5, y: 30.5 },
   { type: "deathKnight", x: 38.5, y: 30.5 },
   { type: "deathKnight", x: 29.5, y: 33.5 },
   { type: "warlock", x: 42.5, y: 32.5 },
@@ -133,6 +147,7 @@ const SPAWN_POINTS = [
   { type: "ogre", x: 47.5, y: 31.5 },
   { type: "deathKnight", x: 49.5, y: 33.5 },
   { type: "deathKnight", x: 52.5, y: 31.5 },
+  { type: "deathKnight", x: 55.5, y: 33.5 },
   { type: "warlockLord", x: 44.5, y: 33.5 },
   { type: "balrog", x: 58.5, y: 31.5 },
 ];
@@ -1828,7 +1843,7 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showT
   const ny = dx / len;
   const palette = swordPalette();
   const upgradeScale = Math.min(12, player.weaponLevel) * 1.25;
-  const nearW = 42 + upgradeScale + lunge * 11;
+  const nearW = 37 + upgradeScale + lunge * 9;
   const midW = 34 + upgradeScale * 0.8 + lunge * 5;
   const farW = 27 + upgradeScale * 0.55 + lunge * 3;
   const tipLen = 12 + upgradeScale * 0.35 + lunge * 4;
@@ -1854,11 +1869,11 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showT
   ctx.closePath();
   ctx.fill();
 
-  ctx.strokeStyle = "rgba(67, 41, 18, 0.36)";
+  ctx.strokeStyle = "rgba(255, 244, 214, 0.28)";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(nearX - nx * midW * 0.56, nearY - ny * midW * 0.56);
-  ctx.lineTo(farX - nx * farW * 0.55, farY - ny * farW * 0.55);
+  ctx.moveTo(nearX, nearY);
+  ctx.lineTo(farX + dx / len * tipLen * 0.72, farY + dy / len * tipLen * 0.72);
   ctx.stroke();
 
   ctx.fillStyle = palette.guard;
