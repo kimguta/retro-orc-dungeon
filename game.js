@@ -17,8 +17,6 @@ const MOVE_SPEED = 2.1;
 const SPECIAL_RAGE_COST = 40;
 const BERSERK_DRAIN_PER_SECOND = 7.5;
 const DEATH_RESPAWN_SECONDS = 5;
-const MAX_PLAYER_LEVEL = 99;
-const MAX_WEAPON_LEVEL = 200;
 const SAVE_KEY = "paperCitadelProgressV1";
 const LEGACY_SAVE_KEY = "shadowCitadelProgressV1";
 
@@ -40,10 +38,13 @@ const player = {
   nextXp: 60,
   attackPower: 5,
   weaponLevel: 0,
+  armorLevel: 0,
 };
 
-let dungeonTier = 1;
-let balrogDefeatedCount = 0;
+const roomState = {
+  dungeonTier: 1,
+  balrogDefeatedCount: 0,
+};
 let map = buildMap();
 let enemies = [];
 let items = [];
@@ -72,6 +73,8 @@ let dialogueSpeaker = "";
 let dialogueTimer = 0;
 let berserk = false;
 let deathTimer = 0;
+let hurtDirection = 0;
+let hurtDirectionTimer = 0;
 
 const SPAWN_POINTS = [
   { type: "skeleton", x: 15.5, y: 3.5 },
@@ -198,12 +201,12 @@ const WORLD_PROPS = [...TOWN_PROPS, ...ZONE_PROPS];
 
 enemies = buildEnemies();
 
-function enemy(type, x, y, tier = dungeonTier) {
+function enemy(type, x, y, tier = roomState.dungeonTier) {
   const tierBonus = Math.max(0, tier - 1);
   const stats = enemyStats(type, tierBonus);
   const level = enemyLevel(type, tier, x, y);
   const levelBonus = Math.max(0, level - 1);
-  const hpScale = type === "balrog" ? 7.2 : stats.boss ? 2.35 : 1.55;
+  const hpScale = type === "balrog" ? 18 : stats.boss ? 8.5 : 2.2;
   const hp = Math.max(1, stats.hp + Math.floor(levelBonus * hpScale));
   return {
     type,
@@ -217,8 +220,8 @@ function enemy(type, x, y, tier = dungeonTier) {
     maxHp: hp,
     radius: stats.radius,
     speed: stats.speed,
-    damage: stats.damage + Math.floor(levelBonus * (type === "balrog" ? 1.45 : 0.7)),
-    xp: stats.xp + levelBonus * 4,
+    damage: stats.damage + Math.floor(levelBonus * (type === "balrog" ? 2.25 : stats.boss ? 1.35 : 0.82)),
+    xp: stats.xp + Math.floor(Math.pow(level + 2, stats.boss ? 1.38 : 1.28) * (type === "balrog" ? 12 : stats.boss ? 5 : 1.5)),
     attackRange: stats.attackRange,
     windup: stats.windup,
     cooldown: stats.cooldown,
@@ -264,19 +267,24 @@ function spawnVariance(type, x, y, variance) {
 }
 
 function enemyStats(type, tierBonus) {
+  const growth = tierPower(tierBonus);
   const stats = {
-    skeleton: { hp: 8 + Math.floor(tierBonus * 1.6), speed: 0.94 + tierBonus * 0.04, damage: 4 + tierBonus, radius: 0.27, xp: 12 + tierBonus * 3, attackRange: 1.15, windup: 0.32, cooldown: 0.8 },
-    orc: { hp: 12 + tierBonus * 2, speed: 0.74 + tierBonus * 0.04, damage: 6 + tierBonus * 2, radius: 0.32, xp: 18 + tierBonus * 4, attackRange: 1.28, windup: 0.4, cooldown: 1.02 },
-    ogre: { hp: 24 + tierBonus * 4, speed: 0.44 + tierBonus * 0.025, damage: 14 + tierBonus * 3, radius: 0.48, xp: 42 + tierBonus * 7, attackRange: 1.6, windup: 0.66, cooldown: 1.42 },
-    warlock: { hp: 14 + tierBonus * 2, speed: 0.52 + tierBonus * 0.028, damage: 7 + tierBonus * 2, radius: 0.3, xp: 34 + tierBonus * 6, attackRange: 4.75, windup: 0.58, cooldown: 1.5, projectile: true },
-    skeletonKing: { hp: 38 + tierBonus * 8, speed: 0.56 + tierBonus * 0.03, damage: 18 + tierBonus * 3, radius: 0.42, xp: 90 + tierBonus * 12, attackRange: 1.58, windup: 0.5, cooldown: 1.1, boss: true },
-    boss: { hp: 32 + tierBonus * 7, speed: 0.62 + tierBonus * 0.035, damage: 18 + tierBonus * 4, radius: 0.42, xp: 80 + tierBonus * 12, attackRange: 1.5, windup: 0.48, cooldown: 1.15, boss: true },
-    deathKnight: { hp: 58 + tierBonus * 9, speed: 0.68 + tierBonus * 0.03, damage: 24 + tierBonus * 3, radius: 0.43, xp: 130 + tierBonus * 16, attackRange: 1.65, windup: 0.48, cooldown: 1.02, boss: true },
-    ogreLord: { hp: 86 + tierBonus * 12, speed: 0.42 + tierBonus * 0.022, damage: 34 + tierBonus * 4, radius: 0.58, xp: 190 + tierBonus * 20, attackRange: 1.85, windup: 0.66, cooldown: 1.28, boss: true },
-    warlockLord: { hp: 62 + tierBonus * 9, speed: 0.48 + tierBonus * 0.026, damage: 24 + tierBonus * 3, radius: 0.36, xp: 170 + tierBonus * 18, attackRange: 5.35, windup: 0.62, cooldown: 1.18, projectile: true, boss: true },
-    balrog: { hp: 260 + tierBonus * 30, speed: 0.5 + tierBonus * 0.02, damage: 55 + tierBonus * 7, radius: 0.72, xp: 900 + tierBonus * 60, attackRange: 2.75, windup: 0.68, cooldown: 1.18, boss: true },
+    skeleton: { hp: 10 + growth * 2.2, speed: 0.94 + tierBonus * 0.04, damage: 4 + growth * 0.8, radius: 0.27, xp: 18 + growth * 5, attackRange: 1.15, windup: 0.32, cooldown: 0.8 },
+    orc: { hp: 16 + growth * 3, speed: 0.74 + tierBonus * 0.04, damage: 6 + growth * 1.35, radius: 0.32, xp: 28 + growth * 7, attackRange: 1.28, windup: 0.4, cooldown: 1.02 },
+    ogre: { hp: 34 + growth * 5.8, speed: 0.44 + tierBonus * 0.025, damage: 14 + growth * 2.1, radius: 0.48, xp: 72 + growth * 12, attackRange: 1.6, windup: 0.66, cooldown: 1.42 },
+    warlock: { hp: 20 + growth * 3.4, speed: 0.52 + tierBonus * 0.028, damage: 7 + growth * 1.45, radius: 0.3, xp: 54 + growth * 10, attackRange: 4.75, windup: 0.58, cooldown: 1.5, projectile: true },
+    skeletonKing: { hp: 150 + growth * 28, speed: 0.56 + tierBonus * 0.03, damage: 18 + growth * 2.5, radius: 0.42, xp: 260 + growth * 34, attackRange: 1.58, windup: 0.5, cooldown: 1.1, boss: true },
+    boss: { hp: 140 + growth * 26, speed: 0.62 + tierBonus * 0.035, damage: 18 + growth * 2.8, radius: 0.42, xp: 240 + growth * 32, attackRange: 1.5, windup: 0.48, cooldown: 1.15, boss: true },
+    deathKnight: { hp: 220 + growth * 38, speed: 0.68 + tierBonus * 0.03, damage: 24 + growth * 3.2, radius: 0.43, xp: 360 + growth * 44, attackRange: 1.65, windup: 0.48, cooldown: 1.02, boss: true },
+    ogreLord: { hp: 310 + growth * 52, speed: 0.42 + tierBonus * 0.022, damage: 34 + growth * 4.2, radius: 0.58, xp: 470 + growth * 58, attackRange: 1.85, windup: 0.66, cooldown: 1.28, boss: true },
+    warlockLord: { hp: 250 + growth * 42, speed: 0.48 + tierBonus * 0.026, damage: 24 + growth * 3.35, radius: 0.36, xp: 430 + growth * 54, attackRange: 5.35, windup: 0.62, cooldown: 1.18, projectile: true, boss: true },
+    balrog: { hp: 1300 + growth * 150, speed: 0.5 + tierBonus * 0.02, damage: 55 + growth * 6.2, radius: 0.9, xp: 2400 + growth * 180, attackRange: 3.05, windup: 0.68, cooldown: 1.18, boss: true },
   };
   return stats[type] || stats.orc;
+}
+
+function tierPower(tierBonus) {
+  return tierBonus + tierBonus * tierBonus * 0.58;
 }
 
 function isMidBossType(type) {
@@ -305,9 +313,9 @@ function saveProgress() {
       maxRage: player.maxRage,
       attackPower: player.attackPower,
       weaponLevel: player.weaponLevel,
+      armorLevel: player.armorLevel,
       kills,
-      dungeonTier,
-      balrogDefeatedCount,
+      roomState,
     }));
   } catch (_) {
     // Storage can be unavailable in private or restricted browser contexts.
@@ -319,17 +327,19 @@ function loadProgress() {
     const raw = localStorage.getItem(SAVE_KEY) || localStorage.getItem(LEGACY_SAVE_KEY);
     if (!raw) return;
     const data = JSON.parse(raw);
-    player.level = Math.min(MAX_PLAYER_LEVEL, Math.max(1, Number(data.level) || player.level));
+    player.level = Math.max(1, Number(data.level) || player.level);
     player.xp = Math.max(0, Number(data.xp) || 0);
     player.nextXp = Math.max(60, Number(data.nextXp) || player.nextXp);
     player.maxHp = Math.max(100, Number(data.maxHp) || player.maxHp);
     player.hp = player.maxHp;
     player.maxRage = Math.max(100, Number(data.maxRage) || player.maxRage);
     player.attackPower = Math.max(5, Number(data.attackPower) || (5 + Math.floor((player.level - 1) * 1.2)));
-    player.weaponLevel = Math.min(MAX_WEAPON_LEVEL, Math.max(0, Number(data.weaponLevel) || 0));
+    player.weaponLevel = Math.max(0, Number(data.weaponLevel) || 0);
+    player.armorLevel = Math.max(0, Number(data.armorLevel) || 0);
     kills = Math.max(0, Number(data.kills) || 0);
-    balrogDefeatedCount = Math.max(0, Number(data.balrogDefeatedCount) || 0);
-    dungeonTier = Math.max(1, Number(data.dungeonTier) || balrogDefeatedCount + 1);
+    const savedRoom = data.roomState || data;
+    roomState.balrogDefeatedCount = Math.max(0, Number(savedRoom.balrogDefeatedCount) || 0);
+    roomState.dungeonTier = Math.max(1, Number(savedRoom.dungeonTier) || roomState.balrogDefeatedCount + 1);
   } catch (_) {
     localStorage.removeItem(SAVE_KEY);
   }
@@ -358,7 +368,7 @@ function spawnDamagePop(x, y, value, boss) {
 
 function spawnDeathBurst(target) {
   const palette = deathPalette(target.type);
-  const count = target.type === "balrog" ? 54 : target.boss ? 34 : target.type === "ogre" ? 28 : 20;
+  const count = target.type === "balrog" ? 82 : target.boss ? 52 : target.type === "ogre" ? 42 : 30;
   for (let i = 0; i < count; i += 1) {
     const angle = Math.random() * Math.PI * 2;
     const speed = 0.45 + Math.random() * (target.boss ? 2.1 : 1.45);
@@ -409,18 +419,17 @@ function rageGainMultiplier() {
 }
 
 function gainXp(amount) {
-  if (player.level >= MAX_PLAYER_LEVEL) return;
   player.xp += amount;
-  while (player.xp >= player.nextXp && player.level < MAX_PLAYER_LEVEL) {
+  while (player.xp >= player.nextXp) {
     player.xp -= player.nextXp;
     player.level += 1;
-    player.nextXp = Math.floor(player.nextXp * 1.34 + 18);
+    player.nextXp = Math.floor(player.nextXp * 1.27 + 24 + player.level * 2.4);
     player.maxHp += 14;
     player.hp = player.maxHp;
     player.attackPower += 1;
     player.maxRage = Math.min(180, player.maxRage + 8);
-    notice = player.level === MAX_PLAYER_LEVEL ? "MAX LEVEL - HP 완전 회복" : `LEVEL UP! Lv.${player.level} 능력치 상승`;
-    noticeTimer = 2.2;
+    notice = `LEVEL UP! Lv.${player.level} 능력치 상승`;
+    noticeTimer = 3.2;
     saveProgress();
   }
 }
@@ -441,11 +450,11 @@ function spawnProjectile(e, ux, uy) {
 }
 
 function reviveEnemy(e) {
-  const revived = enemy(e.type, e.spawnX, e.spawnY, dungeonTier);
+  const revived = enemy(e.type, e.spawnX, e.spawnY, roomState.dungeonTier);
   Object.assign(e, revived);
   if (e.boss) {
-    notice = `${enemyLabel(e)} 재등장 - 성채 ${dungeonTier}단계`;
-    noticeTimer = 2.2;
+    notice = `${enemyLabel(e)} 재등장 - 성채 ${roomState.dungeonTier}단계`;
+    noticeTimer = 3.2;
   }
 }
 
@@ -503,33 +512,40 @@ function respawnPlayer() {
 
 function dropLoot(target) {
   if (target.type === "balrog") {
-    spawnItem("legendScroll", target.x, target.y);
-    spawnItem("scroll", target.x + 0.35, target.y);
-    spawnItem("health", target.x - 0.35, target.y);
-    spawnItem("rage", target.x, target.y + 0.35);
-    spawnItem("xp", target.x, target.y - 0.35);
+    scatterBossLoot(target, 16 + Math.floor(Math.random() * 5), true);
     return;
   }
   if (target.boss) {
-    if (Math.random() < 0.7) spawnItem("scroll", target.x, target.y);
-    if (Math.random() < 0.9) spawnItem("health", target.x + 0.25, target.y);
-    if (Math.random() < 0.35) spawnItem("rage", target.x - 0.25, target.y);
+    scatterBossLoot(target, 10 + Math.floor(Math.random() * 11), false);
     return;
   }
 
   const roll = Math.random();
   if (target.type === "ogre" || target.type === "warlock") {
-    if (roll < 0.07) spawnItem("scroll", target.x, target.y);
+    if (roll < 0.035) spawnItem(Math.random() < 0.5 ? "scroll" : "armorScroll", target.x, target.y);
     else if (roll < 0.4) spawnItem("rage", target.x, target.y);
     else if (roll < 0.56) spawnItem("xp", target.x, target.y);
     else if (roll < 0.82) spawnItem("health", target.x, target.y);
     return;
   }
 
-  if (roll < 0.025) spawnItem("scroll", target.x, target.y);
+  if (roll < 0.02) spawnItem(Math.random() < 0.55 ? "scroll" : "armorScroll", target.x, target.y);
   else if (roll < 0.32) spawnItem("rage", target.x, target.y);
   else if (roll < 0.46) spawnItem("xp", target.x, target.y);
   else if (roll < 0.72) spawnItem("health", target.x, target.y);
+}
+
+function scatterBossLoot(target, count, legendary) {
+  for (let i = 0; i < count; i += 1) {
+    const angle = (Math.PI * 2 * i) / count + Math.random() * 0.24;
+    const radius = 0.35 + Math.random() * (legendary ? 1.2 : 0.82);
+    const x = target.x + Math.cos(angle) * radius;
+    const y = target.y + Math.sin(angle) * radius;
+    const roll = Math.random();
+    let type = roll < 0.34 ? "scroll" : roll < 0.68 ? "armorScroll" : roll < 0.82 ? "health" : roll < 0.92 ? "xp" : "rage";
+    if (legendary && i < 2) type = "legendScroll";
+    if (!isWall(x, y)) spawnItem(type, x, y);
+  }
 }
 
 function enemyLabel(e) {
@@ -563,6 +579,7 @@ function itemColor(item) {
   if (item.type === "rage") return "#e47c25";
   if (item.type === "xp") return "#45a8ff";
   if (item.type === "scroll") return "#f2d58a";
+  if (item.type === "armorScroll") return "#76e6ff";
   if (item.type === "legendScroll") return "#ff4a24";
   return "#e3c75b";
 }
@@ -782,6 +799,7 @@ function update(dt) {
   if (swing === 0) swingType = "normal";
   swingCooldown = Math.max(0, swingCooldown - dt);
   player.hurt = Math.max(0, player.hurt - dt * 3);
+  hurtDirectionTimer = Math.max(0, hurtDirectionTimer - dt);
   hitSpark = Math.max(0, hitSpark - dt * 5);
   screenShake = Math.max(0, screenShake - dt * 5);
   noticeTimer = Math.max(0, noticeTimer - dt);
@@ -815,8 +833,7 @@ function update(dt) {
       continue;
     }
     if (Math.hypot(player.x - p.x, player.y - p.y) < (p.radius || 0.34)) {
-      player.hp = Math.max(0, player.hp - p.damage);
-      player.hurt = 1;
+      damagePlayer(p.damage, p.x, p.y);
       addRage(6);
       screenShake = Math.max(screenShake, p.type === "fire" ? 1.2 : 0.6);
       projectiles.splice(i, 1);
@@ -827,7 +844,7 @@ function update(dt) {
   for (const e of enemies) {
     if (e.dead) {
       e.respawnTimer = Math.max(0, e.respawnTimer - dt);
-      if (e.respawnTimer === 0 && Math.hypot(player.x - e.spawnX, player.y - e.spawnY) > 6) {
+      if (e.respawnTimer === 0 && (e.boss || Math.hypot(player.x - e.spawnX, player.y - e.spawnY) > 6)) {
         reviveEnemy(e);
       }
       continue;
@@ -870,8 +887,7 @@ function update(dt) {
           spawnProjectile(e, dx / dist, dy / dist);
           e.attackPose = 1;
         } else if (!e.projectile && dist <= attackRange + 0.18 && visible) {
-          player.hp = Math.max(0, player.hp - e.damage);
-          player.hurt = 1;
+          damagePlayer(e.damage, e.x, e.y);
           addRage(e.boss ? 12 : 7);
           e.attackPose = 1;
           screenShake = Math.max(screenShake, e.boss ? 1 : 0.55);
@@ -909,18 +925,17 @@ function meleeReach(e) {
 }
 
 function aggroRange(e) {
-  if (e.type === "balrog") return 11.5;
-  if (e.projectile) return e.boss ? 8.8 : 7.4;
-  if (e.boss) return 7.2;
-  if (e.type === "ogre") return 6.4;
-  return 5.8;
+  if (e.type === "balrog") return 23;
+  if (e.projectile) return e.boss ? 17.6 : 14.8;
+  if (e.boss) return 14.4;
+  if (e.type === "ogre") return 12.8;
+  return 11.6;
 }
 
 function balrogSlam(e, dist) {
   const falloff = Math.max(0.62, 1 - Math.max(0, dist - 0.9) * 0.18);
   const damage = Math.ceil(e.damage * 1.25 * falloff);
-  player.hp = Math.max(0, player.hp - damage);
-  player.hurt = 1;
+  damagePlayer(damage, e.x, e.y);
   addRage(18);
   e.attackPose = 1;
   screenShake = Math.max(screenShake, 2.2);
@@ -928,6 +943,15 @@ function balrogSlam(e, dist) {
   notice = "발록의 화염 강타";
   noticeTimer = 1.2;
   if (player.hp <= 0) startPlayerDeath();
+}
+
+function damagePlayer(rawDamage, sourceX, sourceY) {
+  const mitigation = Math.min(0.82, player.armorLevel / (player.armorLevel + 90));
+  const damage = Math.max(1, Math.ceil(rawDamage * (1 - mitigation)));
+  player.hp = Math.max(0, player.hp - damage);
+  player.hurt = 1;
+  hurtDirection = normAngle(Math.atan2(sourceY - player.y, sourceX - player.x) - player.angle);
+  hurtDirectionTimer = 0.62;
 }
 
 function attack(kind = "normal") {
@@ -1009,15 +1033,15 @@ function damageEnemy(target, damage, kind) {
     if (target.type === "balrog") onBalrogDefeated();
     saveProgress();
     notice = target.type === "balrog"
-      ? `발록 처치 - 성채 ${dungeonTier}단계 시작`
+      ? `발록 처치 - 성채 ${roomState.dungeonTier}단계 시작`
       : `${enemyLabel(target)} 처치`;
-    noticeTimer = 2.4;
+    noticeTimer = 3.4;
   }
 }
 
 function onBalrogDefeated() {
-  balrogDefeatedCount += 1;
-  dungeonTier += 1;
+  roomState.balrogDefeatedCount += 1;
+  roomState.dungeonTier += 1;
 }
 
 function alertNearbyEnemies(source, radius) {
@@ -1060,13 +1084,20 @@ function collectItems() {
       noticeTimer = 1.6;
       items.splice(i, 1);
     } else if (item.type === "scroll") {
-      player.weaponLevel = Math.min(MAX_WEAPON_LEVEL, player.weaponLevel + 1);
+      player.weaponLevel += 1;
       notice = `강화 주문서 - 검 +${player.weaponLevel}`;
       noticeTimer = 2.2;
       saveProgress();
       items.splice(i, 1);
+    } else if (item.type === "armorScroll") {
+      player.armorLevel += 1;
+      notice = `갑옷 강화 - 갑옷 +${player.armorLevel}`;
+      noticeTimer = 2.2;
+      saveProgress();
+      items.splice(i, 1);
     } else if (item.type === "legendScroll") {
-      player.weaponLevel = Math.min(MAX_WEAPON_LEVEL, player.weaponLevel + 3);
+      player.weaponLevel += 3;
+      player.armorLevel += 2;
       player.maxRage = Math.min(220, player.maxRage + 25);
       addRage(player.maxRage);
       notice = `발록의 전리품 - 검 +${player.weaponLevel}`;
@@ -1211,7 +1242,7 @@ function drawVignette() {
   const gradient = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.22, W / 2, H / 2, Math.max(W, H) * 0.68);
   gradient.addColorStop(0, "rgba(0, 0, 0, 0)");
   gradient.addColorStop(0.72, "rgba(0, 0, 0, 0.1)");
-  gradient.addColorStop(1, "rgba(0, 0, 0, 0.36)");
+  gradient.addColorStop(1, "rgba(0, 0, 0, 0.26)");
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, W, H);
 }
@@ -1241,7 +1272,7 @@ function drawSprites() {
 }
 
 function spriteScale(e) {
-  if (e.type === "balrog") return 2.45;
+  if (e.type === "balrog") return 3.45 + Math.min(9, Math.max(0, e.dungeonTier - 1)) * 0.38;
   if (e.type === "ogreLord") return 1.58;
   if (e.type === "deathKnight" || e.type === "warlockLord") return 1.48;
   if (e.type === "ogre") return 1.05;
@@ -1530,6 +1561,12 @@ function drawItemSprite(item, x, y, size) {
     rect(x + 4 * px, y + 3 * px, 2 * px, 1 * px, "#9d5a22");
     rect(x + 4 * px, y + 5 * px, 2 * px, 1 * px, "#9d5a22");
     rect(x + 1 * px, y + 1 * px, 2 * px, 2 * px, "#fff2b8");
+  } else if (item.type === "armorScroll") {
+    rect(x + 2 * px, y + 1 * px, 6 * px, 8 * px, "#112a35");
+    rect(x + 3 * px, y + 2 * px, 4 * px, 6 * px, "#76e6ff");
+    rect(x + 4 * px, y + 3 * px, 2 * px, 4 * px, "#e6fcff");
+    rect(x + 2 * px, y + 4 * px, 6 * px, 1 * px, "#1c738e");
+    rect(x + 1 * px, y + 1 * px, 2 * px, 2 * px, "#c8f8ff");
   } else if (item.type === "legendScroll") {
     rect(x + 2 * px, y + 1 * px, 6 * px, 8 * px, "#3d0f0a");
     rect(x + 3 * px, y + 2 * px, 4 * px, 6 * px, "#ff4a24");
@@ -1558,7 +1595,7 @@ function drawSkeleton(e, x, y, size, dist) {
   const hurt = e.hitFlash > 0.12;
   y += bob - e.attackPose * 3 * px + (hurt ? Math.sin(performance.now() * 0.09) * px : 0);
   x += walk * px * 0.3;
-  ctx.globalAlpha = Math.max(0.35, 1 - dist / 16);
+  ctx.globalAlpha = Math.max(0.9, 1 - dist / 30);
   if (king) {
     rect(x + 4 * px, y + 1 * px, 8 * px, 2 * px, "#d6b14d");
     rect(x + 5 * px, y - 1 * px, 2 * px, 3 * px, "#ffe28a");
@@ -1601,7 +1638,7 @@ function drawWarlock(e, x, y, size, dist) {
   const hurt = e.hitFlash > 0.12;
   y += bob - e.attackPose * 2 * px + (hurt ? Math.sin(performance.now() * 0.1) * px : 0);
   x += walk * px * 0.22;
-  ctx.globalAlpha = Math.max(0.35, 1 - dist / 16);
+  ctx.globalAlpha = Math.max(0.9, 1 - dist / 30);
   rect(x + 3 * px, y + 5 * px, 11 * px, 18 * px, flash ? "#a982d8" : lord ? "#170824" : "#241334");
   rect(x + 5 * px, y + 3 * px, 7 * px, 7 * px, flash ? "#d7b6ff" : lord ? "#4b1465" : "#3a1e58");
   if (lord) {
@@ -1637,7 +1674,7 @@ function drawBalrog(e, x, y, size, dist) {
   const winding = e.attackWindup > 0;
   y += bob - attack * 4 * px + (winding ? 2 * px : 0);
   x += walk * px * 0.22;
-  ctx.globalAlpha = Math.max(0.45, 1 - dist / 18);
+  ctx.globalAlpha = Math.max(0.94, 1 - dist / 36);
 
   rect(x + 2 * px, y + 7 * px, 14 * px, 12 * px, flash ? "#ffcf9a" : "#2a0907");
   rect(x + 4 * px, y + 5 * px, 10 * px, 9 * px, flash ? "#ffd7a8" : "#5a1110");
@@ -1697,7 +1734,7 @@ function drawOrc(e, x, y, size, dist) {
   const armorLight = dark ? "#3b3b3b" : "#46494a";
   const eye = dark ? "#e12621" : "#f0d447";
 
-  ctx.globalAlpha = Math.max(0.35, 1 - dist / 16);
+  ctx.globalAlpha = Math.max(0.9, 1 - dist / 30);
 
   rect(x + 3 * px, y + 4 * px, 11 * px, 10 * px, deepShadow);
   rect(x + 5 * px, y + 3 * px, 7 * px, 2 * px, skinLight);
@@ -1811,11 +1848,11 @@ function drawWeapon() {
   const sway = swing > 0 ? 0 : Math.sin(performance.now() * 0.006) * 3;
   const reach = lunge;
 
-  const nearX = W * (0.84 + (1 - windup) * 0.05 - reach * 0.23 + recoil * 0.06) + sway;
-  const nearY = H * (1.12 + (1 - windup) * 0.04 - reach * 0.08 + recoil * 0.05);
-  const farX = W * (0.62 - reach * 0.17);
-  const farY = H * (0.78 - reach * 0.32);
-  drawForwardPole(nearX, nearY, farX, farY, reach * 1.15, false, true);
+  const nearX = W * (0.84 + (1 - windup) * 0.05 - reach * 0.13 + recoil * 0.06) + sway;
+  const nearY = H * (1.12 + (1 - windup) * 0.04 - reach * 0.04 + recoil * 0.05);
+  const farX = W * (0.62 - reach * 0.22);
+  const farY = H * (0.78 - reach * 0.39);
+  drawForwardPole(nearX, nearY, farX, farY, reach * 1.55, false, true);
 
   if (hitSpark > 0) drawHitSpark();
 }
@@ -1858,10 +1895,10 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showT
   const ny = dx / len;
   const palette = swordPalette();
   const upgradeScale = Math.min(12, player.weaponLevel) * 1.25;
-  const nearW = 37 + upgradeScale + lunge * 9;
-  const midW = 34 + upgradeScale * 0.8 + lunge * 5;
-  const farW = 27 + upgradeScale * 0.55 + lunge * 3;
-  const tipLen = 18 + upgradeScale * 0.4 + lunge * 5;
+  const nearW = 37 + upgradeScale + lunge * 18;
+  const midW = 34 + upgradeScale * 0.8 + lunge * 10;
+  const farW = 27 + upgradeScale * 0.55 - lunge * 6;
+  const tipLen = 18 + upgradeScale * 0.4 + lunge * 14;
   const hiltX = nearX - dx / len * 46;
   const hiltY = nearY - dy / len * 46;
 
@@ -1978,6 +2015,10 @@ function swordName() {
   return `검 +${player.weaponLevel}`;
 }
 
+function armorName() {
+  return `갑옷 +${player.armorLevel}`;
+}
+
 function drawThrustHead(cx, tipY, s, jab) {
   const cy = tipY + 58 * s;
   const barW = (88 + jab * 10) * s;
@@ -2019,7 +2060,7 @@ function drawHitSpark() {
   ctx.restore();
 }
 
-function drawHud() {
+function drawHudLegacyCompact() {
   drawMiniMap();
   drawCrosshair();
   if (berserk) {
@@ -2084,15 +2125,17 @@ function drawHud() {
   }
 }
 
-function drawHud() {
+function drawHudLegacyPanel() {
   drawMiniMap();
   drawCrosshair();
   if (berserk) {
     const pulse = 0.45 + Math.sin(performance.now() * 0.012) * 0.16;
+    ctx.fillStyle = `rgba(188, 18, 10, ${0.16 + pulse * 0.12})`;
+    ctx.fillRect(0, 0, W, H);
     const furyGlow = ctx.createRadialGradient(W / 2, H / 2, W * 0.1, W / 2, H / 2, W * 0.62);
-    furyGlow.addColorStop(0, `rgba(255, 130, 42, ${0.05 * pulse})`);
-    furyGlow.addColorStop(0.58, `rgba(190, 38, 18, ${0.1 * pulse})`);
-    furyGlow.addColorStop(1, `rgba(90, 8, 5, ${0.28 * pulse})`);
+    furyGlow.addColorStop(0, `rgba(255, 130, 42, ${0.08 * pulse})`);
+    furyGlow.addColorStop(0.58, `rgba(190, 38, 18, ${0.2 * pulse})`);
+    furyGlow.addColorStop(1, `rgba(90, 8, 5, ${0.44 * pulse})`);
     ctx.fillStyle = furyGlow;
     ctx.fillRect(0, 0, W, H);
     ctx.strokeStyle = `rgba(255, 118, 42, ${0.55 + pulse * 0.25})`;
@@ -2176,10 +2219,12 @@ function drawHud() {
   drawCrosshair();
   if (berserk) {
     const pulse = 0.45 + Math.sin(performance.now() * 0.012) * 0.16;
+    ctx.fillStyle = `rgba(188, 18, 10, ${0.16 + pulse * 0.12})`;
+    ctx.fillRect(0, 0, W, H);
     const furyGlow = ctx.createRadialGradient(W / 2, H / 2, W * 0.1, W / 2, H / 2, W * 0.62);
-    furyGlow.addColorStop(0, `rgba(255, 130, 42, ${0.05 * pulse})`);
-    furyGlow.addColorStop(0.58, `rgba(190, 38, 18, ${0.1 * pulse})`);
-    furyGlow.addColorStop(1, `rgba(90, 8, 5, ${0.28 * pulse})`);
+    furyGlow.addColorStop(0, `rgba(255, 130, 42, ${0.08 * pulse})`);
+    furyGlow.addColorStop(0.58, `rgba(190, 38, 18, ${0.2 * pulse})`);
+    furyGlow.addColorStop(1, `rgba(90, 8, 5, ${0.44 * pulse})`);
     ctx.fillStyle = furyGlow;
     ctx.fillRect(0, 0, W, H);
     ctx.strokeStyle = `rgba(255, 118, 42, ${0.55 + pulse * 0.25})`;
@@ -2206,7 +2251,7 @@ function drawHud() {
   drawText(`LV ${player.level}`, statX + 20, panelY + 50, 16, "#f3c46e");
   drawText(`XP ${player.xp}/${player.nextXp}`, statX + 20, panelY + 80, 13, "#cdb681");
   drawText(`KILL ${kills}`, statX + 148, panelY + 50, 15, "#f4dfbd");
-  drawText(zoneAt().short, statX + 148, panelY + 80, 13, isTown() ? "#f3c46e" : "#cdb681");
+  drawText(`ARMOR +${player.armorLevel}`, statX + 148, panelY + 80, 13, "#8feaff");
 
   const weaponX = Math.max(statX + 302, W - 344);
   drawHudPanel(weaponX, panelY + 18, 326, 90);
@@ -2226,8 +2271,10 @@ function drawHud() {
     drawBar(W - 320, 26, 280, 20, boss.hp / boss.maxHp, "#a91f1d", "#220909");
     drawText(enemyLabel(boss), W - 312, 42, 13, "#f3c46e");
   }
-  drawText(`성채 ${dungeonTier}단계`, W - 224, 76, 14, "#f3c46e");
-  drawText(`발록 처치 ${balrogDefeatedCount}회`, W - 224, 100, 13, "#cdb681");
+  drawHudPanel(W - 248, 58, 210, 72);
+  drawText(`성채 ${roomState.dungeonTier}단계`, W - 228, 84, 15, "#f3c46e");
+  drawText(`발록 ${balrogEnemy() ? "활성" : "리스폰 대기"}`, W - 228, 106, 13, balrogEnemy() ? "#ff8b74" : "#8feaff");
+  drawText(`처치 ${roomState.balrogDefeatedCount}회`, W - 118, 106, 13, "#cdb681");
 
   if (player.hurt > 0) {
     ctx.fillStyle = `rgba(255, 245, 220, ${player.hurt * 0.13})`;
@@ -2239,15 +2286,34 @@ function drawHud() {
     ctx.fillStyle = hurtVignette;
     ctx.fillRect(0, 0, W, H);
   }
+  drawHitDirection();
 
   drawInteractionHud();
   drawDialogue();
 
   if (noticeTimer > 0) {
     ctx.textAlign = "center";
-    drawText(notice, W / 2, 82, 18, "#f3c46e");
+    drawText(notice, W / 2, 118, 22, "#f3c46e");
     ctx.textAlign = "left";
   }
+}
+
+function drawHitDirection() {
+  if (hurtDirectionTimer <= 0) return;
+  const a = Math.max(0, hurtDirectionTimer / 0.62);
+  const cx = W / 2;
+  const cy = H / 2;
+  const front = Math.cos(hurtDirection);
+  const side = Math.sin(hurtDirection);
+  const x = cx + side * Math.min(W, H) * 0.32;
+  const y = cy - front * Math.min(W, H) * 0.24;
+  ctx.save();
+  ctx.globalAlpha = a * 0.72;
+  ctx.translate(x, y);
+  ctx.rotate(hurtDirection);
+  ctx.fillStyle = "#ff4f4f";
+  tri(-18, -13, 18, -13, 0, 16, "#ff4f4f");
+  ctx.restore();
 }
 
 function drawInteractionHud() {
@@ -2360,10 +2426,10 @@ function drawCrosshair() {
   const size = strong ? 15 : warm ? 12 : 9;
   const gap = strong ? 5 : warm ? 6 : 7;
   ctx.strokeStyle = strong
-    ? "rgba(255, 238, 176, 0.92)"
+    ? "rgba(51, 220, 255, 0.98)"
     : warm
-      ? "rgba(245, 196, 121, 0.32)"
-      : "rgba(255, 232, 160, 0.1)";
+      ? "rgba(255, 82, 98, 0.72)"
+      : "rgba(110, 205, 255, 0.2)";
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(cx - size, cy);
@@ -2376,7 +2442,7 @@ function drawCrosshair() {
   ctx.lineTo(cx, cy + size);
   ctx.stroke();
   if (strong) {
-    ctx.fillStyle = "rgba(255, 241, 191, 0.84)";
+    ctx.fillStyle = "rgba(75, 235, 255, 0.96)";
     ctx.fillRect(cx - 2, cy - 2, 4, 4);
   }
 }
@@ -2451,8 +2517,8 @@ function resetGame() {
     localStorage.removeItem(SAVE_KEY);
     localStorage.removeItem(LEGACY_SAVE_KEY);
   } catch (_) {}
-  dungeonTier = 1;
-  balrogDefeatedCount = 0;
+  roomState.dungeonTier = 1;
+  roomState.balrogDefeatedCount = 0;
   player.x = 4.5;
   player.y = 4.5;
   player.angle = 0;
@@ -2466,6 +2532,7 @@ function resetGame() {
   player.nextXp = 60;
   player.attackPower = 5;
   player.weaponLevel = 0;
+  player.armorLevel = 0;
   berserk = false;
   deathTimer = 0;
   kills = 0;
