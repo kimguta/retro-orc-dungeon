@@ -73,9 +73,11 @@ let berserk = false;
 let deathTimer = 0;
 
 const SPAWN_POINTS = [
+  { type: "skeleton", x: 15.5, y: 3.5 },
   { type: "skeleton", x: 16.5, y: 5.5 },
   { type: "skeleton", x: 17.5, y: 9.5 },
   { type: "skeleton", x: 20.5, y: 11.5 },
+  { type: "skeleton", x: 21.5, y: 13.5 },
   { type: "orc", x: 23.5, y: 5.5 },
   { type: "orc", x: 28.5, y: 3.5 },
   { type: "skeleton", x: 18.5, y: 8.5 },
@@ -94,6 +96,7 @@ const SPAWN_POINTS = [
   { type: "skeleton", x: 18.5, y: 17.5 },
   { type: "skeleton", x: 6.5, y: 27.5 },
   { type: "skeleton", x: 13.5, y: 27.5 },
+  { type: "orc", x: 18.5, y: 25.5 },
   { type: "orc", x: 20.5, y: 23.5 },
   { type: "orc", x: 6.5, y: 20.5 },
   { type: "orc", x: 17.5, y: 20.5 },
@@ -105,6 +108,7 @@ const SPAWN_POINTS = [
   { type: "orc", x: 36.5, y: 19.5 },
   { type: "orc", x: 26.5, y: 23.5 },
   { type: "orc", x: 33.5, y: 23.5 },
+  { type: "orc", x: 37.5, y: 27.5 },
   { type: "orc", x: 24.5, y: 26.5 },
   { type: "orc", x: 32.5, y: 27.5 },
   { type: "orc", x: 40.5, y: 18.5 },
@@ -123,6 +127,7 @@ const SPAWN_POINTS = [
   { type: "warlock", x: 58.5, y: 14.5 },
   { type: "warlock", x: 58.5, y: 10.5 },
   { type: "warlock", x: 48.5, y: 13.5 },
+  { type: "warlock", x: 41.5, y: 12.5 },
   { type: "ogre", x: 56.5, y: 8.5 },
   { type: "warlockLord", x: 55.5, y: 13.5 },
   { type: "ogre", x: 47.5, y: 19.5 },
@@ -131,6 +136,7 @@ const SPAWN_POINTS = [
   { type: "ogre", x: 58.5, y: 20.5 },
   { type: "ogre", x: 60.5, y: 18.5 },
   { type: "ogre", x: 49.5, y: 24.5 },
+  { type: "orc", x: 47.5, y: 25.5 },
   { type: "ogre", x: 56.5, y: 25.5 },
   { type: "ogre", x: 47.5, y: 27.5 },
   { type: "ogre", x: 53.5, y: 27.5 },
@@ -1846,7 +1852,7 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showT
   const nearW = 37 + upgradeScale + lunge * 9;
   const midW = 34 + upgradeScale * 0.8 + lunge * 5;
   const farW = 27 + upgradeScale * 0.55 + lunge * 3;
-  const tipLen = 12 + upgradeScale * 0.35 + lunge * 4;
+  const tipLen = 18 + upgradeScale * 0.4 + lunge * 5;
   const hiltX = nearX - dx / len * 46;
   const hiltY = nearY - dy / len * 46;
 
