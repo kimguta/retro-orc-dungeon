@@ -220,7 +220,7 @@ function enemy(type, x, y, tier = roomState.dungeonTier) {
     maxHp: hp,
     radius: stats.radius,
     speed: stats.speed,
-    damage: stats.damage + Math.floor(levelBonus * (type === "balrog" ? 2.25 : stats.boss ? 1.35 : 0.82)),
+    damage: stats.damage + Math.floor(levelBonus * (type === "balrog" ? 1.85 : stats.boss ? 0.92 : 0.42)),
     xp: stats.xp + Math.floor(Math.pow(level + 2, stats.boss ? 1.38 : 1.28) * (type === "balrog" ? 12 : stats.boss ? 5 : 1.5)),
     attackRange: stats.attackRange,
     windup: stats.windup,
@@ -267,24 +267,25 @@ function spawnVariance(type, x, y, variance) {
 }
 
 function enemyStats(type, tierBonus) {
-  const growth = tierPower(tierBonus);
+  const growth = tierPower(tierBonus, type === "balrog" ? 0.26 : isBossType(type) ? 0.18 : 0.07);
+  const speedTier = Math.min(8, tierBonus);
   const stats = {
-    skeleton: { hp: 10 + growth * 2.2, speed: 0.94 + tierBonus * 0.04, damage: 4 + growth * 0.8, radius: 0.27, xp: 18 + growth * 5, attackRange: 1.15, windup: 0.32, cooldown: 0.8 },
-    orc: { hp: 16 + growth * 3, speed: 0.74 + tierBonus * 0.04, damage: 6 + growth * 1.35, radius: 0.32, xp: 28 + growth * 7, attackRange: 1.28, windup: 0.4, cooldown: 1.02 },
-    ogre: { hp: 34 + growth * 5.8, speed: 0.44 + tierBonus * 0.025, damage: 14 + growth * 2.1, radius: 0.48, xp: 72 + growth * 12, attackRange: 1.6, windup: 0.66, cooldown: 1.42 },
-    warlock: { hp: 20 + growth * 3.4, speed: 0.52 + tierBonus * 0.028, damage: 7 + growth * 1.45, radius: 0.3, xp: 54 + growth * 10, attackRange: 4.75, windup: 0.58, cooldown: 1.5, projectile: true },
-    skeletonKing: { hp: 150 + growth * 28, speed: 0.56 + tierBonus * 0.03, damage: 18 + growth * 2.5, radius: 0.42, xp: 260 + growth * 34, attackRange: 1.58, windup: 0.5, cooldown: 1.1, boss: true },
-    boss: { hp: 140 + growth * 26, speed: 0.62 + tierBonus * 0.035, damage: 18 + growth * 2.8, radius: 0.42, xp: 240 + growth * 32, attackRange: 1.5, windup: 0.48, cooldown: 1.15, boss: true },
-    deathKnight: { hp: 220 + growth * 38, speed: 0.68 + tierBonus * 0.03, damage: 24 + growth * 3.2, radius: 0.43, xp: 360 + growth * 44, attackRange: 1.65, windup: 0.48, cooldown: 1.02, boss: true },
-    ogreLord: { hp: 310 + growth * 52, speed: 0.42 + tierBonus * 0.022, damage: 34 + growth * 4.2, radius: 0.58, xp: 470 + growth * 58, attackRange: 1.85, windup: 0.66, cooldown: 1.28, boss: true },
-    warlockLord: { hp: 250 + growth * 42, speed: 0.48 + tierBonus * 0.026, damage: 24 + growth * 3.35, radius: 0.36, xp: 430 + growth * 54, attackRange: 5.35, windup: 0.62, cooldown: 1.18, projectile: true, boss: true },
-    balrog: { hp: 1300 + growth * 150, speed: 0.5 + tierBonus * 0.02, damage: 55 + growth * 6.2, radius: 0.9, xp: 2400 + growth * 180, attackRange: 3.05, windup: 0.68, cooldown: 1.18, boss: true },
+    skeleton: { hp: 10 + growth * 2, speed: 0.94 + speedTier * 0.035, damage: 4 + growth * 0.42, radius: 0.27, xp: 18 + growth * 6, attackRange: 1.15, windup: 0.32, cooldown: 0.8 },
+    orc: { hp: 16 + growth * 2.6, speed: 0.74 + speedTier * 0.035, damage: 6 + growth * 0.7, radius: 0.32, xp: 28 + growth * 8, attackRange: 1.28, windup: 0.4, cooldown: 1.02 },
+    ogre: { hp: 34 + growth * 4.8, speed: 0.44 + speedTier * 0.022, damage: 14 + growth * 1.1, radius: 0.48, xp: 72 + growth * 14, attackRange: 1.6, windup: 0.66, cooldown: 1.42 },
+    warlock: { hp: 20 + growth * 3, speed: 0.52 + speedTier * 0.024, damage: 7 + growth * 0.78, radius: 0.3, xp: 54 + growth * 12, attackRange: 4.75, windup: 0.58, cooldown: 1.5, projectile: true },
+    skeletonKing: { hp: 150 + growth * 23, speed: 0.56 + speedTier * 0.026, damage: 18 + growth * 1.55, radius: 0.42, xp: 260 + growth * 38, attackRange: 1.58, windup: 0.5, cooldown: 1.1, boss: true },
+    boss: { hp: 140 + growth * 22, speed: 0.62 + speedTier * 0.03, damage: 18 + growth * 1.72, radius: 0.42, xp: 240 + growth * 36, attackRange: 1.5, windup: 0.48, cooldown: 1.15, boss: true },
+    deathKnight: { hp: 220 + growth * 31, speed: 0.68 + speedTier * 0.026, damage: 24 + growth * 1.9, radius: 0.43, xp: 360 + growth * 50, attackRange: 1.65, windup: 0.48, cooldown: 1.02, boss: true },
+    ogreLord: { hp: 310 + growth * 42, speed: 0.42 + speedTier * 0.02, damage: 34 + growth * 2.25, radius: 0.58, xp: 470 + growth * 64, attackRange: 1.85, windup: 0.66, cooldown: 1.28, boss: true },
+    warlockLord: { hp: 250 + growth * 35, speed: 0.48 + speedTier * 0.022, damage: 24 + growth * 1.95, radius: 0.36, xp: 430 + growth * 60, attackRange: 5.35, windup: 0.62, cooldown: 1.18, projectile: true, boss: true },
+    balrog: { hp: 1300 + growth * 118, speed: 0.5 + speedTier * 0.018, damage: 55 + growth * 3.5, radius: 0.9, xp: 2400 + growth * 210, attackRange: 3.05, windup: 0.68, cooldown: 1.18, boss: true },
   };
   return stats[type] || stats.orc;
 }
 
-function tierPower(tierBonus) {
-  return tierBonus + tierBonus * tierBonus * 0.58;
+function tierPower(tierBonus, curve) {
+  return tierBonus + tierBonus * tierBonus * curve;
 }
 
 function isMidBossType(type) {
@@ -328,8 +329,8 @@ function loadProgress() {
     if (!raw) return;
     const data = JSON.parse(raw);
     player.level = Math.max(1, Number(data.level) || player.level);
-    player.xp = Math.max(0, Number(data.xp) || 0);
-    player.nextXp = Math.max(60, Number(data.nextXp) || player.nextXp);
+    player.xp = Math.max(0, Math.floor(Number(data.xp) || 0));
+    player.nextXp = Math.max(60, Math.floor(Number(data.nextXp) || player.nextXp));
     player.maxHp = Math.max(100, Number(data.maxHp) || player.maxHp);
     player.hp = player.maxHp;
     player.maxRage = Math.max(100, Number(data.maxRage) || player.maxRage);
@@ -368,7 +369,7 @@ function spawnDamagePop(x, y, value, boss) {
 
 function spawnDeathBurst(target) {
   const palette = deathPalette(target.type);
-  const count = target.type === "balrog" ? 82 : target.boss ? 52 : target.type === "ogre" ? 42 : 30;
+  const count = target.type === "balrog" ? 124 : target.boss ? 82 : target.type === "ogre" ? 66 : 48;
   for (let i = 0; i < count; i += 1) {
     const angle = Math.random() * Math.PI * 2;
     const speed = 0.45 + Math.random() * (target.boss ? 2.1 : 1.45);
@@ -419,9 +420,9 @@ function rageGainMultiplier() {
 }
 
 function gainXp(amount) {
-  player.xp += amount;
+  player.xp += Math.floor(amount);
   while (player.xp >= player.nextXp) {
-    player.xp -= player.nextXp;
+    player.xp = Math.max(0, Math.floor(player.xp - player.nextXp));
     player.level += 1;
     player.nextXp = Math.floor(player.nextXp * 1.27 + 24 + player.level * 2.4);
     player.maxHp += 14;
@@ -981,7 +982,7 @@ function attack(kind = "normal") {
     for (const target of targets) {
       damageEnemy(target, damage, kind);
     }
-    hitSpark = 1;
+    if (targets.some((target) => !target.dead)) hitSpark = 1;
     screenShake = kind === "special" ? 1.6 : 1;
   }
 }
@@ -2251,11 +2252,12 @@ function drawHud() {
   drawText(`LV ${player.level}`, statX + 20, panelY + 50, 16, "#f3c46e");
   drawText(`XP ${player.xp}/${player.nextXp}`, statX + 20, panelY + 80, 13, "#cdb681");
   drawText(`KILL ${kills}`, statX + 148, panelY + 50, 15, "#f4dfbd");
-  drawText(`ARMOR +${player.armorLevel}`, statX + 148, panelY + 80, 13, "#8feaff");
+  drawText(zoneAt().short, statX + 148, panelY + 80, 13, isTown() ? "#f3c46e" : "#cdb681");
 
   const weaponX = Math.max(statX + 302, W - 344);
   drawHudPanel(weaponX, panelY + 18, 326, 90);
   drawText(swordName(), weaponX + 20, panelY + 52, 17, "#f3c46e");
+  drawText(armorName(), weaponX + 174, panelY + 52, 17, "#8feaff");
   if (berserk) drawText("광폭화: 특수공격 무제한", weaponX + 20, panelY + 82, 13, "#ffb199");
   else if (player.rage >= SPECIAL_RAGE_COST) drawText("우클릭 특수공격 준비", weaponX + 20, panelY + 82, 13, "#f3c46e");
   else drawText(`특수공격 분노 ${SPECIAL_RAGE_COST}`, weaponX + 20, panelY + 82, 13, "#9f8a60");
@@ -2305,8 +2307,14 @@ function drawHitDirection() {
   const cy = H / 2;
   const front = Math.cos(hurtDirection);
   const side = Math.sin(hurtDirection);
-  const x = cx + side * Math.min(W, H) * 0.32;
-  const y = cy - front * Math.min(W, H) * 0.24;
+  const vx = side;
+  const vy = -front;
+  const pad = 34;
+  const sx = (cx - pad) / Math.max(0.001, Math.abs(vx));
+  const sy = (cy - pad) / Math.max(0.001, Math.abs(vy));
+  const edge = Math.min(sx, sy);
+  const x = cx + vx * edge;
+  const y = cy + vy * edge;
   ctx.save();
   ctx.globalAlpha = a * 0.72;
   ctx.translate(x, y);
@@ -2423,14 +2431,14 @@ function drawCrosshair() {
   const specialTarget = normalTarget || getAttackHits(3.05, 0.62)[0];
   const strong = Boolean(normalTarget);
   const warm = Boolean(specialTarget);
-  const size = strong ? 15 : warm ? 12 : 9;
-  const gap = strong ? 5 : warm ? 6 : 7;
+  const size = strong ? 22 : warm ? 18 : 13;
+  const gap = strong ? 7 : warm ? 8 : 10;
   ctx.strokeStyle = strong
     ? "rgba(51, 220, 255, 0.98)"
     : warm
       ? "rgba(255, 82, 98, 0.72)"
       : "rgba(110, 205, 255, 0.2)";
-  ctx.lineWidth = 2;
+  ctx.lineWidth = strong ? 3 : 2;
   ctx.beginPath();
   ctx.moveTo(cx - size, cy);
   ctx.lineTo(cx - gap, cy);
@@ -2443,7 +2451,7 @@ function drawCrosshair() {
   ctx.stroke();
   if (strong) {
     ctx.fillStyle = "rgba(75, 235, 255, 0.96)";
-    ctx.fillRect(cx - 2, cy - 2, 4, 4);
+    ctx.fillRect(cx - 3, cy - 3, 6, 6);
   }
 }
 
