@@ -42,8 +42,9 @@ const player = {
   weaponLevel: 0,
 };
 
-let stage = 1;
-let map = buildMap(stage);
+let dungeonTier = 1;
+let balrogDefeatedCount = 0;
+let map = buildMap();
 let enemies = [];
 let items = [];
 let projectiles = [];
@@ -195,17 +196,18 @@ const ZONE_PROPS = [
 ];
 const WORLD_PROPS = [...TOWN_PROPS, ...ZONE_PROPS];
 
-enemies = buildEnemies(stage);
+enemies = buildEnemies();
 
-function enemy(type, x, y) {
-  const stageBonus = Math.max(stage - 1, Math.floor((player.level - 1) / 2));
-  const stats = enemyStats(type, stageBonus);
-  const level = enemyLevel(type, stageBonus);
+function enemy(type, x, y, tier = dungeonTier) {
+  const tierBonus = Math.max(0, tier - 1);
+  const stats = enemyStats(type, tierBonus);
+  const level = enemyLevel(type, tier, x, y);
   const levelBonus = Math.max(0, level - 1);
   const hpScale = type === "balrog" ? 7.2 : stats.boss ? 2.35 : 1.55;
   const hp = Math.max(1, stats.hp + Math.floor(levelBonus * hpScale));
   return {
     type,
+    dungeonTier: tier,
     level,
     x,
     y,
@@ -234,39 +236,45 @@ function enemy(type, x, y) {
     alert: 0,
     dead: false,
     respawnTimer: 0,
-    respawns: 0,
   };
 }
 
-function enemyLevel(type, stageBonus) {
+function enemyLevel(type, tier, x, y) {
   const base = {
     skeleton: 1,
-    orc: 2,
-    warlock: 4,
-    ogre: 5,
-    skeletonKing: 9,
+    orc: 3,
+    warlock: 6,
+    ogre: 8,
+    skeletonKing: 8,
     boss: 10,
     deathKnight: 12,
     ogreLord: 14,
-    warlockLord: 15,
-    balrog: 35,
+    warlockLord: 12,
+    balrog: 15,
   }[type] || 2;
-  const variance = type === "balrog" ? 7 : isMidBossType(type) ? 6 : (type === "skeletonKing" || type === "boss") ? 5 : 4;
-  return base + stageBonus + Math.floor(Math.random() * variance);
+  const step = type === "balrog" ? 5 : isBossType(type) ? 4 : 3;
+  const variance = type === "balrog" ? 1 : isBossType(type) ? 3 : 3;
+  return base + (tier - 1) * step + spawnVariance(type, x, y, variance);
 }
 
-function enemyStats(type, stageBonus) {
+function spawnVariance(type, x, y, variance) {
+  if (variance <= 1) return 0;
+  const code = [...type].reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+  return Math.abs(Math.floor(x * 19 + y * 31 + code)) % variance;
+}
+
+function enemyStats(type, tierBonus) {
   const stats = {
-    skeleton: { hp: 8 + Math.floor(stageBonus * 1.6), speed: 0.94 + stageBonus * 0.06, damage: 4 + stageBonus, radius: 0.27, xp: 12 + stageBonus * 3, attackRange: 1.15, windup: 0.32, cooldown: 0.8 },
-    orc: { hp: 12 + stageBonus * 2, speed: 0.74 + stageBonus * 0.055, damage: 6 + stageBonus * 2, radius: 0.32, xp: 18 + stageBonus * 4, attackRange: 1.28, windup: 0.4, cooldown: 1.02 },
-    ogre: { hp: 24 + stageBonus * 4, speed: 0.44 + stageBonus * 0.03, damage: 14 + stageBonus * 3, radius: 0.48, xp: 42 + stageBonus * 7, attackRange: 1.6, windup: 0.66, cooldown: 1.42 },
-    warlock: { hp: 14 + stageBonus * 2, speed: 0.52 + stageBonus * 0.035, damage: 7 + stageBonus * 2, radius: 0.3, xp: 34 + stageBonus * 6, attackRange: 4.75, windup: 0.58, cooldown: 1.5, projectile: true },
-    skeletonKing: { hp: 38 + stageBonus * 8, speed: 0.56 + stageBonus * 0.035, damage: 18 + stageBonus * 3, radius: 0.42, xp: 90 + stageBonus * 12, attackRange: 1.58, windup: 0.5, cooldown: 1.1, boss: true },
-    boss: { hp: 32 + stageBonus * 7, speed: 0.62 + stageBonus * 0.045, damage: 18 + stageBonus * 4, radius: 0.42, xp: 80 + stageBonus * 12, attackRange: 1.5, windup: 0.48, cooldown: 1.15, boss: true },
-    deathKnight: { hp: 58 + stageBonus * 9, speed: 0.68 + stageBonus * 0.035, damage: 24 + stageBonus * 3, radius: 0.43, xp: 130 + stageBonus * 16, attackRange: 1.65, windup: 0.48, cooldown: 1.02, boss: true },
-    ogreLord: { hp: 86 + stageBonus * 12, speed: 0.42 + stageBonus * 0.025, damage: 34 + stageBonus * 4, radius: 0.58, xp: 190 + stageBonus * 20, attackRange: 1.85, windup: 0.66, cooldown: 1.28, boss: true },
-    warlockLord: { hp: 62 + stageBonus * 9, speed: 0.48 + stageBonus * 0.03, damage: 24 + stageBonus * 3, radius: 0.36, xp: 170 + stageBonus * 18, attackRange: 5.35, windup: 0.62, cooldown: 1.18, projectile: true, boss: true },
-    balrog: { hp: 260 + stageBonus * 22, speed: 0.5 + stageBonus * 0.025, damage: 55 + stageBonus * 6, radius: 0.72, xp: 900 + stageBonus * 50, attackRange: 2.75, windup: 0.68, cooldown: 1.18, boss: true },
+    skeleton: { hp: 8 + Math.floor(tierBonus * 1.6), speed: 0.94 + tierBonus * 0.04, damage: 4 + tierBonus, radius: 0.27, xp: 12 + tierBonus * 3, attackRange: 1.15, windup: 0.32, cooldown: 0.8 },
+    orc: { hp: 12 + tierBonus * 2, speed: 0.74 + tierBonus * 0.04, damage: 6 + tierBonus * 2, radius: 0.32, xp: 18 + tierBonus * 4, attackRange: 1.28, windup: 0.4, cooldown: 1.02 },
+    ogre: { hp: 24 + tierBonus * 4, speed: 0.44 + tierBonus * 0.025, damage: 14 + tierBonus * 3, radius: 0.48, xp: 42 + tierBonus * 7, attackRange: 1.6, windup: 0.66, cooldown: 1.42 },
+    warlock: { hp: 14 + tierBonus * 2, speed: 0.52 + tierBonus * 0.028, damage: 7 + tierBonus * 2, radius: 0.3, xp: 34 + tierBonus * 6, attackRange: 4.75, windup: 0.58, cooldown: 1.5, projectile: true },
+    skeletonKing: { hp: 38 + tierBonus * 8, speed: 0.56 + tierBonus * 0.03, damage: 18 + tierBonus * 3, radius: 0.42, xp: 90 + tierBonus * 12, attackRange: 1.58, windup: 0.5, cooldown: 1.1, boss: true },
+    boss: { hp: 32 + tierBonus * 7, speed: 0.62 + tierBonus * 0.035, damage: 18 + tierBonus * 4, radius: 0.42, xp: 80 + tierBonus * 12, attackRange: 1.5, windup: 0.48, cooldown: 1.15, boss: true },
+    deathKnight: { hp: 58 + tierBonus * 9, speed: 0.68 + tierBonus * 0.03, damage: 24 + tierBonus * 3, radius: 0.43, xp: 130 + tierBonus * 16, attackRange: 1.65, windup: 0.48, cooldown: 1.02, boss: true },
+    ogreLord: { hp: 86 + tierBonus * 12, speed: 0.42 + tierBonus * 0.022, damage: 34 + tierBonus * 4, radius: 0.58, xp: 190 + tierBonus * 20, attackRange: 1.85, windup: 0.66, cooldown: 1.28, boss: true },
+    warlockLord: { hp: 62 + tierBonus * 9, speed: 0.48 + tierBonus * 0.026, damage: 24 + tierBonus * 3, radius: 0.36, xp: 170 + tierBonus * 18, attackRange: 5.35, windup: 0.62, cooldown: 1.18, projectile: true, boss: true },
+    balrog: { hp: 260 + tierBonus * 30, speed: 0.5 + tierBonus * 0.02, damage: 55 + tierBonus * 7, radius: 0.72, xp: 900 + tierBonus * 60, attackRange: 2.75, windup: 0.68, cooldown: 1.18, boss: true },
   };
   return stats[type] || stats.orc;
 }
@@ -275,12 +283,12 @@ function isMidBossType(type) {
   return type === "deathKnight" || type === "ogreLord" || type === "warlockLord";
 }
 
-function buildEnemies(nextStage) {
-  const previousStage = stage;
-  stage = nextStage;
-  const built = SPAWN_POINTS.map(({ type, x, y }) => enemy(zoneSpawnType(type, x, y), x, y));
-  stage = previousStage;
-  return built;
+function isBossType(type) {
+  return type === "skeletonKing" || type === "boss" || isMidBossType(type);
+}
+
+function buildEnemies() {
+  return SPAWN_POINTS.map(({ type, x, y }) => enemy(zoneSpawnType(type, x, y), x, y));
 }
 
 function zoneSpawnType(original) {
@@ -298,6 +306,8 @@ function saveProgress() {
       attackPower: player.attackPower,
       weaponLevel: player.weaponLevel,
       kills,
+      dungeonTier,
+      balrogDefeatedCount,
     }));
   } catch (_) {
     // Storage can be unavailable in private or restricted browser contexts.
@@ -318,6 +328,8 @@ function loadProgress() {
     player.attackPower = Math.max(5, Number(data.attackPower) || (5 + Math.floor((player.level - 1) * 1.2)));
     player.weaponLevel = Math.min(MAX_WEAPON_LEVEL, Math.max(0, Number(data.weaponLevel) || 0));
     kills = Math.max(0, Number(data.kills) || 0);
+    balrogDefeatedCount = Math.max(0, Number(data.balrogDefeatedCount) || 0);
+    dungeonTier = Math.max(1, Number(data.dungeonTier) || balrogDefeatedCount + 1);
   } catch (_) {
     localStorage.removeItem(SAVE_KEY);
   }
@@ -429,21 +441,10 @@ function spawnProjectile(e, ux, uy) {
 }
 
 function reviveEnemy(e) {
-  const respawns = (e.respawns || 0) + 1;
-  const revived = enemy(e.type, e.spawnX, e.spawnY);
-  if (revived.boss) {
-    const extraLevel = respawns * (revived.type === "balrog" ? 7 : 3);
-    const hpBoost = extraLevel * (revived.type === "balrog" ? 13 : 5);
-    revived.level += extraLevel;
-    revived.maxHp += hpBoost;
-    revived.hp = revived.maxHp;
-    revived.damage += extraLevel * (revived.type === "balrog" ? 2 : 1);
-    revived.xp += extraLevel * 10;
-  }
-  revived.respawns = respawns;
+  const revived = enemy(e.type, e.spawnX, e.spawnY, dungeonTier);
   Object.assign(e, revived);
   if (e.boss) {
-    notice = `${enemyLabel(e)} 더 강하게 부활`;
+    notice = `${enemyLabel(e)} 재등장 - 성채 ${dungeonTier}단계`;
     noticeTimer = 2.2;
   }
 }
@@ -1005,10 +1006,18 @@ function damageEnemy(target, damage, kind) {
     gainXp(target.xp);
     if (kind !== "special") addRage(target.boss ? 30 : 16);
     dropLoot(target);
+    if (target.type === "balrog") onBalrogDefeated();
     saveProgress();
-    notice = `${enemyLabel(target)} 처치`;
+    notice = target.type === "balrog"
+      ? `발록 처치 - 성채 ${dungeonTier}단계 시작`
+      : `${enemyLabel(target)} 처치`;
     noticeTimer = 2.4;
   }
+}
+
+function onBalrogDefeated() {
+  balrogDefeatedCount += 1;
+  dungeonTier += 1;
 }
 
 function alertNearbyEnemies(source, radius) {
@@ -2217,6 +2226,8 @@ function drawHud() {
     drawBar(W - 320, 26, 280, 20, boss.hp / boss.maxHp, "#a91f1d", "#220909");
     drawText(enemyLabel(boss), W - 312, 42, 13, "#f3c46e");
   }
+  drawText(`성채 ${dungeonTier}단계`, W - 224, 76, 14, "#f3c46e");
+  drawText(`발록 처치 ${balrogDefeatedCount}회`, W - 224, 100, 13, "#cdb681");
 
   if (player.hurt > 0) {
     ctx.fillStyle = `rgba(255, 245, 220, ${player.hurt * 0.13})`;
@@ -2440,7 +2451,8 @@ function resetGame() {
     localStorage.removeItem(SAVE_KEY);
     localStorage.removeItem(LEGACY_SAVE_KEY);
   } catch (_) {}
-  stage = 1;
+  dungeonTier = 1;
+  balrogDefeatedCount = 0;
   player.x = 4.5;
   player.y = 4.5;
   player.angle = 0;
@@ -2471,8 +2483,8 @@ function resetGame() {
   gameState = "start";
   started = false;
   items = [];
-  map = buildMap(stage);
-  enemies = buildEnemies(stage);
+  map = buildMap();
+  enemies = buildEnemies();
   notice = "Paper Citadel";
   noticeTimer = 0;
 }
