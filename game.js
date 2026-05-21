@@ -637,7 +637,45 @@ function beginNamedRun(name) {
   } catch (_) {}
   if (nameScreen) nameScreen.classList.add("is-hidden");
   startGame();
+  if (isTestCharacter()) {
+    notice = "테스트 계정: 1 초고스탯 / 2 성채 1단계";
+    noticeTimer = 3.2;
+  }
   connectMultiplayer();
+}
+
+function isTestCharacter() {
+  return characterName.toLowerCase().endsWith("_test");
+}
+
+function applyTestBoost() {
+  player.level = 9999;
+  player.weaponLevel = 9999;
+  player.armorLevel = 9999;
+  player.attackPower = 9999;
+  player.maxHp = 999999;
+  player.hp = player.maxHp;
+  player.maxRage = 9999;
+  player.rage = player.maxRage;
+  player.xp = 0;
+  player.nextXp = 999999999;
+  berserk = true;
+  notice = "테스트 초고스탯 - Lv.9999 / 검 +9999 / 갑옷 +9999";
+  noticeTimer = 3.4;
+  saveProgress();
+}
+
+function resetTestDungeonTier() {
+  roomState.dungeonTier = 1;
+  roomState.balrogDefeatedCount = 0;
+  items = [];
+  projectiles = [];
+  damagePops = [];
+  deathParticles = [];
+  enemies = buildEnemies();
+  notice = "테스트 성채 초기화 - 1단계";
+  noticeTimer = 3.2;
+  saveProgress();
 }
 
 function connectMultiplayer() {
@@ -2784,6 +2822,16 @@ window.addEventListener("keydown", (event) => {
   if (event.code === "KeyE" && gameState === "play") {
     event.preventDefault();
     interact();
+    return;
+  }
+  if (gameState === "play" && isTestCharacter() && (event.code === "Digit1" || event.code === "Numpad1")) {
+    event.preventDefault();
+    applyTestBoost();
+    return;
+  }
+  if (gameState === "play" && isTestCharacter() && (event.code === "Digit2" || event.code === "Numpad2")) {
+    event.preventDefault();
+    resetTestDungeonTier();
     return;
   }
   keys.add(event.code);
