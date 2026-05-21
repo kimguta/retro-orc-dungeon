@@ -76,6 +76,8 @@ const SPAWN_POINTS = [
   { type: "skeleton", x: 18.5, y: 8.5 },
   { type: "skeleton", x: 25.5, y: 10.5 },
   { type: "orc", x: 29.5, y: 6.5 },
+  { type: "orc", x: 25.5, y: 12.5 },
+  { type: "skeleton", x: 31.5, y: 11.5 },
   { type: "skeleton", x: 5.5, y: 17.5 },
   { type: "skeleton", x: 4.5, y: 16.5 },
   { type: "skeleton", x: 9.5, y: 18.5 },
@@ -85,6 +87,7 @@ const SPAWN_POINTS = [
   { type: "skeleton", x: 8.5, y: 24.5 },
   { type: "skeleton", x: 16.5, y: 22.5 },
   { type: "skeleton", x: 18.5, y: 17.5 },
+  { type: "orc", x: 20.5, y: 23.5 },
   { type: "orc", x: 6.5, y: 20.5 },
   { type: "orc", x: 17.5, y: 20.5 },
   { type: "skeletonKing", x: 14.5, y: 24.5 },
@@ -99,6 +102,7 @@ const SPAWN_POINTS = [
   { type: "orc", x: 39.5, y: 24.5 },
   { type: "ogre", x: 29.5, y: 25.5 },
   { type: "boss", x: 38.5, y: 22.5 },
+  { type: "orc", x: 40.5, y: 26.5 },
   { type: "warlock", x: 43.5, y: 4.5 },
   { type: "warlock", x: 48.5, y: 5.5 },
   { type: "warlock", x: 57.5, y: 5.5 },
@@ -107,6 +111,7 @@ const SPAWN_POINTS = [
   { type: "warlock", x: 52.5, y: 11.5 },
   { type: "warlock", x: 42.5, y: 14.5 },
   { type: "warlock", x: 58.5, y: 14.5 },
+  { type: "warlock", x: 60.5, y: 10.5 },
   { type: "ogre", x: 56.5, y: 8.5 },
   { type: "warlockLord", x: 55.5, y: 13.5 },
   { type: "ogre", x: 47.5, y: 19.5 },
@@ -117,6 +122,7 @@ const SPAWN_POINTS = [
   { type: "ogre", x: 56.5, y: 25.5 },
   { type: "ogre", x: 47.5, y: 27.5 },
   { type: "ogre", x: 53.5, y: 27.5 },
+  { type: "ogre", x: 61.5, y: 27.5 },
   { type: "orc", x: 60.5, y: 23.5 },
   { type: "ogreLord", x: 58.5, y: 27.5 },
   { type: "deathKnight", x: 31.5, y: 31.5 },
@@ -126,6 +132,7 @@ const SPAWN_POINTS = [
   { type: "warlock", x: 40.5, y: 34.5 },
   { type: "ogre", x: 47.5, y: 31.5 },
   { type: "deathKnight", x: 49.5, y: 33.5 },
+  { type: "deathKnight", x: 52.5, y: 31.5 },
   { type: "warlockLord", x: 44.5, y: 33.5 },
   { type: "balrog", x: 58.5, y: 31.5 },
 ];
@@ -537,34 +544,34 @@ function buildBaseMap() {
   carveArea(grid, 1, 1, 9, 8); // Safe zone.
   carveArea(grid, 9, 4, 8, 3); // Safe zone exit.
   carveArea(grid, 15, 2, 17, 12); // Central hub.
-  carveArea(grid, 17, 12, 4, 5);
-  carveArea(grid, 3, 15, 18, 11); // Skeleton graveyard.
-  carveArea(grid, 27, 12, 4, 7);
-  carveArea(grid, 23, 17, 19, 11); // Orc barracks.
-  carveArea(grid, 30, 6, 12, 3);
-  carveArea(grid, 40, 2, 19, 14); // Warlock altar.
-  carveArea(grid, 40, 21, 7, 3);
-  carveArea(grid, 45, 17, 17, 12); // Ogre den.
-  carveArea(grid, 34, 26, 4, 5);
-  carveArea(grid, 49, 25, 4, 6);
-  carveArea(grid, 28, 29, 23, 6); // Abyss gate.
-  carveArea(grid, 49, 31, 6, 3);
+  carveArea(grid, 16, 12, 7, 5);
+  carveArea(grid, 2, 14, 21, 13); // Skeleton graveyard.
+  carveArea(grid, 25, 11, 8, 8);
+  carveArea(grid, 22, 16, 22, 13); // Orc barracks.
+  carveArea(grid, 30, 5, 13, 5);
+  carveArea(grid, 39, 1, 23, 16); // Warlock altar.
+  carveArea(grid, 39, 20, 9, 5);
+  carveArea(grid, 44, 16, 19, 14); // Ogre den.
+  carveArea(grid, 33, 25, 6, 7);
+  carveArea(grid, 48, 24, 6, 8);
+  carveArea(grid, 27, 28, 25, 7); // Abyss gate.
+  carveArea(grid, 49, 30, 7, 4);
   carveArea(grid, 53, 28, 10, 7); // Balrog chamber.
 
-  wallLine(grid, 21, 5, 21, 8);
-  wallLine(grid, 26, 6, 26, 10);
+  wallLine(grid, 21, 5, 21, 7);
+  wallLine(grid, 26, 6, 26, 9);
   wallLine(grid, 7, 19, 10, 19);
-  wallLine(grid, 13, 17, 13, 20);
-  wallLine(grid, 14, 23, 18, 23);
+  wallLine(grid, 13, 17, 13, 19);
+  wallLine(grid, 15, 23, 18, 23);
   wallLine(grid, 28, 21, 31, 21);
-  wallLine(grid, 35, 18, 35, 20);
-  wallLine(grid, 36, 25, 39, 25);
-  wallLine(grid, 46, 6, 46, 9);
+  wallLine(grid, 35, 18, 35, 19);
+  wallLine(grid, 37, 26, 39, 26);
+  wallLine(grid, 46, 6, 46, 8);
   wallLine(grid, 52, 4, 55, 4);
   wallLine(grid, 53, 11, 57, 11);
-  wallLine(grid, 50, 21, 50, 23);
-  wallLine(grid, 56, 18, 56, 21);
-  wallLine(grid, 58, 25, 60, 25);
+  wallLine(grid, 50, 21, 50, 22);
+  wallLine(grid, 56, 18, 56, 20);
+  wallLine(grid, 59, 25, 60, 25);
   wallLine(grid, 34, 32, 37, 32);
   wallLine(grid, 44, 30, 44, 32);
   wallLine(grid, 56, 30, 56, 32);
@@ -1154,22 +1161,11 @@ function drawSprites() {
     const depthIndex = Math.floor((screenX / W) * RAYS);
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < s.dist - 0.2) continue;
     const y = HALF_H - size * 0.55;
-    drawSpriteShadow(screenX, y + size * 0.78, size, s.e.boss ? 0.72 : 0.52, s.dist);
     drawEnemy(s.e, screenX - size / 2, y, size, s.dist);
     if (gameState === "play") {
       drawNameplate(screenX, y - Math.max(22, size * 0.08), Math.max(58, Math.min(118, size * 0.5)), enemyLabel(s.e), s.e.hp / s.e.maxHp, s.e.boss ? "#d33a32" : "#d8bd76");
     }
   }
-}
-
-function drawSpriteShadow(cx, y, size, scale, dist) {
-  ctx.save();
-  ctx.globalAlpha = Math.max(0.08, 0.34 - dist * 0.018);
-  ctx.fillStyle = "#050302";
-  ctx.beginPath();
-  ctx.ellipse(cx, y, size * scale * 0.42, Math.max(5, size * 0.055), 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
 }
 
 function spriteScale(e) {
@@ -1183,7 +1179,6 @@ function spriteScale(e) {
 }
 
 function drawEnemy(e, x, y, size, dist) {
-  drawPaperCutout(x, y, size, e.type === "balrog" ? 1.22 : e.boss ? 1.08 : 0.88, e.boss);
   drawPaperStandee(x, y, size, e.type === "balrog" ? 1.22 : e.boss ? 1.06 : 0.9);
   if (e.type === "balrog") drawBalrog(e, x, y, size, dist);
   else if (e.type === "skeleton" || e.type === "skeletonKing" || e.type === "deathKnight") drawSkeleton(e, x, y, size, dist);
@@ -1191,41 +1186,10 @@ function drawEnemy(e, x, y, size, dist) {
   else drawOrc(e, x, y, size, dist);
 }
 
-function drawPaperCutout(x, y, size, widthScale = 1, boss = false) {
-  const cx = x + size * 0.5;
-  const top = y + size * (boss ? 0.02 : 0.06);
-  const shoulder = size * 0.25 * widthScale;
-  const base = size * 0.34 * widthScale;
-  ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(cx - shoulder * 0.5, top);
-  ctx.lineTo(cx + shoulder * 0.6, top + size * 0.015);
-  ctx.lineTo(cx + shoulder, y + size * 0.23);
-  ctx.lineTo(cx + base, y + size * 0.76);
-  ctx.lineTo(cx + base * 0.72, y + size * 0.92);
-  ctx.lineTo(cx - base * 0.72, y + size * 0.92);
-  ctx.lineTo(cx - base, y + size * 0.76);
-  ctx.lineTo(cx - shoulder, y + size * 0.23);
-  ctx.closePath();
-  ctx.fillStyle = boss ? "rgba(36, 16, 12, 0.64)" : "rgba(34, 24, 16, 0.54)";
-  ctx.fill();
-  ctx.strokeStyle = boss ? "rgba(249, 184, 94, 0.34)" : "rgba(244, 214, 164, 0.28)";
-  ctx.lineWidth = Math.max(1, Math.floor(size / 90));
-  ctx.stroke();
-  ctx.strokeStyle = "rgba(0, 0, 0, 0.24)";
-  ctx.lineWidth = Math.max(1, Math.floor(size / 74));
-  ctx.stroke();
-  ctx.restore();
-}
-
 function drawPaperStandee(x, y, size, widthScale = 1) {
   const baseY = y + size * 0.92;
   ctx.save();
-  ctx.globalAlpha = 0.72;
-  ctx.fillStyle = "rgba(3, 2, 1, 0.42)";
-  ctx.beginPath();
-  ctx.ellipse(x + size * 0.5, baseY + size * 0.055, size * 0.34 * widthScale, Math.max(3, size * 0.055), 0, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.globalAlpha = 0.9;
   ctx.fillStyle = "#5a3a20";
   ctx.fillRect(Math.round(x + size * (0.31 - widthScale * 0.06)), Math.round(baseY), Math.ceil(size * (0.38 + widthScale * 0.12)), Math.max(2, Math.ceil(size * 0.04)));
   ctx.fillStyle = "#b77a3d";
@@ -1253,7 +1217,6 @@ function drawTownSprites() {
     if (s.kind === "npc") {
       const size = Math.min(180, (H / s.dist) * 0.36);
       const y = HALF_H - size * 0.38;
-      drawPaperCutout(screenX - size / 2, y, size, 0.7, false);
       drawPaperStandee(screenX - size / 2, y, size, 0.72);
       drawTownNpc(s.data, screenX - size / 2, y, size, s.dist);
       if (gameState === "play") {
@@ -1276,7 +1239,6 @@ function propScale(type) {
 
 function drawTownNpc(npc, x, y, size, dist) {
   const px = Math.max(2, Math.floor(size / 18));
-  const near = nearestTownNpc()?.npc === npc;
 
   rect(x + 5 * px, y + 2 * px, 8 * px, 7 * px, "#bd9a68");
   rect(x + 4 * px, y + 1 * px, 10 * px, 3 * px, "#59402f");
@@ -1291,11 +1253,6 @@ function drawTownNpc(npc, x, y, size, dist) {
   rect(x + 8 * px, y + 7 * px, 4 * px, 1 * px, "#704020");
   rect(x + 6 * px, y + 12 * px, 8 * px, 1 * px, "#d6b06d");
 
-  if (near && dist < 1.45) {
-    ctx.textAlign = "center";
-    drawText("E 대화", x + size / 2, y - 8, Math.max(12, Math.floor(size / 8)), "#ffe39a");
-    ctx.textAlign = "left";
-  }
 }
 
 function drawNameplate(cx, y, width, name, pct, fill) {
@@ -1798,10 +1755,10 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showT
   const ny = dx / len;
   const palette = swordPalette();
   const upgradeScale = Math.min(12, player.weaponLevel) * 1.25;
-  const nearW = 34 + upgradeScale + lunge * 10;
-  const midW = 24 + upgradeScale * 0.7 + lunge * 4;
-  const farW = 17 + upgradeScale * 0.4 + lunge * 2;
-  const tipLen = 18 + upgradeScale * 0.6 + lunge * 8;
+  const nearW = 42 + upgradeScale + lunge * 11;
+  const midW = 34 + upgradeScale * 0.8 + lunge * 5;
+  const farW = 27 + upgradeScale * 0.55 + lunge * 3;
+  const tipLen = 12 + upgradeScale * 0.35 + lunge * 4;
   const hiltX = nearX - dx / len * 46;
   const hiltY = nearY - dy / len * 46;
 
@@ -1819,16 +1776,9 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showT
   ctx.moveTo(nearX + nx * midW, nearY + ny * midW);
   ctx.lineTo(nearX - nx * midW, nearY - ny * midW);
   ctx.lineTo(farX - nx * farW, farY - ny * farW);
-  ctx.lineTo(farX + dx / len * tipLen, farY + dy / len * tipLen);
+  ctx.lineTo(farX + dx / len * tipLen - nx * farW * 0.68, farY + dy / len * tipLen - ny * farW * 0.68);
+  ctx.lineTo(farX + dx / len * tipLen + nx * farW * 0.68, farY + dy / len * tipLen + ny * farW * 0.68);
   ctx.lineTo(farX + nx * farW, farY + ny * farW);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.fillStyle = palette.highlight;
-  ctx.beginPath();
-  ctx.moveTo(nearX + nx * midW * 0.25, nearY + ny * midW * 0.25);
-  ctx.lineTo(nearX + nx * midW * 0.02, nearY + ny * midW * 0.02);
-  ctx.lineTo(farX + nx * farW * 0.18 + dx / len * 8, farY + ny * farW * 0.18 + dy / len * 8);
   ctx.closePath();
   ctx.fill();
 
@@ -1838,13 +1788,6 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showT
   ctx.moveTo(nearX - nx * midW * 0.56, nearY - ny * midW * 0.56);
   ctx.lineTo(farX - nx * farW * 0.55, farY - ny * farW * 0.55);
   ctx.stroke();
-  ctx.strokeStyle = "rgba(255, 235, 180, 0.18)";
-  ctx.setLineDash([8, 9]);
-  ctx.beginPath();
-  ctx.moveTo(nearX + nx * midW * 0.46, nearY + ny * midW * 0.46);
-  ctx.lineTo(farX + dx / len * tipLen * 0.52, farY + dy / len * tipLen * 0.52);
-  ctx.stroke();
-  ctx.setLineDash([]);
 
   ctx.fillStyle = palette.guard;
   ctx.beginPath();
