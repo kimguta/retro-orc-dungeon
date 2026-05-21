@@ -222,6 +222,7 @@ const TOWN_NPCS = [
 const TOWN_PROPS = [
   { type: "lantern", x: 4.1, y: 3.15 },
   { type: "sign", x: 5.9, y: 3.05 },
+  { type: "banner", x: 1.55, y: 3.65 },
   { type: "crate", x: 3.35, y: 4.85 },
   { type: "well", x: 5.05, y: 2.65 },
 ];
@@ -1066,14 +1067,14 @@ function draw() {
 function drawWorld() {
   const townView = isTown();
   const sky = ctx.createLinearGradient(0, 0, 0, HALF_H);
-  sky.addColorStop(0, townView ? "#40304a" : "#2a2031");
-  sky.addColorStop(1, townView ? "#6a4a45" : "#4a3340");
+  sky.addColorStop(0, townView ? "#49364f" : "#2d2336");
+  sky.addColorStop(1, townView ? "#805651" : "#57373d");
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, W, HALF_H);
 
   const floor = ctx.createLinearGradient(0, HALF_H, 0, H);
-  floor.addColorStop(0, townView ? "#6b5f47" : "#4b4437");
-  floor.addColorStop(1, townView ? "#2a2118" : "#1d1712");
+  floor.addColorStop(0, townView ? "#857151" : "#5b4b3a");
+  floor.addColorStop(1, townView ? "#312318" : "#211711");
   ctx.fillStyle = floor;
   ctx.fillRect(0, HALF_H, W, HALF_H);
   drawFloorDetails(townView);
@@ -1087,42 +1088,44 @@ function drawWorld() {
     const x = (r / RAYS) * W;
     const colW = W / RAYS + 1;
     const y = HALF_H - wallH / 2;
-    const light = Math.max(72, 226 - fixedDist * 11);
+    const light = Math.max(78, 238 - fixedDist * 11);
     const mortar = 1;
     const hitTown = isTown(hit.x, hit.y);
     const faceShade = hit.side === "x" ? 1 : 0.84;
-    const wallR = hitTown ? 0.58 : 0.5;
-    const wallG = hitTown ? 0.58 : 0.51;
-    const wallB = hitTown ? 0.55 : 0.5;
+    const wallR = hitTown ? 0.69 : 0.58;
+    const wallG = hitTown ? 0.62 : 0.54;
+    const wallB = hitTown ? 0.5 : 0.46;
     ctx.fillStyle = `rgb(${Math.floor(light * wallR * mortar)}, ${Math.floor(light * wallG * mortar)}, ${Math.floor(light * wallB * mortar)})`;
     ctx.fillRect(x, y, colW, wallH);
 
     ctx.fillStyle = `rgba(0, 0, 0, ${1 - faceShade})`;
     ctx.fillRect(x, y, colW, wallH);
 
-    const blockH = Math.max(42, wallH / 4.6);
+    const blockH = Math.max(44, wallH / 4.1);
     const row = Math.floor((hit.y + hit.x) * 2.1);
     const offsetU = row % 2 ? 0.14 : 0;
     const joint = Math.max(1, wallH / 92);
-    ctx.fillStyle = "rgba(235, 232, 212, 0.08)";
+    ctx.fillStyle = hitTown ? "rgba(255, 226, 167, 0.12)" : "rgba(246, 220, 171, 0.11)";
     for (let by = y + blockH * 0.28; by < y + wallH; by += blockH) {
       ctx.fillRect(x, by, colW, joint);
     }
     const u = (hit.wallU + offsetU) % 1;
     if ((r + Math.floor(hit.x * 13 + hit.y * 17)) % 31 === 0) {
       const nickY = y + (0.22 + ((Math.floor(hit.x * 7 + hit.y * 9) % 5) * 0.12)) * wallH;
-      ctx.fillStyle = "rgba(255, 250, 220, 0.07)";
+      ctx.fillStyle = "rgba(255, 243, 197, 0.12)";
       ctx.fillRect(x, nickY, colW, Math.max(1, wallH / 80));
     }
     if (wallH > 90 && u > 0.18 && u < 0.82 && (r + Math.floor(hit.x * 3 + hit.y * 5)) % 9 === 0) {
-      ctx.fillStyle = "rgba(255, 255, 235, 0.035)";
+      ctx.fillStyle = "rgba(255, 246, 211, 0.065)";
       ctx.fillRect(x, y + wallH * 0.12, colW, wallH * 0.18);
     }
 
-    ctx.fillStyle = "rgba(8, 7, 6, 0.18)";
+    ctx.fillStyle = "rgba(18, 10, 7, 0.24)";
     ctx.fillRect(x, y, colW, Math.max(1, wallH / 38));
-    ctx.fillStyle = "rgba(255, 250, 220, 0.045)";
-    ctx.fillRect(x, y + wallH * 0.07, colW, wallH * 0.5);
+    ctx.fillStyle = "rgba(255, 238, 188, 0.09)";
+    ctx.fillRect(x, y + wallH * 0.06, colW, Math.max(1, wallH / 46));
+    ctx.fillStyle = "rgba(255, 241, 199, 0.045)";
+    ctx.fillRect(x, y + wallH * 0.1, colW, wallH * 0.38);
 
     ctx.fillStyle = `rgba(18, 16, 14, ${Math.min(townView ? 0.16 : 0.27, fixedDist / 22)})`;
     ctx.fillRect(x, y, colW, wallH);
@@ -1138,8 +1141,8 @@ function drawWorld() {
 
 function drawFloorDetails(townView) {
   ctx.save();
-  const lineColor = townView ? "rgba(255, 224, 160, 0.12)" : "rgba(232, 183, 116, 0.1)";
-  const darkLine = townView ? "rgba(41, 28, 18, 0.26)" : "rgba(13, 9, 7, 0.34)";
+  const lineColor = townView ? "rgba(255, 225, 159, 0.18)" : "rgba(238, 192, 126, 0.13)";
+  const darkLine = townView ? "rgba(55, 31, 18, 0.28)" : "rgba(19, 10, 6, 0.35)";
   for (let i = 0; i < 18; i += 1) {
     const t = i / 18;
     const y = HALF_H + Math.pow(t, 1.75) * HALF_H;
@@ -1156,6 +1159,37 @@ function drawFloorDetails(townView) {
     ctx.lineTo(W / 2 + i * 8, HALF_H + 12);
     ctx.stroke();
   }
+  if (townView) drawSafeZoneFloorMark();
+  ctx.restore();
+}
+
+function drawSafeZoneFloorMark() {
+  ctx.save();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = "rgba(192, 121, 55, 0.16)";
+  ctx.beginPath();
+  ctx.moveTo(W * 0.43, HALF_H + 8);
+  ctx.lineTo(W * 0.57, HALF_H + 8);
+  ctx.lineTo(W * 0.73, H);
+  ctx.lineTo(W * 0.27, H);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255, 212, 130, 0.22)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(93, 42, 21, 0.32)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.ellipse(W / 2, H * 0.78, W * 0.13, H * 0.065, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255, 223, 158, 0.2)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(W * 0.39, H * 0.78);
+  ctx.lineTo(W * 0.61, H * 0.78);
+  ctx.moveTo(W / 2, H * 0.72);
+  ctx.lineTo(W / 2, H * 0.84);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -1214,11 +1248,39 @@ function spriteScale(e) {
 }
 
 function drawEnemy(e, x, y, size, dist) {
+  drawPaperCutout(x, y, size, e.type === "balrog" ? 1.22 : e.boss ? 1.08 : 0.88, e.boss);
   drawPaperStandee(x, y, size, e.type === "balrog" ? 1.22 : e.boss ? 1.06 : 0.9);
   if (e.type === "balrog") drawBalrog(e, x, y, size, dist);
   else if (e.type === "skeleton" || e.type === "skeletonKing" || e.type === "deathKnight") drawSkeleton(e, x, y, size, dist);
   else if (e.type === "warlock" || e.type === "warlockLord") drawWarlock(e, x, y, size, dist);
   else drawOrc(e, x, y, size, dist);
+}
+
+function drawPaperCutout(x, y, size, widthScale = 1, boss = false) {
+  const cx = x + size * 0.5;
+  const top = y + size * (boss ? 0.02 : 0.06);
+  const shoulder = size * 0.25 * widthScale;
+  const base = size * 0.34 * widthScale;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cx - shoulder * 0.5, top);
+  ctx.lineTo(cx + shoulder * 0.6, top + size * 0.015);
+  ctx.lineTo(cx + shoulder, y + size * 0.23);
+  ctx.lineTo(cx + base, y + size * 0.76);
+  ctx.lineTo(cx + base * 0.72, y + size * 0.92);
+  ctx.lineTo(cx - base * 0.72, y + size * 0.92);
+  ctx.lineTo(cx - base, y + size * 0.76);
+  ctx.lineTo(cx - shoulder, y + size * 0.23);
+  ctx.closePath();
+  ctx.fillStyle = boss ? "rgba(36, 16, 12, 0.64)" : "rgba(34, 24, 16, 0.54)";
+  ctx.fill();
+  ctx.strokeStyle = boss ? "rgba(249, 184, 94, 0.34)" : "rgba(244, 214, 164, 0.28)";
+  ctx.lineWidth = Math.max(1, Math.floor(size / 90));
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(0, 0, 0, 0.24)";
+  ctx.lineWidth = Math.max(1, Math.floor(size / 74));
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawPaperStandee(x, y, size, widthScale = 1) {
@@ -1256,6 +1318,7 @@ function drawTownSprites() {
     if (s.kind === "npc") {
       const size = Math.min(180, (H / s.dist) * 0.36);
       const y = HALF_H - size * 0.38;
+      drawPaperCutout(screenX - size / 2, y, size, 0.7, false);
       drawPaperStandee(screenX - size / 2, y, size, 0.72);
       drawTownNpc(s.data, screenX - size / 2, y, size, s.dist);
       if (gameState === "play") {
@@ -1270,6 +1333,7 @@ function drawTownSprites() {
 
 function propScale(type) {
   if (type === "well") return 0.42;
+  if (type === "banner") return 0.34;
   if (type === "sign") return 0.3;
   if (type === "lantern") return 0.26;
   return 0.24;
@@ -1306,8 +1370,12 @@ function drawNameplate(cx, y, width, name, pct, fill) {
   const clamped = Math.max(0, Math.min(1, pct || 0));
   ctx.save();
   ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(7, 5, 4, 0.7)";
+  ctx.fillStyle = "rgba(12, 8, 5, 0.78)";
   ctx.fillRect(x - 4, y - 18, w + 8, 27);
+  ctx.fillStyle = "rgba(242, 206, 134, 0.1)";
+  ctx.fillRect(x - 2, y - 16, w + 4, 10);
+  ctx.strokeStyle = "rgba(238, 198, 118, 0.38)";
+  ctx.strokeRect(x - 4, y - 18, w + 8, 27);
   drawText(name, cx, y - 7, 12, "#fff1bd");
   ctx.fillStyle = "#21120d";
   ctx.fillRect(x, y, w, h);
@@ -1330,6 +1398,13 @@ function drawTownProp(prop, x, y, size) {
     rect(x + 2 * px, y + 2 * px, 10 * px, 5 * px, "#7b4b2b");
     rect(x + 3 * px, y + 3 * px, 8 * px, 1 * px, "#d6a35b");
     rect(x + 3 * px, y + 5 * px, 6 * px, 1 * px, "#2c1a10");
+  } else if (prop.type === "banner") {
+    rect(x + 6 * px, y + 1 * px, 2 * px, 14 * px, "#2f1a10");
+    rect(x + 2 * px, y + 2 * px, 10 * px, 2 * px, "#6b3b1e");
+    rect(x + 3 * px, y + 4 * px, 8 * px, 8 * px, "#9f4330");
+    tri(x + 3 * px, y + 12 * px, x + 7 * px, y + 15 * px, x + 11 * px, y + 12 * px, "#9f4330");
+    rect(x + 5 * px, y + 6 * px, 4 * px, 1 * px, "#ffd27c");
+    rect(x + 6 * px, y + 7 * px, 2 * px, 3 * px, "#f6e3ac");
   } else if (prop.type === "well") {
     rect(x + 2 * px, y + 8 * px, 12 * px, 5 * px, "#4a4038");
     rect(x + 3 * px, y + 9 * px, 10 * px, 3 * px, "#75675a");
@@ -1538,10 +1613,14 @@ function drawWarlock(e, x, y, size, dist) {
     rect(x + 4 * px, y + 1 * px, 9 * px, 3 * px, "#68430c");
     rect(x + 6 * px, y + 0 * px, 5 * px, 2 * px, "#f0b84a");
   }
-  rect(x + 6 * px, y + 7 * px, 2 * px, 1 * px, lord ? "#ff6aff" : "#d669ff");
-  rect(x + 10 * px, y + 7 * px, 2 * px, 1 * px, lord ? "#ff6aff" : "#d669ff");
-  rect(x + 5 * px, y + 11 * px, 8 * px, 2 * px, "#111014");
-  rect(x + 7 * px, y + 13 * px, 4 * px, 1 * px, lord ? "#7e33c5" : "#5b2c83");
+  rect(x + 6 * px, y + (hurt ? 8 : 7) * px, hurt ? 3 * px : 2 * px, 1 * px, lord ? "#ff6aff" : "#d669ff");
+  rect(x + 10 * px, y + (hurt ? 8 : 7) * px, hurt ? 3 * px : 2 * px, 1 * px, lord ? "#ff6aff" : "#d669ff");
+  if (hurt) {
+    rect(x + 5 * px, y + 7 * px, 4 * px, 1 * px, "#120b19");
+    rect(x + 10 * px, y + 7 * px, 4 * px, 1 * px, "#120b19");
+  }
+  rect(x + 5 * px, y + 11 * px, 8 * px, hurt ? 1 * px : 2 * px, "#111014");
+  rect(x + (hurt ? 6 : 7) * px, y + 13 * px, hurt ? 6 * px : 4 * px, 1 * px, lord ? "#7e33c5" : "#5b2c83");
   rect(x + 2 * px, y + (e.attackPose > 0 ? 11 : 13) * px, 4 * px, 9 * px, "#321b49");
   rect(x + 12 * px, y + (e.attackPose > 0 ? 16 : 13) * px, 4 * px, 9 * px, "#321b49");
   rect(x + 13 * px, y + 18 * px, 3 * px, 3 * px, lord ? "#ff7cff" : "#b75cff");
@@ -1573,9 +1652,13 @@ function drawBalrog(e, x, y, size, dist) {
   tri(x + 14 * px, y + 5 * px, x + 17 * px, y - 1 * px, x + 11 * px, y + 3 * px, "#d9b46a");
   rect(x + 5 * px, y + 9 * px, 3 * px, 2 * px, "#ff3b1f");
   rect(x + 10 * px, y + 9 * px, 3 * px, 2 * px, "#ff3b1f");
+  if (flash) {
+    rect(x + 4 * px, y + 8 * px, 4 * px, 1 * px, "#240605");
+    rect(x + 10 * px, y + 8 * px, 4 * px, 1 * px, "#240605");
+  }
   rect(x + 6 * px, y + 8 * px, 2 * px, 1 * px, "#ffd25a");
   rect(x + 11 * px, y + 8 * px, 2 * px, 1 * px, "#ffd25a");
-  rect(x + 7 * px, y + 12 * px, 4 * px, 2 * px, "#0b0303");
+  rect(x + (flash ? 6 : 7) * px, y + 12 * px, flash ? 6 * px : 4 * px, flash ? 1 * px : 2 * px, "#0b0303");
   rect(x + 6 * px, y + 14 * px, 2 * px, 3 * px, "#f4dfc0");
   rect(x + 11 * px, y + 14 * px, 2 * px, 3 * px, "#f4dfc0");
 
