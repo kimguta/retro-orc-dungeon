@@ -1,5 +1,8 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
+const nameScreen = document.getElementById("name-screen");
+const nameInput = document.getElementById("character-name");
+const nameStatus = document.getElementById("name-status");
 const DPR = Math.min(2, window.devicePixelRatio || 1);
 const W = Math.max(1280, Math.round(window.innerWidth || canvas.width));
 const H = Math.max(720, Math.round(window.innerHeight || canvas.height));
@@ -19,6 +22,11 @@ const BERSERK_DRAIN_PER_SECOND = 7.5;
 const DEATH_RESPAWN_SECONDS = 5;
 const SAVE_KEY = "paperCitadelProgressV1";
 const LEGACY_SAVE_KEY = "shadowCitadelProgressV1";
+const LAST_NAME_KEY = "paperCitadelLastNameV1";
+const SOCKET_SERVER_URL =
+  location.hostname === "localhost" || location.hostname === "127.0.0.1"
+    ? "http://localhost:3000"
+    : (window.PAPER_CITADEL_SOCKET_URL || "");
 
 const MAP_W = 64;
 const MAP_H = 36;
@@ -75,6 +83,11 @@ let berserk = false;
 let deathTimer = 0;
 let hurtDirection = 0;
 let hurtDirectionTimer = 0;
+let characterName = "";
+let multiplayerSocket = null;
+let multiplayerRoomId = "";
+let networkTimer = 0;
+const remotePlayers = new Map();
 
 const SPAWN_POINTS = [
   { type: "skeleton", x: 15.5, y: 3.5 },
@@ -589,12 +602,116 @@ function balrogEnemy() {
   return enemies.find((e) => e.type === "balrog" && !e.dead);
 }
 
+function balrogRespawnSeconds() {
+  const balrog = enemies.find((e) => e.type === "balrog" && e.dead);
+  return balrog ? Math.max(0, Math.ceil(balrog.respawnTimer || 0)) : 0;
+}
+
+function formatClock(seconds) {
+  const safe = Math.max(0, Math.ceil(seconds || 0));
+  const minutes = Math.floor(safe / 60);
+  const remain = safe % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(remain).padStart(2, "0")}`;
+}
+
 function directionTo(x, y) {
   const dx = x - player.x;
   const dy = y - player.y;
   const ew = dx > 1.2 ? "동" : dx < -1.2 ? "서" : "";
   const ns = dy > 1.2 ? "남" : dy < -1.2 ? "북" : "";
   return ns + ew || "근처";
+}
+
+function setNameStatus(text) {
+  if (nameStatus) nameStatus.textContent = text;
+}
+
+function beginNamedRun(name) {
+  characterName = name.trim().slice(0, 18);
+  if (!characterName) {
+    setNameStatus("캐릭터명을 입력해주세요.");
+    return;
+  }
+  try {
+    localStorage.setItem(LAST_NAME_KEY, characterName);
+  } catch (_) {}
+  if (nameScreen) nameScreen.classList.add("is-hidden");
+  startGame();
+  connectMultiplayer();
+}
+
+function connectMultiplayer() {
+  if (!SOCKET_SERVER_URL || typeof io !== "function") {
+    setNameStatus("싱글 모드로 시작합니다.");
+    return;
+  }
+  if (multiplayerSocket) multiplayerSocket.disconnect();
+  multiplayerSocket = io(SOCKET_SERVER_URL, {
+    auth: { name: characterName },
+    transports: ["websocket", "polling"],
+  });
+  multiplayerSocket.on("connect", () => setNameStatus("성채에 접속했습니다."));
+  multiplayerSocket.on("room:joined", ({ roomId, players = [] }) => {
+    multiplayerRoomId = roomId;
+    remotePlayers.clear();
+    for (const remote of players) upsertRemotePlayer(remote);
+    notice = `${roomId} 입장`;
+    noticeTimer = 2.2;
+  });
+  multiplayerSocket.on("players:update", (players = []) => {
+    const seen = new Set();
+    for (const remote of players) {
+      if (remote.id === multiplayerSocket.id) continue;
+      seen.add(remote.id);
+      upsertRemotePlayer(remote);
+    }
+    for (const id of remotePlayers.keys()) {
+      if (!seen.has(id)) remotePlayers.delete(id);
+    }
+  });
+  multiplayerSocket.on("player:left", ({ id }) => remotePlayers.delete(id));
+  multiplayerSocket.on("player:action", ({ id, action }) => {
+    const remote = remotePlayers.get(id);
+    if (remote) remote.action = action || "attack";
+  });
+  multiplayerSocket.on("connect_error", () => setNameStatus("멀티 서버 연결 대기 중입니다. 싱글 플레이는 계속됩니다."));
+  multiplayerSocket.on("disconnect", () => {
+    multiplayerRoomId = "";
+    remotePlayers.clear();
+  });
+}
+
+function upsertRemotePlayer(remote) {
+  if (!remote || !remote.id) return;
+  const previous = remotePlayers.get(remote.id) || {};
+  remotePlayers.set(remote.id, {
+    ...previous,
+    ...remote,
+    x: Number(remote.x) || previous.x || 4.5,
+    y: Number(remote.y) || previous.y || 4.5,
+    angle: Number(remote.angle) || 0,
+    action: remote.action || previous.action || "idle",
+  });
+}
+
+function emitPlayerState(dt) {
+  if (!multiplayerSocket || !multiplayerSocket.connected || gameState !== "play") return;
+  networkTimer -= dt;
+  if (networkTimer > 0) return;
+  networkTimer = 0.08;
+  multiplayerSocket.emit("player:update", {
+    x: player.x,
+    y: player.y,
+    angle: player.angle,
+    hp: player.hp,
+    maxHp: player.maxHp,
+    level: player.level,
+    weaponLevel: player.weaponLevel,
+    armorLevel: player.armorLevel,
+    berserk,
+    moving: keys.has("KeyW") || keys.has("KeyA") || keys.has("KeyS") || keys.has("KeyD"),
+    action: swing > 0 ? swingType === "special" ? "specialAttack" : "attack" : "idle",
+  });
 }
 
 function buildBaseMap() {
@@ -918,6 +1035,7 @@ function update(dt) {
   }
 
   collectItems();
+  emitPlayerState(dt);
 }
 
 function meleeReach(e) {
@@ -965,6 +1083,9 @@ function attack(kind = "normal") {
   started = true;
   swing = 1;
   swingType = kind;
+  if (multiplayerSocket && multiplayerSocket.connected) {
+    multiplayerSocket.emit("player:action", { action: kind === "special" ? "specialAttack" : "attack" });
+  }
   const baseCooldown = kind === "special" ? 0.64 : 0.58;
   const levelCooldown = Math.max(0.88, 1 - (player.level - 1) * 0.008);
   swingCooldown = (berserk ? baseCooldown * 0.42 : baseCooldown) * levelCooldown;
@@ -1130,6 +1251,7 @@ function draw() {
   }
   drawWorld();
   drawSprites();
+  drawRemotePlayers();
   drawTownSprites();
   drawProjectiles();
   drawDeathParticles();
@@ -1271,6 +1393,71 @@ function drawSprites() {
       drawNameplate(screenX, y - Math.max(22, size * 0.08), Math.max(58, Math.min(118, size * 0.5)), enemyLabel(s.e), s.e.hp / s.e.maxHp, s.e.boss ? "#d33a32" : "#d8bd76");
     }
   }
+}
+
+function drawRemotePlayers() {
+  const visible = [...remotePlayers.values()]
+    .map((remote) => {
+      const dx = remote.x - player.x;
+      const dy = remote.y - player.y;
+      return { remote, dist: Math.hypot(dx, dy), angle: normAngle(Math.atan2(dy, dx) - player.angle) };
+    })
+    .filter((entry) => entry.dist > 0.22 && Math.abs(entry.angle) < FOV * 0.72 && hasLineOfSight(entry.remote))
+    .sort((a, b) => b.dist - a.dist);
+
+  for (const entry of visible) {
+    const screenX = W / 2 + Math.tan(entry.angle) * (W / FOV);
+    const size = Math.min(H * 0.82, (H / entry.dist) * 0.72);
+    const depthIndex = Math.floor((screenX / W) * RAYS);
+    if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < entry.dist - 0.2) continue;
+    const y = HALF_H - size * 0.52;
+    drawPaperStandee(screenX - size / 2, y, size, 0.92);
+    drawRemoteWarrior(entry.remote, screenX - size / 2, y, size);
+    drawNameplate(
+      screenX,
+      y - Math.max(22, size * 0.08),
+      Math.max(78, Math.min(152, size * 0.64)),
+      `Lv.${entry.remote.level || 1} ${entry.remote.displayName || entry.remote.name || "전사"}`,
+      (entry.remote.hp || 0) / Math.max(1, entry.remote.maxHp || 1),
+      "#64d6ff",
+    );
+  }
+}
+
+function drawRemoteWarrior(remote, x, y, size) {
+  const px = Math.max(2, Math.floor(size / 18));
+  const moving = Boolean(remote.moving);
+  const attack = remote.action === "attack" || remote.action === "specialAttack";
+  const bob = moving ? Math.abs(Math.sin(performance.now() * 0.012 + remote.x * 2)) * px : 0;
+  const palette = swordPalette(remote.weaponLevel || 0);
+  y += bob - (attack ? 2 * px : 0);
+  rect(x + 5 * px, y + 2 * px, 8 * px, 7 * px, "#d0ab78");
+  rect(x + 4 * px, y + 1 * px, 10 * px, 3 * px, "#58412f");
+  rect(x + 6 * px, y + 5 * px, 2 * px, 1 * px, "#1a130e");
+  rect(x + 11 * px, y + 5 * px, 2 * px, 1 * px, "#1a130e");
+  rect(x + 4 * px, y + 9 * px, 10 * px, 10 * px, remote.berserk ? "#7f241e" : "#354d65");
+  rect(x + 5 * px, y + 10 * px, 8 * px, 2 * px, "#688eab");
+  rect(x + 3 * px, y + 10 * px, 3 * px, 8 * px, "#263644");
+  rect(x + 13 * px, y + 10 * px, 3 * px, 8 * px, "#263644");
+  rect(x + 6 * px, y + 19 * px, 3 * px, 5 * px, "#211b18");
+  rect(x + 11 * px, y + 19 * px, 3 * px, 5 * px, "#211b18");
+  rect(x + 2 * px, y + 11 * px, 2 * px, 7 * px, armorTint(remote.armorLevel || 0));
+  rect(x + 15 * px, y + 11 * px, 2 * px, 7 * px, armorTint(remote.armorLevel || 0));
+  const swordX = attack ? x + 15 * px : x + 16 * px;
+  const swordY = attack ? y + 8 * px : y + 12 * px;
+  rect(swordX, swordY, 2 * px, attack ? 13 * px : 11 * px, palette.shadow);
+  rect(swordX + px * 0.45, swordY - (attack ? 4 : 3) * px, px, attack ? 17 * px : 14 * px, palette.blade);
+  if (remote.berserk) {
+    ctx.strokeStyle = "rgba(255, 82, 40, 0.72)";
+    ctx.lineWidth = Math.max(2, px);
+    ctx.strokeRect(x + 2 * px, y, 15 * px, 24 * px);
+  }
+}
+
+function armorTint(level) {
+  if (level >= 80) return "#8feaff";
+  if (level >= 30) return "#b6d7ea";
+  return "#8b949d";
 }
 
 function spriteScale(e) {
@@ -2275,8 +2462,15 @@ function drawHud() {
     drawText(enemyLabel(boss), W - 312, 42, 13, "#f3c46e");
   }
   drawHudPanel(W - 248, 58, 210, 72);
+  const balrogRespawn = balrogRespawnSeconds();
   drawText(`성채 ${roomState.dungeonTier}단계`, W - 228, 84, 15, "#f3c46e");
-  drawText(`발록 ${balrogEnemy() ? "활성" : "리스폰 대기"}`, W - 228, 106, 13, balrogEnemy() ? "#ff8b74" : "#8feaff");
+  drawText(
+    balrogEnemy() ? "발록 활성" : `발록 ${formatClock(balrogRespawn)}`,
+    W - 228,
+    106,
+    13,
+    balrogEnemy() ? "#ff8b74" : "#8feaff",
+  );
   drawText(`처치 ${roomState.balrogDefeatedCount}회`, W - 118, 106, 13, "#cdb681");
 
   if (player.hurt > 0) {
@@ -2519,6 +2713,7 @@ function startGame() {
   messagePulse = 0;
   notice = "세이프티 존";
   noticeTimer = 1.8;
+  if (nameScreen) nameScreen.classList.add("is-hidden");
 }
 
 function resetGame() {
@@ -2557,6 +2752,11 @@ function resetGame() {
   dialogueSpeaker = "";
   dialogueTimer = 0;
   gameState = "start";
+  if (nameScreen) nameScreen.classList.remove("is-hidden");
+  if (multiplayerSocket) multiplayerSocket.disconnect();
+  multiplayerSocket = null;
+  multiplayerRoomId = "";
+  remotePlayers.clear();
   started = false;
   items = [];
   map = buildMap();
@@ -2575,8 +2775,10 @@ function frame(now) {
 
 window.addEventListener("keydown", (event) => {
   if (event.code === "Enter" && gameState === "start") {
-    event.preventDefault();
-    startGame();
+    if (document.activeElement !== nameInput) {
+      event.preventDefault();
+      nameInput?.focus();
+    }
     return;
   }
   if (event.code === "KeyE" && gameState === "play") {
@@ -2590,8 +2792,7 @@ window.addEventListener("keydown", (event) => {
   }
   if (event.code === "Space") {
     event.preventDefault();
-    if (gameState === "start") startGame();
-    else attack("normal");
+    if (gameState !== "start") attack("normal");
   }
   if (event.code === "Enter" && gameState !== "play" && gameState !== "dead") resetGame();
 });
@@ -2602,7 +2803,7 @@ window.addEventListener("keyup", (event) => {
 
 canvas.addEventListener("click", () => {
   if (gameState === "start") {
-    startGame();
+    nameInput?.focus();
     return;
   }
   if (!mouseActive) {
@@ -2624,7 +2825,7 @@ canvas.addEventListener("mousedown", (event) => {
   if (event.button !== 2) return;
   event.preventDefault();
   if (gameState === "start") {
-    startGame();
+    nameInput?.focus();
     return;
   }
   attack("special");
@@ -2640,5 +2841,16 @@ document.addEventListener("mousemove", (event) => {
     player.angle = normAngle(player.angle + event.movementX * 0.0022);
   }
 });
+
+if (nameScreen) {
+  try {
+    nameInput.value = localStorage.getItem(LAST_NAME_KEY) || "";
+  } catch (_) {}
+  nameScreen.addEventListener("submit", (event) => {
+    event.preventDefault();
+    beginNamedRun(nameInput.value);
+  });
+  nameInput?.focus();
+}
 
 requestAnimationFrame(frame);

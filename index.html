@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Paper Citadel - 종이성채</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=20260521-paper-citadel-multi-shell">
   </head>
   <body>
     <main class="shell">
@@ -16,7 +16,20 @@
         <span>우클릭 분노공격</span>
         <span>E 대화</span>
       </div>
+      <form id="name-screen" class="name-screen" autocomplete="off">
+        <div class="name-panel">
+          <p class="eyebrow">Paper Citadel</p>
+          <h1>종이성채</h1>
+          <label for="character-name">캐릭터명</label>
+          <div class="name-row">
+            <input id="character-name" maxlength="18" placeholder="이름 입력" required>
+            <button type="submit">입장</button>
+          </div>
+          <p id="name-status">링크 열고, 이름 넣고, 바로 발록 트라이.</p>
+        </div>
+      </form>
     </main>
-  <script src="game.js?v=20260521-paper-citadel-balrog-hit-pass"></script>
+    <script src="https://cdn.socket.io/4.8.3/socket.io.min.js"></script>
+    <script src="game.js?v=20260521-paper-citadel-multi-shell"></script>
   </body>
 </html>
