@@ -22,34 +22,9 @@ const MAX_WEAPON_LEVEL = 200;
 const SAVE_KEY = "paperCitadelProgressV1";
 const LEGACY_SAVE_KEY = "shadowCitadelProgressV1";
 
-const BASE_MAP = [
-  "################################################",
-  "#.......#.#...#........#........#........#.....#",
-  "#.......###.....######.########.####.###.###.#.#",
-  "#.......#.#..##..#.......#......#..............#",
-  "#..............................##.#......#.....#",
-  "#.......#.#.#.##.####.####.##..#.######.###.##.#",
-  "#########.#.#.#.##..###.#.##.####.#.#..##.#.#..#",
-  "#.#.#..#..#.....#...............#.......#......#",
-  "#.........#..####.#####.####..###.##...........#",
-  "#.....#...#.....#.#.....#..#............#......#",
-  "#.....#...#.##.###.####.#######.####.####.###..#",
-  "#.....#........#..#.............#.......#......#",
-  "#.#..##..##..####.......#..#...####..###..##...#",
-  "#.........#.............#.......#..#....#......#",
-  "#.....#......###.###..###..###.##..#....#..#...#",
-  "#..##..##.#.#.#.#.#.##.#...#..#.###.###.#.##.#.#",
-  "#.....#...#.............#..#.....#.#....#..#...#",
-  "#.....#........#........#......................#",
-  "#.#.###.#.###.##.##..........###.####..###.###.#",
-  "#.....#.................#........#........##...#",
-  "#..#.###.###.###.####.###.####.###.###.####.#..#",
-  "#.........#........................#...........#",
-  "#................................####..##.###..#",
-  "#.#...##...####...##...###....##..#....#.....B.#",
-  "#.##...##..#.....##..###...##..###...##..#...#.#",
-  "################################################",
-];
+const MAP_W = 64;
+const MAP_H = 36;
+const BASE_MAP = buildBaseMap();
 
 const player = {
   x: 4.5,
@@ -98,114 +73,61 @@ let berserk = false;
 let deathTimer = 0;
 
 const SPAWN_POINTS = [
-  { type: "skeleton", x: 13.5, y: 1.5 },
-  { type: "skeleton", x: 19.5, y: 1.5 },
-  { type: "orc", x: 25.5, y: 1.5 },
-  { type: "skeleton", x: 35.5, y: 1.5 },
-  { type: "orc", x: 43.5, y: 1.5 },
-  { type: "orc", x: 15.5, y: 3.5 },
-  { type: "warlock", x: 23.5, y: 3.5 },
-  { type: "skeleton", x: 33.5, y: 3.5 },
-  { type: "orc", x: 39.5, y: 3.5 },
-  { type: "skeleton", x: 13.5, y: 5.5 },
-  { type: "orc", x: 21.5, y: 5.5 },
-  { type: "warlock", x: 29.5, y: 5.5 },
-  { type: "ogre", x: 39.5, y: 5.5 },
-  { type: "skeleton", x: 11.5, y: 7.5 },
-  { type: "orc", x: 19.5, y: 7.5 },
-  { type: "skeleton", x: 25.5, y: 7.5 },
-  { type: "warlock", x: 35.5, y: 7.5 },
-  { type: "orc", x: 43.5, y: 7.5 },
-  { type: "skeleton", x: 15.5, y: 9.5 },
-  { type: "ogre", x: 23.5, y: 9.5 },
-  { type: "orc", x: 37.5, y: 9.5 },
-  { type: "warlock", x: 41.5, y: 9.5 },
-  { type: "deathKnight", x: 17.5, y: 11.5 },
-  { type: "skeleton", x: 25.5, y: 11.5 },
-  { type: "orc", x: 35.5, y: 11.5 },
-  { type: "skeleton", x: 43.5, y: 11.5 },
-  { type: "orc", x: 15.5, y: 13.5 },
-  { type: "warlock", x: 21.5, y: 13.5 },
-  { type: "ogre", x: 29.5, y: 13.5 },
-  { type: "skeletonKing", x: 37.5, y: 13.5 },
-  { type: "skeleton", x: 11.5, y: 15.5 },
-  { type: "orc", x: 19.5, y: 15.5 },
-  { type: "warlock", x: 29.5, y: 15.5 },
-  { type: "ogreLord", x: 39.5, y: 15.5 },
-  { type: "orc", x: 13.5, y: 17.5 },
-  { type: "skeleton", x: 21.5, y: 17.5 },
-  { type: "ogre", x: 35.5, y: 17.5 },
-  { type: "warlock", x: 43.5, y: 17.5 },
-  { type: "skeleton", x: 13.5, y: 19.5 },
-  { type: "orc", x: 25.5, y: 19.5 },
-  { type: "warlockLord", x: 35.5, y: 19.5 },
-  { type: "ogre", x: 41.5, y: 19.5 },
-  { type: "skeleton", x: 15.5, y: 21.5 },
-  { type: "orc", x: 23.5, y: 21.5 },
-  { type: "skeletonKing", x: 33.5, y: 21.5 },
-  { type: "boss", x: 44.5, y: 21.5 },
-  { type: "skeleton", x: 3.5, y: 11.5 },
-  { type: "orc", x: 4.5, y: 11.5 },
-  { type: "skeleton", x: 3.5, y: 13.5 },
-  { type: "orc", x: 6.5, y: 13.5 },
-  { type: "warlock", x: 12.5, y: 13.5 },
-  { type: "skeleton", x: 2.5, y: 15.5 },
-  { type: "orc", x: 6.5, y: 15.5 },
-  { type: "ogre", x: 13.5, y: 15.5 },
-  { type: "skeleton", x: 1.5, y: 16.5 },
-  { type: "orc", x: 4.5, y: 16.5 },
-  { type: "skeleton", x: 8.5, y: 16.5 },
-  { type: "orc", x: 5.5, y: 17.5 },
-  { type: "warlock", x: 9.5, y: 17.5 },
-  { type: "skeleton", x: 3.5, y: 18.5 },
-  { type: "orc", x: 7.5, y: 18.5 },
+  { type: "skeleton", x: 18.5, y: 8.5 },
+  { type: "skeleton", x: 25.5, y: 10.5 },
+  { type: "orc", x: 29.5, y: 6.5 },
+  { type: "skeleton", x: 5.5, y: 17.5 },
+  { type: "skeleton", x: 4.5, y: 16.5 },
   { type: "skeleton", x: 9.5, y: 18.5 },
-  { type: "ogre", x: 3.5, y: 19.5 },
-  { type: "orc", x: 10.5, y: 19.5 },
-  { type: "skeleton", x: 2.5, y: 20.5 },
-  { type: "warlock", x: 8.5, y: 20.5 },
-  { type: "orc", x: 12.5, y: 20.5 },
-  { type: "skeleton", x: 1.5, y: 21.5 },
-  { type: "orc", x: 9.5, y: 21.5 },
-  { type: "ogre", x: 15.5, y: 21.5 },
-  { type: "skeleton", x: 5.5, y: 22.5 },
-  { type: "orc", x: 11.5, y: 22.5 },
-  { type: "warlock", x: 19.5, y: 22.5 },
-  { type: "skeleton", x: 8.5, y: 23.5 },
-  { type: "orc", x: 17.5, y: 23.5 },
-  { type: "ogre", x: 21.5, y: 23.5 },
-  { type: "skeleton", x: 16.5, y: 3.5 },
-  { type: "orc", x: 13.5, y: 5.5 },
-  { type: "warlock", x: 17.5, y: 7.5 },
-  { type: "skeleton", x: 27.5, y: 7.5 },
-  { type: "orc", x: 33.5, y: 7.5 },
-  { type: "ogre", x: 42.5, y: 7.5 },
-  { type: "skeleton", x: 13.5, y: 11.5 },
-  { type: "orc", x: 31.5, y: 11.5 },
-  { type: "warlock", x: 45.5, y: 11.5 },
-  { type: "skeleton", x: 5.5, y: 15.5 },
-  { type: "orc", x: 25.5, y: 15.5 },
-  { type: "ogre", x: 41.5, y: 15.5 },
-  { type: "skeleton", x: 18.5, y: 19.5 },
-  { type: "orc", x: 29.5, y: 19.5 },
-  { type: "warlock", x: 37.5, y: 19.5 },
-  { type: "skeleton", x: 45.5, y: 19.5 },
-  { type: "orc", x: 3.5, y: 23.5 },
-  { type: "warlock", x: 29.5, y: 23.5 },
-  { type: "skeleton", x: 37.5, y: 23.5 },
-  { type: "ogre", x: 43.5, y: 23.5 },
-  { type: "orc", x: 46.4, y: 2.5 },
-  { type: "skeleton", x: 46.4, y: 5.5 },
-  { type: "warlock", x: 46.4, y: 9.5 },
-  { type: "orc", x: 46.4, y: 13.5 },
-  { type: "ogre", x: 46.4, y: 17.5 },
-  { type: "skeleton", x: 46.4, y: 21.5 },
-  { type: "orc", x: 5.5, y: 24.5 },
-  { type: "skeleton", x: 15.5, y: 24.5 },
-  { type: "warlock", x: 25.5, y: 24.5 },
-  { type: "ogre", x: 35.5, y: 24.5 },
-  { type: "orc", x: 43.5, y: 24.5 },
-  { type: "balrog", x: 45.5, y: 23.5 },
+  { type: "skeleton", x: 14.5, y: 18.5 },
+  { type: "skeleton", x: 4.5, y: 22.5 },
+  { type: "skeleton", x: 10.5, y: 23.5 },
+  { type: "skeleton", x: 8.5, y: 24.5 },
+  { type: "skeleton", x: 16.5, y: 22.5 },
+  { type: "skeleton", x: 18.5, y: 17.5 },
+  { type: "orc", x: 6.5, y: 20.5 },
+  { type: "orc", x: 17.5, y: 20.5 },
+  { type: "skeletonKing", x: 14.5, y: 24.5 },
+  { type: "orc", x: 25.5, y: 19.5 },
+  { type: "orc", x: 30.5, y: 19.5 },
+  { type: "orc", x: 36.5, y: 19.5 },
+  { type: "orc", x: 26.5, y: 23.5 },
+  { type: "orc", x: 33.5, y: 23.5 },
+  { type: "orc", x: 24.5, y: 26.5 },
+  { type: "orc", x: 32.5, y: 27.5 },
+  { type: "orc", x: 40.5, y: 18.5 },
+  { type: "orc", x: 39.5, y: 24.5 },
+  { type: "ogre", x: 29.5, y: 25.5 },
+  { type: "boss", x: 38.5, y: 22.5 },
+  { type: "warlock", x: 43.5, y: 4.5 },
+  { type: "warlock", x: 48.5, y: 5.5 },
+  { type: "warlock", x: 57.5, y: 5.5 },
+  { type: "warlock", x: 50.5, y: 8.5 },
+  { type: "warlock", x: 45.5, y: 10.5 },
+  { type: "warlock", x: 52.5, y: 11.5 },
+  { type: "warlock", x: 42.5, y: 14.5 },
+  { type: "warlock", x: 58.5, y: 14.5 },
+  { type: "ogre", x: 56.5, y: 8.5 },
+  { type: "warlockLord", x: 55.5, y: 13.5 },
+  { type: "ogre", x: 47.5, y: 19.5 },
+  { type: "ogre", x: 53.5, y: 19.5 },
+  { type: "ogre", x: 58.5, y: 20.5 },
+  { type: "ogre", x: 60.5, y: 18.5 },
+  { type: "ogre", x: 49.5, y: 24.5 },
+  { type: "ogre", x: 56.5, y: 25.5 },
+  { type: "ogre", x: 47.5, y: 27.5 },
+  { type: "ogre", x: 53.5, y: 27.5 },
+  { type: "orc", x: 60.5, y: 23.5 },
+  { type: "ogreLord", x: 58.5, y: 27.5 },
+  { type: "deathKnight", x: 31.5, y: 31.5 },
+  { type: "deathKnight", x: 38.5, y: 30.5 },
+  { type: "deathKnight", x: 29.5, y: 33.5 },
+  { type: "warlock", x: 42.5, y: 32.5 },
+  { type: "warlock", x: 40.5, y: 34.5 },
+  { type: "ogre", x: 47.5, y: 31.5 },
+  { type: "deathKnight", x: 49.5, y: 33.5 },
+  { type: "warlockLord", x: 44.5, y: 33.5 },
+  { type: "balrog", x: 58.5, y: 31.5 },
 ];
 
 const TOWN_NPCS = [
@@ -315,25 +237,8 @@ function buildEnemies(nextStage) {
   return built;
 }
 
-function zoneSpawnType(original, x, y) {
-  if (original === "balrog") return original;
-  const safeDist = Math.hypot(x - 4.5, y - 4.5);
-  const balrogDist = Math.hypot(x - 45.5, y - 23.5);
-  const progress = Math.max(0, Math.min(1, safeDist / Math.max(0.001, safeDist + balrogDist)));
-  const seed = spawnSeed(x, y);
-  if (original === "boss" && progress > 0.72) return "boss";
-  if (progress < 0.18) return seed < 0.72 ? "skeleton" : "orc";
-  if (progress < 0.34) return seed < 0.48 ? "skeleton" : seed < 0.86 ? "orc" : "warlock";
-  if (progress < 0.52) return seed < 0.4 ? "orc" : seed < 0.72 ? "warlock" : "ogre";
-  if (progress < 0.68) return seed < 0.28 ? "warlock" : seed < 0.62 ? "ogre" : "skeletonKing";
-  if (progress < 0.83) return seed < 0.24 ? "ogre" : seed < 0.48 ? "skeletonKing" : seed < 0.72 ? "deathKnight" : "warlockLord";
-  if (progress < 0.95) return seed < 0.24 ? "deathKnight" : seed < 0.52 ? "ogreLord" : seed < 0.8 ? "warlockLord" : "boss";
-  return seed < 0.34 ? "boss" : seed < 0.67 ? "ogreLord" : "warlockLord";
-}
-
-function spawnSeed(x, y) {
-  const n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
-  return n - Math.floor(n);
+function zoneSpawnType(original) {
+  return original;
 }
 
 function saveProgress() {
@@ -627,6 +532,67 @@ function directionTo(x, y) {
   return ns + ew || "근처";
 }
 
+function buildBaseMap() {
+  const grid = Array.from({ length: MAP_H }, () => Array(MAP_W).fill("#"));
+  carveArea(grid, 1, 1, 9, 8); // Safe zone.
+  carveArea(grid, 9, 4, 8, 3); // Safe zone exit.
+  carveArea(grid, 15, 2, 17, 12); // Central hub.
+  carveArea(grid, 17, 12, 4, 5);
+  carveArea(grid, 3, 15, 18, 11); // Skeleton graveyard.
+  carveArea(grid, 27, 12, 4, 7);
+  carveArea(grid, 23, 17, 19, 11); // Orc barracks.
+  carveArea(grid, 30, 6, 12, 3);
+  carveArea(grid, 40, 2, 19, 14); // Warlock altar.
+  carveArea(grid, 40, 21, 7, 3);
+  carveArea(grid, 45, 17, 17, 12); // Ogre den.
+  carveArea(grid, 34, 26, 4, 5);
+  carveArea(grid, 49, 25, 4, 6);
+  carveArea(grid, 28, 29, 23, 6); // Abyss gate.
+  carveArea(grid, 49, 31, 6, 3);
+  carveArea(grid, 53, 28, 10, 7); // Balrog chamber.
+
+  wallLine(grid, 21, 5, 21, 8);
+  wallLine(grid, 26, 6, 26, 10);
+  wallLine(grid, 7, 19, 10, 19);
+  wallLine(grid, 13, 17, 13, 20);
+  wallLine(grid, 14, 23, 18, 23);
+  wallLine(grid, 28, 21, 31, 21);
+  wallLine(grid, 35, 18, 35, 20);
+  wallLine(grid, 36, 25, 39, 25);
+  wallLine(grid, 46, 6, 46, 9);
+  wallLine(grid, 52, 4, 55, 4);
+  wallLine(grid, 53, 11, 57, 11);
+  wallLine(grid, 50, 21, 50, 23);
+  wallLine(grid, 56, 18, 56, 21);
+  wallLine(grid, 58, 25, 60, 25);
+  wallLine(grid, 34, 32, 37, 32);
+  wallLine(grid, 44, 30, 44, 32);
+  wallLine(grid, 56, 30, 56, 32);
+  wallLine(grid, 60, 31, 60, 33);
+  return grid.map((row) => row.join(""));
+}
+
+function carveArea(grid, x, y, w, h) {
+  for (let cy = y; cy < y + h; cy += 1) {
+    for (let cx = x; cx < x + w; cx += 1) {
+      if (cx > 0 && cx < MAP_W - 1 && cy > 0 && cy < MAP_H - 1) grid[cy][cx] = ".";
+    }
+  }
+}
+
+function wallLine(grid, x1, y1, x2, y2) {
+  const dx = Math.sign(x2 - x1);
+  const dy = Math.sign(y2 - y1);
+  let x = x1;
+  let y = y1;
+  while (true) {
+    grid[y][x] = "#";
+    if (x === x2 && y === y2) break;
+    x += dx;
+    y += dy;
+  }
+}
+
 function buildMap() {
   return BASE_MAP.slice();
 }
@@ -655,7 +621,7 @@ function moveActor(actor, dx, dy, radius = 0.18) {
 }
 
 function isTown(x = player.x, y = player.y) {
-  return x < 7.8 && y < 5.8;
+  return x < 9.8 && y < 8.8;
 }
 
 function nearestTownNpc(range = 1.35) {
@@ -1159,37 +1125,6 @@ function drawFloorDetails(townView) {
     ctx.lineTo(W / 2 + i * 8, HALF_H + 12);
     ctx.stroke();
   }
-  if (townView) drawSafeZoneFloorMark();
-  ctx.restore();
-}
-
-function drawSafeZoneFloorMark() {
-  ctx.save();
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = "rgba(192, 121, 55, 0.16)";
-  ctx.beginPath();
-  ctx.moveTo(W * 0.43, HALF_H + 8);
-  ctx.lineTo(W * 0.57, HALF_H + 8);
-  ctx.lineTo(W * 0.73, H);
-  ctx.lineTo(W * 0.27, H);
-  ctx.closePath();
-  ctx.fill();
-  ctx.strokeStyle = "rgba(255, 212, 130, 0.22)";
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.strokeStyle = "rgba(93, 42, 21, 0.32)";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.ellipse(W / 2, H * 0.78, W * 0.13, H * 0.065, 0, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.strokeStyle = "rgba(255, 223, 158, 0.2)";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(W * 0.39, H * 0.78);
-  ctx.lineTo(W * 0.61, H * 0.78);
-  ctx.moveTo(W / 2, H * 0.72);
-  ctx.lineTo(W / 2, H * 0.84);
-  ctx.stroke();
   ctx.restore();
 }
 
