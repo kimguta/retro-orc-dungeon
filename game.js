@@ -111,7 +111,7 @@ const SPAWN_POINTS = [
   { type: "warlock", x: 52.5, y: 11.5 },
   { type: "warlock", x: 42.5, y: 14.5 },
   { type: "warlock", x: 58.5, y: 14.5 },
-  { type: "warlock", x: 60.5, y: 10.5 },
+  { type: "warlock", x: 58.5, y: 10.5 },
   { type: "ogre", x: 56.5, y: 8.5 },
   { type: "warlockLord", x: 55.5, y: 13.5 },
   { type: "ogre", x: 47.5, y: 19.5 },
@@ -155,6 +155,24 @@ const TOWN_PROPS = [
   { type: "crate", x: 3.35, y: 4.85 },
   { type: "well", x: 5.05, y: 2.65 },
 ];
+const ZONE_PROPS = [
+  { type: "grave", x: 6.5, y: 17.5 },
+  { type: "grave", x: 17.5, y: 21.5 },
+  { type: "grave", x: 9.5, y: 27.5 },
+  { type: "banner", x: 25.5, y: 18.5 },
+  { type: "rack", x: 40.5, y: 25.5 },
+  { type: "crate", x: 31.5, y: 26.5 },
+  { type: "altar", x: 43.5, y: 5.5 },
+  { type: "lantern", x: 56.5, y: 13.5 },
+  { type: "altar", x: 58.5, y: 11.5 },
+  { type: "boulder", x: 48.5, y: 19.5 },
+  { type: "boulder", x: 60.5, y: 27.5 },
+  { type: "ember", x: 35.5, y: 33.5 },
+  { type: "obelisk", x: 46.5, y: 31.5 },
+  { type: "ember", x: 55.5, y: 30.5 },
+  { type: "obelisk", x: 61.5, y: 33.5 },
+];
+const WORLD_PROPS = [...TOWN_PROPS, ...ZONE_PROPS];
 
 enemies = buildEnemies(stage);
 
@@ -544,34 +562,36 @@ function buildBaseMap() {
   carveArea(grid, 1, 1, 9, 8); // Safe zone.
   carveArea(grid, 9, 4, 8, 3); // Safe zone exit.
   carveArea(grid, 15, 2, 17, 12); // Central hub.
-  carveArea(grid, 16, 12, 7, 5);
-  carveArea(grid, 2, 14, 21, 13); // Skeleton graveyard.
-  carveArea(grid, 25, 11, 8, 8);
-  carveArea(grid, 22, 16, 22, 13); // Orc barracks.
-  carveArea(grid, 30, 5, 13, 5);
-  carveArea(grid, 39, 1, 23, 16); // Warlock altar.
-  carveArea(grid, 39, 20, 9, 5);
-  carveArea(grid, 44, 16, 19, 14); // Ogre den.
-  carveArea(grid, 33, 25, 6, 7);
-  carveArea(grid, 48, 24, 6, 8);
-  carveArea(grid, 27, 28, 25, 7); // Abyss gate.
-  carveArea(grid, 49, 30, 7, 4);
+  carveArea(grid, 17, 12, 4, 5);
+  carveArea(grid, 3, 15, 18, 11); // Skeleton graveyard.
+  carveArea(grid, 5, 25, 12, 5); // Graveyard lower crypt.
+  carveArea(grid, 16, 23, 3, 5);
+  carveArea(grid, 27, 12, 4, 7);
+  carveArea(grid, 23, 17, 19, 11); // Orc barracks.
+  carveArea(grid, 30, 6, 12, 3);
+  carveArea(grid, 40, 2, 19, 14); // Warlock altar.
+  carveArea(grid, 40, 21, 7, 3);
+  carveArea(grid, 45, 17, 17, 12); // Ogre den.
+  carveArea(grid, 34, 26, 4, 5);
+  carveArea(grid, 49, 25, 4, 6);
+  carveArea(grid, 28, 29, 23, 6); // Abyss gate.
+  carveArea(grid, 49, 31, 6, 3);
   carveArea(grid, 53, 28, 10, 7); // Balrog chamber.
 
-  wallLine(grid, 21, 5, 21, 7);
-  wallLine(grid, 26, 6, 26, 9);
+  wallLine(grid, 21, 5, 21, 8);
+  wallLine(grid, 26, 6, 26, 10);
   wallLine(grid, 7, 19, 10, 19);
-  wallLine(grid, 13, 17, 13, 19);
-  wallLine(grid, 15, 23, 18, 23);
+  wallLine(grid, 13, 17, 13, 20);
+  wallLine(grid, 14, 23, 18, 23);
   wallLine(grid, 28, 21, 31, 21);
-  wallLine(grid, 35, 18, 35, 19);
-  wallLine(grid, 37, 26, 39, 26);
-  wallLine(grid, 46, 6, 46, 8);
+  wallLine(grid, 35, 18, 35, 20);
+  wallLine(grid, 36, 25, 39, 25);
+  wallLine(grid, 46, 6, 46, 9);
   wallLine(grid, 52, 4, 55, 4);
   wallLine(grid, 53, 11, 57, 11);
-  wallLine(grid, 50, 21, 50, 22);
-  wallLine(grid, 56, 18, 56, 20);
-  wallLine(grid, 59, 25, 60, 25);
+  wallLine(grid, 50, 21, 50, 23);
+  wallLine(grid, 56, 18, 56, 21);
+  wallLine(grid, 58, 25, 60, 25);
   wallLine(grid, 34, 32, 37, 32);
   wallLine(grid, 44, 30, 44, 32);
   wallLine(grid, 56, 30, 56, 32);
@@ -629,6 +649,17 @@ function moveActor(actor, dx, dy, radius = 0.18) {
 
 function isTown(x = player.x, y = player.y) {
   return x < 9.8 && y < 8.8;
+}
+
+function zoneAt(x = player.x, y = player.y) {
+  if (isTown(x, y)) return { name: "세이프티 존", short: "SAFE ZONE", sky: ["#49364f", "#805651"], floor: ["#857151", "#312318"], wall: [0.69, 0.62, 0.5] };
+  if (x < 23 && y >= 14) return { name: "해골 묘역", short: "묘역", sky: ["#252633", "#4c4248"], floor: ["#5a5547", "#201b18"], wall: [0.56, 0.54, 0.48] };
+  if (x >= 22 && x < 43 && y >= 16 && y < 29) return { name: "오크 병영", short: "병영", sky: ["#34262d", "#68423b"], floor: ["#66513b", "#241811"], wall: [0.64, 0.54, 0.42] };
+  if (x >= 39 && y < 17) return { name: "워록 제단", short: "제단", sky: ["#241a38", "#56385f"], floor: ["#46384d", "#1b1320"], wall: [0.5, 0.43, 0.62] };
+  if (x >= 44 && y >= 16 && y < 30) return { name: "오우거 굴", short: "굴", sky: ["#332923", "#5c4532"], floor: ["#65543f", "#251a12"], wall: [0.58, 0.5, 0.4] };
+  if (x >= 53 && y >= 28) return { name: "발록의 방", short: "발록방", sky: ["#310c10", "#6d251d"], floor: ["#5e291d", "#190807"], wall: [0.62, 0.34, 0.28] };
+  if (y >= 28) return { name: "심연의 문", short: "심연", sky: ["#17151f", "#33273c"], floor: ["#3a3340", "#120f16"], wall: [0.42, 0.4, 0.52] };
+  return { name: "중앙 허브", short: "허브", sky: ["#2d2336", "#57373d"], floor: ["#5b4b3a", "#211711"], wall: [0.58, 0.54, 0.46] };
 }
 
 function nearestTownNpc(range = 1.35) {
@@ -930,6 +961,7 @@ function damageEnemy(target, damage, kind) {
   target.hp -= damage;
   target.hitFlash = 1;
   target.alert = target.boss ? 12 : 7;
+  alertNearbyEnemies(target, target.type === "balrog" ? 10 : target.boss ? 6.8 : 4.2);
   const pushAngle = Math.atan2(target.y - player.y, target.x - player.x);
   const stunned = Math.random() < stunChance(target, kind);
   const pushPower = target.boss ? (kind === "special" ? 1.65 : 0.95) : (kind === "special" ? 3.25 : 1.9);
@@ -955,6 +987,16 @@ function damageEnemy(target, damage, kind) {
     saveProgress();
     notice = `${enemyLabel(target)} 처치`;
     noticeTimer = 2.4;
+  }
+}
+
+function alertNearbyEnemies(source, radius) {
+  for (const e of enemies) {
+    if (e.dead || e === source) continue;
+    const dist = Math.hypot(e.x - source.x, e.y - source.y);
+    if (dist <= radius && (hasLineOfSight(e) || dist < radius * 0.55)) {
+      e.alert = Math.max(e.alert || 0, e.boss ? 7 : 4.6);
+    }
   }
 }
 
@@ -1038,16 +1080,17 @@ function draw() {
 }
 
 function drawWorld() {
+  const zone = zoneAt();
   const townView = isTown();
   const sky = ctx.createLinearGradient(0, 0, 0, HALF_H);
-  sky.addColorStop(0, townView ? "#49364f" : "#2d2336");
-  sky.addColorStop(1, townView ? "#805651" : "#57373d");
+  sky.addColorStop(0, zone.sky[0]);
+  sky.addColorStop(1, zone.sky[1]);
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, W, HALF_H);
 
   const floor = ctx.createLinearGradient(0, HALF_H, 0, H);
-  floor.addColorStop(0, townView ? "#857151" : "#5b4b3a");
-  floor.addColorStop(1, townView ? "#312318" : "#211711");
+  floor.addColorStop(0, zone.floor[0]);
+  floor.addColorStop(1, zone.floor[1]);
   ctx.fillStyle = floor;
   ctx.fillRect(0, HALF_H, W, HALF_H);
   drawFloorDetails(townView);
@@ -1063,11 +1106,10 @@ function drawWorld() {
     const y = HALF_H - wallH / 2;
     const light = Math.max(78, 238 - fixedDist * 11);
     const mortar = 1;
+    const hitZone = zoneAt(hit.x, hit.y);
     const hitTown = isTown(hit.x, hit.y);
     const faceShade = hit.side === "x" ? 1 : 0.84;
-    const wallR = hitTown ? 0.69 : 0.58;
-    const wallG = hitTown ? 0.62 : 0.54;
-    const wallB = hitTown ? 0.5 : 0.46;
+    const [wallR, wallG, wallB] = hitZone.wall;
     ctx.fillStyle = `rgb(${Math.floor(light * wallR * mortar)}, ${Math.floor(light * wallG * mortar)}, ${Math.floor(light * wallB * mortar)})`;
     ctx.fillRect(x, y, colW, wallH);
 
@@ -1199,7 +1241,7 @@ function drawPaperStandee(x, y, size, widthScale = 1) {
 
 function drawTownSprites() {
   const sprites = [
-    ...TOWN_PROPS.map((prop) => ({ kind: "prop", data: prop })),
+    ...WORLD_PROPS.map((prop) => ({ kind: "prop", data: prop })),
     ...TOWN_NPCS.map((npc) => ({ kind: "npc", data: npc })),
   ]
     .map((sprite) => {
@@ -1231,6 +1273,9 @@ function drawTownSprites() {
 
 function propScale(type) {
   if (type === "well") return 0.42;
+  if (type === "obelisk") return 0.44;
+  if (type === "altar" || type === "boulder") return 0.38;
+  if (type === "rack" || type === "grave") return 0.32;
   if (type === "banner") return 0.34;
   if (type === "sign") return 0.3;
   if (type === "lantern") return 0.26;
@@ -1297,6 +1342,34 @@ function drawTownProp(prop, x, y, size) {
     tri(x + 3 * px, y + 12 * px, x + 7 * px, y + 15 * px, x + 11 * px, y + 12 * px, "#9f4330");
     rect(x + 5 * px, y + 6 * px, 4 * px, 1 * px, "#ffd27c");
     rect(x + 6 * px, y + 7 * px, 2 * px, 3 * px, "#f6e3ac");
+  } else if (prop.type === "grave") {
+    rect(x + 3 * px, y + 7 * px, 9 * px, 6 * px, "#29261f");
+    rect(x + 5 * px, y + 2 * px, 5 * px, 8 * px, "#8c8775");
+    rect(x + 6 * px, y + 3 * px, 3 * px, 1 * px, "#d7ceb2");
+    rect(x + 6 * px, y + 6 * px, 3 * px, 1 * px, "#514c41");
+  } else if (prop.type === "rack") {
+    rect(x + 2 * px, y + 2 * px, 2 * px, 13 * px, "#3a2113");
+    rect(x + 10 * px, y + 2 * px, 2 * px, 13 * px, "#3a2113");
+    rect(x + 2 * px, y + 4 * px, 10 * px, 2 * px, "#7a4b25");
+    rect(x + 4 * px, y + 6 * px, 1 * px, 7 * px, "#b9b1a0");
+    rect(x + 8 * px, y + 6 * px, 1 * px, 7 * px, "#b9b1a0");
+  } else if (prop.type === "altar") {
+    rect(x + 2 * px, y + 9 * px, 11 * px, 5 * px, "#24152e");
+    rect(x + 4 * px, y + 5 * px, 7 * px, 5 * px, "#62457f");
+    rect(x + 6 * px, y + 2 * px, 3 * px, 4 * px, "#d672ff");
+    rect(x + 6 * px, y + 3 * px, 3 * px, 1 * px, "#fff0ff");
+  } else if (prop.type === "boulder") {
+    rect(x + 2 * px, y + 7 * px, 11 * px, 6 * px, "#33291e");
+    rect(x + 4 * px, y + 4 * px, 8 * px, 7 * px, "#75614a");
+    rect(x + 5 * px, y + 5 * px, 4 * px, 1 * px, "#aa9170");
+  } else if (prop.type === "ember") {
+    rect(x + 4 * px, y + 8 * px, 7 * px, 4 * px, "#2d100a");
+    tri(x + 5 * px, y + 9 * px, x + 7 * px, y + 2 * px, x + 9 * px, y + 9 * px, "#ff5a22");
+    tri(x + 6 * px, y + 9 * px, x + 7 * px, y + 5 * px, x + 8 * px, y + 9 * px, "#ffd25a");
+  } else if (prop.type === "obelisk") {
+    rect(x + 4 * px, y + 3 * px, 7 * px, 12 * px, "#1f1722");
+    tri(x + 4 * px, y + 3 * px, x + 7.5 * px, y - 1 * px, x + 11 * px, y + 3 * px, "#42314d");
+    rect(x + 6 * px, y + 5 * px, 3 * px, 5 * px, "#b72421");
   } else if (prop.type === "well") {
     rect(x + 2 * px, y + 8 * px, 12 * px, 5 * px, "#4a4038");
     rect(x + 3 * px, y + 9 * px, 10 * px, 3 * px, "#75675a");
@@ -1776,8 +1849,7 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showT
   ctx.moveTo(nearX + nx * midW, nearY + ny * midW);
   ctx.lineTo(nearX - nx * midW, nearY - ny * midW);
   ctx.lineTo(farX - nx * farW, farY - ny * farW);
-  ctx.lineTo(farX + dx / len * tipLen - nx * farW * 0.68, farY + dy / len * tipLen - ny * farW * 0.68);
-  ctx.lineTo(farX + dx / len * tipLen + nx * farW * 0.68, farY + dy / len * tipLen + ny * farW * 0.68);
+  ctx.lineTo(farX + dx / len * tipLen, farY + dy / len * tipLen);
   ctx.lineTo(farX + nx * farW, farY + ny * farW);
   ctx.closePath();
   ctx.fill();
@@ -2104,7 +2176,7 @@ function drawHud() {
   drawText(`LV ${player.level}`, statX + 20, panelY + 50, 16, "#f3c46e");
   drawText(`XP ${player.xp}/${player.nextXp}`, statX + 20, panelY + 80, 13, "#cdb681");
   drawText(`KILL ${kills}`, statX + 148, panelY + 50, 15, "#f4dfbd");
-  drawText(isTown() ? "SAFE ZONE" : "FIELD", statX + 148, panelY + 80, 13, isTown() ? "#f3c46e" : "#cdb681");
+  drawText(zoneAt().short, statX + 148, panelY + 80, 13, isTown() ? "#f3c46e" : "#cdb681");
 
   const weaponX = Math.max(statX + 302, W - 344);
   drawHudPanel(weaponX, panelY + 18, 326, 90);
@@ -2207,7 +2279,7 @@ function drawMiniMap() {
     ctx.fillRect(x0 + item.x * cell - 1, y0 + item.y * cell - 1, 3, 3);
   }
 
-  for (const prop of TOWN_PROPS) {
+  for (const prop of WORLD_PROPS) {
     ctx.fillStyle = "#c89b58";
     ctx.fillRect(x0 + prop.x * cell - 1, y0 + prop.y * cell - 1, 2, 2);
   }
