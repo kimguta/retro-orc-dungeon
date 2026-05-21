@@ -17,7 +17,10 @@ const MOVE_SPEED = 2.1;
 const SPECIAL_RAGE_COST = 40;
 const BERSERK_DRAIN_PER_SECOND = 7.5;
 const DEATH_RESPAWN_SECONDS = 5;
-const SAVE_KEY = "shadowCitadelProgressV1";
+const MAX_PLAYER_LEVEL = 99;
+const MAX_WEAPON_LEVEL = 200;
+const SAVE_KEY = "paperCitadelProgressV1";
+const LEGACY_SAVE_KEY = "shadowCitadelProgressV1";
 
 const BASE_MAP = [
   "################################################",
@@ -60,6 +63,7 @@ const player = {
   level: 1,
   xp: 0,
   nextXp: 60,
+  attackPower: 5,
   weaponLevel: 0,
 };
 
@@ -211,7 +215,7 @@ const TOWN_NPCS = [
     y: 2.25,
     hp: 30,
     maxHp: 30,
-    line: "안전지대 밖은 위험합니다. 검을 잃으면 표시를 따라 꼭 회수하세요.",
+    line: "안녕하세요. 체력을 회복해드릴게요.",
   },
 ];
 
@@ -284,10 +288,10 @@ function enemyLevel(type, stageBonus) {
 
 function enemyStats(type, stageBonus) {
   const stats = {
-    skeleton: { hp: 5 + Math.floor(stageBonus * 1.6), speed: 1.02 + stageBonus * 0.06, damage: 7 + stageBonus, radius: 0.27, xp: 12 + stageBonus * 3, attackRange: 1.15, windup: 0.28, cooldown: 0.72 },
-    orc: { hp: 8 + stageBonus * 2, speed: 0.78 + stageBonus * 0.055, damage: 10 + stageBonus * 2, radius: 0.32, xp: 18 + stageBonus * 4, attackRange: 1.28, windup: 0.36, cooldown: 0.95 },
-    ogre: { hp: 18 + stageBonus * 4, speed: 0.46 + stageBonus * 0.03, damage: 22 + stageBonus * 3, radius: 0.48, xp: 42 + stageBonus * 7, attackRange: 1.6, windup: 0.62, cooldown: 1.35 },
-    warlock: { hp: 10 + stageBonus * 2, speed: 0.54 + stageBonus * 0.035, damage: 12 + stageBonus * 2, radius: 0.3, xp: 34 + stageBonus * 6, attackRange: 4.75, windup: 0.55, cooldown: 1.45, projectile: true },
+    skeleton: { hp: 8 + Math.floor(stageBonus * 1.6), speed: 0.94 + stageBonus * 0.06, damage: 4 + stageBonus, radius: 0.27, xp: 12 + stageBonus * 3, attackRange: 1.15, windup: 0.32, cooldown: 0.8 },
+    orc: { hp: 12 + stageBonus * 2, speed: 0.74 + stageBonus * 0.055, damage: 6 + stageBonus * 2, radius: 0.32, xp: 18 + stageBonus * 4, attackRange: 1.28, windup: 0.4, cooldown: 1.02 },
+    ogre: { hp: 24 + stageBonus * 4, speed: 0.44 + stageBonus * 0.03, damage: 14 + stageBonus * 3, radius: 0.48, xp: 42 + stageBonus * 7, attackRange: 1.6, windup: 0.66, cooldown: 1.42 },
+    warlock: { hp: 14 + stageBonus * 2, speed: 0.52 + stageBonus * 0.035, damage: 7 + stageBonus * 2, radius: 0.3, xp: 34 + stageBonus * 6, attackRange: 4.75, windup: 0.58, cooldown: 1.5, projectile: true },
     skeletonKing: { hp: 38 + stageBonus * 8, speed: 0.56 + stageBonus * 0.035, damage: 18 + stageBonus * 3, radius: 0.42, xp: 90 + stageBonus * 12, attackRange: 1.58, windup: 0.5, cooldown: 1.1, boss: true },
     boss: { hp: 32 + stageBonus * 7, speed: 0.62 + stageBonus * 0.045, damage: 18 + stageBonus * 4, radius: 0.42, xp: 80 + stageBonus * 12, attackRange: 1.5, windup: 0.48, cooldown: 1.15, boss: true },
     deathKnight: { hp: 58 + stageBonus * 9, speed: 0.68 + stageBonus * 0.035, damage: 24 + stageBonus * 3, radius: 0.43, xp: 130 + stageBonus * 16, attackRange: 1.65, windup: 0.48, cooldown: 1.02, boss: true },
@@ -339,6 +343,7 @@ function saveProgress() {
       nextXp: player.nextXp,
       maxHp: player.maxHp,
       maxRage: player.maxRage,
+      attackPower: player.attackPower,
       weaponLevel: player.weaponLevel,
       kills,
     }));
@@ -349,16 +354,17 @@ function saveProgress() {
 
 function loadProgress() {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
+    const raw = localStorage.getItem(SAVE_KEY) || localStorage.getItem(LEGACY_SAVE_KEY);
     if (!raw) return;
     const data = JSON.parse(raw);
-    player.level = Math.max(1, Number(data.level) || player.level);
+    player.level = Math.min(MAX_PLAYER_LEVEL, Math.max(1, Number(data.level) || player.level));
     player.xp = Math.max(0, Number(data.xp) || 0);
     player.nextXp = Math.max(60, Number(data.nextXp) || player.nextXp);
     player.maxHp = Math.max(100, Number(data.maxHp) || player.maxHp);
     player.hp = player.maxHp;
     player.maxRage = Math.max(100, Number(data.maxRage) || player.maxRage);
-    player.weaponLevel = Math.max(0, Number(data.weaponLevel) || 0);
+    player.attackPower = Math.max(5, Number(data.attackPower) || (5 + Math.floor((player.level - 1) * 1.2)));
+    player.weaponLevel = Math.min(MAX_WEAPON_LEVEL, Math.max(0, Number(data.weaponLevel) || 0));
     kills = Math.max(0, Number(data.kills) || 0);
   } catch (_) {
     localStorage.removeItem(SAVE_KEY);
@@ -439,15 +445,17 @@ function rageGainMultiplier() {
 }
 
 function gainXp(amount) {
+  if (player.level >= MAX_PLAYER_LEVEL) return;
   player.xp += amount;
-  while (player.xp >= player.nextXp) {
+  while (player.xp >= player.nextXp && player.level < MAX_PLAYER_LEVEL) {
     player.xp -= player.nextXp;
     player.level += 1;
     player.nextXp = Math.floor(player.nextXp * 1.34 + 18);
-    player.maxHp += 12;
+    player.maxHp += 14;
     player.hp = player.maxHp;
+    player.attackPower += 1;
     player.maxRage = Math.min(180, player.maxRage + 8);
-    notice = `레벨 ${player.level}`;
+    notice = player.level === MAX_PLAYER_LEVEL ? "MAX LEVEL - HP 완전 회복" : `LEVEL UP! Lv.${player.level} 능력치 상승`;
     noticeTimer = 2.2;
     saveProgress();
   }
@@ -498,9 +506,6 @@ function respawnDelay(e) {
 
 function startPlayerDeath() {
   if (gameState === "dead") return;
-  if (player.weaponLevel > 0) {
-    spawnItem("weapon", player.x, player.y, player.weaponLevel);
-  }
   gameState = "dead";
   deathTimer = DEATH_RESPAWN_SECONDS;
   player.hp = 0;
@@ -526,7 +531,6 @@ function respawnPlayer() {
   player.hp = player.maxHp;
   player.hurt = 0;
   player.rage = 0;
-  player.weaponLevel = 0;
   swing = 0;
   swingCooldown = 0;
   swingType = "normal";
@@ -540,7 +544,7 @@ function respawnPlayer() {
   berserk = false;
   deathTimer = 0;
   gameState = "play";
-  notice = "세이프티 존에서 부활 - 검을 되찾으세요";
+  notice = "세이프티 존에서 부활 - 다시 발록 트라이";
   noticeTimer = 3.2;
 }
 
@@ -607,12 +611,7 @@ function itemColor(item) {
   if (item.type === "xp") return "#45a8ff";
   if (item.type === "scroll") return "#f2d58a";
   if (item.type === "legendScroll") return "#ff4a24";
-  if (item.type === "weapon") return "#fff1bd";
   return "#e3c75b";
-}
-
-function lostWeapon() {
-  return items.find((item) => item.type === "weapon");
 }
 
 function balrogEnemy() {
@@ -677,7 +676,10 @@ function interact() {
   dialogueSpeaker = nearby.npc.name;
   dialogueText = nearby.npc.line;
   dialogueTimer = 4.2;
-  noticeTimer = 0;
+  player.hp = player.maxHp;
+  player.hurt = 0;
+  notice = "HP가 모두 회복되었습니다";
+  noticeTimer = 2;
 }
 
 function castRay(angle) {
@@ -918,9 +920,22 @@ function attack(kind = "normal") {
 
   const hitRange = kind === "special" ? 3.05 : 2.15;
   const hitAngle = kind === "special" ? 0.62 : 0.38;
-  const baseDamage = 2 + player.weaponLevel + levelAttackBonus();
+  const baseDamage = player.attackPower + player.weaponLevel + levelAttackBonus();
   const rageDamage = berserk ? 1.5 : 1;
   const damage = Math.ceil((kind === "special" ? baseDamage * 2 + 2 : baseDamage) * rageDamage);
+  const hits = getAttackHits(hitRange, hitAngle);
+  const targets = kind === "special" ? hits.map((hit) => hit.e) : hits.slice(0, 1).map((hit) => hit.e);
+
+  if (targets.length) {
+    for (const target of targets) {
+      damageEnemy(target, damage, kind);
+    }
+    hitSpark = 1;
+    screenShake = kind === "special" ? 1.6 : 1;
+  }
+}
+
+function getAttackHits(hitRange, hitAngle) {
   const hits = [];
   for (const e of enemies) {
     if (e.dead) continue;
@@ -934,15 +949,7 @@ function attack(kind = "normal") {
     }
   }
   hits.sort((a, b) => a.dist - b.dist);
-  const targets = kind === "special" ? hits.map((hit) => hit.e) : hits.slice(0, 1).map((hit) => hit.e);
-
-  if (targets.length) {
-    for (const target of targets) {
-      damageEnemy(target, damage, kind);
-    }
-    hitSpark = 1;
-    screenShake = kind === "special" ? 1.6 : 1;
-  }
+  return hits;
 }
 
 function damageEnemy(target, damage, kind) {
@@ -991,8 +998,9 @@ function collectItems() {
     const dist = Math.hypot(item.x - player.x, item.y - player.y);
     if (dist > 0.58) continue;
     if (item.type === "health") {
-      player.hp = Math.min(player.maxHp, player.hp + 28);
-      notice = "체력 회복";
+      const healAmount = Math.max(30, Math.floor(player.maxHp * 0.4));
+      player.hp = Math.min(player.maxHp, player.hp + healAmount);
+      notice = `체력 ${healAmount} 회복`;
       noticeTimer = 1.6;
       items.splice(i, 1);
     } else if (item.type === "rage") {
@@ -1006,23 +1014,17 @@ function collectItems() {
       noticeTimer = 1.6;
       items.splice(i, 1);
     } else if (item.type === "scroll") {
-      player.weaponLevel += 1;
+      player.weaponLevel = Math.min(MAX_WEAPON_LEVEL, player.weaponLevel + 1);
       notice = `강화 주문서 - 검 +${player.weaponLevel}`;
       noticeTimer = 2.2;
       saveProgress();
       items.splice(i, 1);
     } else if (item.type === "legendScroll") {
-      player.weaponLevel += 3;
+      player.weaponLevel = Math.min(MAX_WEAPON_LEVEL, player.weaponLevel + 3);
       player.maxRage = Math.min(220, player.maxRage + 25);
       addRage(player.maxRage);
       notice = `발록의 전리품 - 검 +${player.weaponLevel}`;
       noticeTimer = 3.2;
-      saveProgress();
-      items.splice(i, 1);
-    } else if (item.type === "weapon") {
-      player.weaponLevel = Math.max(player.weaponLevel, item.value);
-      notice = `검 +${item.value} 회수`;
-      noticeTimer = 2.4;
       saveProgress();
       items.splice(i, 1);
     }
@@ -1202,20 +1204,36 @@ function drawSpriteShadow(cx, y, size, scale, dist) {
 }
 
 function spriteScale(e) {
-  if (e.type === "balrog") return 2.08;
-  if (e.type === "ogreLord") return 1.35;
-  if (e.type === "deathKnight" || e.type === "warlockLord") return 1.32;
+  if (e.type === "balrog") return 2.45;
+  if (e.type === "ogreLord") return 1.58;
+  if (e.type === "deathKnight" || e.type === "warlockLord") return 1.48;
   if (e.type === "ogre") return 1.05;
-  if (e.boss) return 1.25;
+  if (e.boss) return 1.42;
   if (e.type === "skeleton") return 0.62;
   return 0.72;
 }
 
 function drawEnemy(e, x, y, size, dist) {
+  drawPaperStandee(x, y, size, e.type === "balrog" ? 1.22 : e.boss ? 1.06 : 0.9);
   if (e.type === "balrog") drawBalrog(e, x, y, size, dist);
   else if (e.type === "skeleton" || e.type === "skeletonKing" || e.type === "deathKnight") drawSkeleton(e, x, y, size, dist);
   else if (e.type === "warlock" || e.type === "warlockLord") drawWarlock(e, x, y, size, dist);
   else drawOrc(e, x, y, size, dist);
+}
+
+function drawPaperStandee(x, y, size, widthScale = 1) {
+  const baseY = y + size * 0.92;
+  ctx.save();
+  ctx.globalAlpha = 0.72;
+  ctx.fillStyle = "rgba(3, 2, 1, 0.42)";
+  ctx.beginPath();
+  ctx.ellipse(x + size * 0.5, baseY + size * 0.055, size * 0.34 * widthScale, Math.max(3, size * 0.055), 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#5a3a20";
+  ctx.fillRect(Math.round(x + size * (0.31 - widthScale * 0.06)), Math.round(baseY), Math.ceil(size * (0.38 + widthScale * 0.12)), Math.max(2, Math.ceil(size * 0.04)));
+  ctx.fillStyle = "#b77a3d";
+  ctx.fillRect(Math.round(x + size * 0.44), Math.round(baseY - size * 0.075), Math.max(2, Math.ceil(size * 0.12)), Math.max(3, Math.ceil(size * 0.09)));
+  ctx.restore();
 }
 
 function drawTownSprites() {
@@ -1238,6 +1256,7 @@ function drawTownSprites() {
     if (s.kind === "npc") {
       const size = Math.min(180, (H / s.dist) * 0.36);
       const y = HALF_H - size * 0.38;
+      drawPaperStandee(screenX - size / 2, y, size, 0.72);
       drawTownNpc(s.data, screenX - size / 2, y, size, s.dist);
       if (gameState === "play") {
         drawNameplate(screenX, y - Math.max(24, size * 0.1), Math.max(64, Math.min(112, size * 0.55)), s.data.name, s.data.hp / s.data.maxHp, "#6bcf77");
@@ -1447,12 +1466,6 @@ function drawItemSprite(item, x, y, size) {
     rect(x + 4 * px, y + 1 * px, 2 * px, 8 * px, "#ffd25a");
     rect(x + 2 * px, y + 4 * px, 6 * px, 2 * px, "#7a0e09");
     rect(x + 1 * px, y + 1 * px, 2 * px, 2 * px, "#fff0a8");
-  } else if (item.type === "weapon") {
-    const palette = swordPalette(item.value);
-    rect(x + 4 * px, y + 1 * px, 2 * px, 7 * px, palette.blade);
-    rect(x + 5 * px, y + 1 * px, 1 * px, 7 * px, palette.highlight);
-    rect(x + 2 * px, y + 6 * px, 6 * px, 1 * px, palette.guard);
-    rect(x + 4 * px, y + 7 * px, 2 * px, 3 * px, "#9b6333");
   } else {
     rect(x + 2 * px, y + 2 * px, 6 * px, 6 * px, "#21160f");
     rect(x + 3 * px, y + 1 * px, 4 * px, 8 * px, "#d0ae52");
@@ -1801,6 +1814,20 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showT
   ctx.closePath();
   ctx.fill();
 
+  ctx.strokeStyle = "rgba(67, 41, 18, 0.36)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(nearX - nx * midW * 0.56, nearY - ny * midW * 0.56);
+  ctx.lineTo(farX - nx * farW * 0.55, farY - ny * farW * 0.55);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255, 235, 180, 0.18)";
+  ctx.setLineDash([8, 9]);
+  ctx.beginPath();
+  ctx.moveTo(nearX + nx * midW * 0.46, nearY + ny * midW * 0.46);
+  ctx.lineTo(farX + dx / len * tipLen * 0.52, farY + dy / len * tipLen * 0.52);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
   ctx.fillStyle = palette.guard;
   ctx.beginPath();
   ctx.moveTo(nearX + nx * 66 + dx / len * 10, nearY + ny * 66 + dy / len * 10);
@@ -1810,7 +1837,7 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showT
   ctx.closePath();
   ctx.fill();
 
-  ctx.fillStyle = "#2a160d";
+  ctx.fillStyle = "#5a3318";
   ctx.beginPath();
   ctx.moveTo(nearX + nx * 22, nearY + ny * 22);
   ctx.lineTo(nearX - nx * 22, nearY - ny * 22);
@@ -1818,6 +1845,9 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showT
   ctx.lineTo(hiltX + nx * 16, hiltY + ny * 16);
   ctx.closePath();
   ctx.fill();
+  ctx.strokeStyle = "rgba(31, 17, 8, 0.5)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
 
   ctx.fillStyle = "#9b6333";
   ctx.beginPath();
@@ -1961,13 +1991,8 @@ function drawHud() {
   if (berserk) drawText("광폭화: 공속/공격력/이속 +50%, 특수공격 무제한", W - 390, H - 52, 13, "#ffb199");
   else if (player.rage >= SPECIAL_RAGE_COST) drawText(`우클릭 특수공격 - 분노 ${SPECIAL_RAGE_COST}`, W - 290, H - 52, 13, "#ffe39a");
 
-  const droppedSword = lostWeapon();
-  if (droppedSword) {
-    drawText(`잃어버린 검: ${directionTo(droppedSword.x, droppedSword.y)}`, 760, H - 28, 13, "#fff1bd");
-  } else {
-    const balrog = balrogEnemy();
-    drawText(balrog ? `목표: ${directionTo(balrog.x, balrog.y)}쪽 발록 처치` : "목표 완료: 발록 처치", 760, H - 28, 13, balrog ? "#ffb199" : "#ffe39a");
-  }
+  const balrog = balrogEnemy();
+  drawText(balrog ? `목표: ${directionTo(balrog.x, balrog.y)}쪽 발록 트라이` : "목표 완료: 발록 처치", 760, H - 28, 13, balrog ? "#ffb199" : "#ffe39a");
 
   const boss = balrogEnemy() || enemies.find((e) => e.boss && !e.dead);
   if (boss && (Math.hypot(player.x - boss.x, player.y - boss.y) < 8 || boss.hp < boss.maxHp)) {
@@ -2039,13 +2064,8 @@ function drawHud() {
   else if (player.rage >= SPECIAL_RAGE_COST) drawText("우클릭 특수공격", W - 316, panelY + 74, 13, "#ffe39a");
   else drawText(`특수공격 분노 ${SPECIAL_RAGE_COST}`, W - 316, panelY + 74, 13, "#a99363");
 
-  const droppedSword = lostWeapon();
-  if (droppedSword) {
-    drawText(`잃어버린 검: ${directionTo(droppedSword.x, droppedSword.y)}`, 808, panelY + 70, 13, "#fff1bd");
-  } else {
-    const balrog = balrogEnemy();
-    drawText(balrog ? `목표: ${directionTo(balrog.x, balrog.y)}쪽 발록 처치` : "목표 완료: 발록 처치", 808, panelY + 70, 13, balrog ? "#ffb199" : "#ffe39a");
-  }
+  const balrog = balrogEnemy();
+  drawText(balrog ? `목표: ${directionTo(balrog.x, balrog.y)}쪽 발록 트라이` : "목표 완료: 발록 처치", 808, panelY + 70, 13, balrog ? "#ffb199" : "#ffe39a");
 
   const boss = balrogEnemy() || enemies.find((e) => e.boss && !e.dead);
   if (boss && (Math.hypot(player.x - boss.x, player.y - boss.y) < 8 || boss.hp < boss.maxHp)) {
@@ -2133,13 +2153,9 @@ function drawHud() {
   else drawText(`특수공격 분노 ${SPECIAL_RAGE_COST}`, weaponX + 20, panelY + 82, 13, "#9f8a60");
 
   const hintX = Math.min(weaponX - 28, W - 520);
-  const droppedSword = lostWeapon();
   if (hintX > statX + 298) {
-    if (droppedSword) drawText(`잃어버린 검: ${directionTo(droppedSword.x, droppedSword.y)}`, hintX, panelY + 82, 13, "#f4dfbd");
-    else {
-      const balrog = balrogEnemy();
-      drawText(balrog ? `목표: ${directionTo(balrog.x, balrog.y)}쪽 발록` : "목표 완료: 발록 처치", hintX, panelY + 82, 13, balrog ? "#ffb199" : "#f3c46e");
-    }
+    const balrog = balrogEnemy();
+    drawText(balrog ? `목표: ${directionTo(balrog.x, balrog.y)}쪽 발록` : "목표 완료: 발록 처치", hintX, panelY + 82, 13, balrog ? "#ffb199" : "#f3c46e");
   }
 
   const boss = balrogEnemy() || enemies.find((e) => e.boss && !e.dead);
@@ -2226,15 +2242,8 @@ function drawMiniMap() {
   }
 
   for (const item of items) {
-    if (item.type === "weapon") {
-      ctx.fillStyle = pulse ? "#fff7c2" : "#f1c232";
-      ctx.fillRect(x0 + item.x * cell - 3, y0 + item.y * cell - 3, 7, 7);
-      ctx.strokeStyle = "#ffffff";
-      ctx.strokeRect(x0 + item.x * cell - 4, y0 + item.y * cell - 4, 9, 9);
-    } else {
-      ctx.fillStyle = itemColor(item);
-      ctx.fillRect(x0 + item.x * cell - 1, y0 + item.y * cell - 1, 3, 3);
-    }
+    ctx.fillStyle = itemColor(item);
+    ctx.fillRect(x0 + item.x * cell - 1, y0 + item.y * cell - 1, 3, 3);
   }
 
   for (const prop of TOWN_PROPS) {
@@ -2279,20 +2288,32 @@ function drawMiniMap() {
 function drawCrosshair() {
   const cx = W / 2;
   const cy = H / 2;
-  ctx.strokeStyle = "rgba(255, 232, 160, 0.62)";
+  const normalTarget = getAttackHits(2.15, 0.38)[0];
+  const specialTarget = normalTarget || getAttackHits(3.05, 0.62)[0];
+  const strong = Boolean(normalTarget);
+  const warm = Boolean(specialTarget);
+  const size = strong ? 15 : warm ? 12 : 9;
+  const gap = strong ? 5 : warm ? 6 : 7;
+  ctx.strokeStyle = strong
+    ? "rgba(255, 238, 176, 0.92)"
+    : warm
+      ? "rgba(245, 196, 121, 0.32)"
+      : "rgba(255, 232, 160, 0.1)";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(cx - 13, cy);
-  ctx.lineTo(cx - 5, cy);
-  ctx.moveTo(cx + 5, cy);
-  ctx.lineTo(cx + 13, cy);
-  ctx.moveTo(cx, cy - 13);
-  ctx.lineTo(cx, cy - 5);
-  ctx.moveTo(cx, cy + 5);
-  ctx.lineTo(cx, cy + 13);
+  ctx.moveTo(cx - size, cy);
+  ctx.lineTo(cx - gap, cy);
+  ctx.moveTo(cx + gap, cy);
+  ctx.lineTo(cx + size, cy);
+  ctx.moveTo(cx, cy - size);
+  ctx.lineTo(cx, cy - gap);
+  ctx.moveTo(cx, cy + gap);
+  ctx.lineTo(cx, cy + size);
   ctx.stroke();
-  ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-  ctx.fillRect(cx - 2, cy - 2, 4, 4);
+  if (strong) {
+    ctx.fillStyle = "rgba(255, 241, 191, 0.84)";
+    ctx.fillRect(cx - 2, cy - 2, 4, 4);
+  }
 }
 
 function drawBar(x, y, w, h, pct, fill, bg, label = "") {
@@ -2333,8 +2354,8 @@ function drawEndScreen() {
   ctx.fillStyle = gameState === "over" ? "#b52626" : "#e6c766";
   ctx.font = gameState === "start" ? "600 48px Noto Sans KR, Malgun Gothic, sans-serif" : "600 54px Noto Sans KR, Malgun Gothic, sans-serif";
   let title = "게임 오버";
-  if (gameState === "start") title = "그림자 성채";
-  if (gameState === "clear") title = "성채 정복";
+  if (gameState === "start") title = "Paper Citadel";
+  if (gameState === "clear") title = "종이성채 정복";
   if (gameState === "dead") title = "죽었습니다";
   ctx.fillText(title, W / 2, H / 2 - 72);
   ctx.fillStyle = "#d9c99a";
@@ -2342,11 +2363,11 @@ function drawEndScreen() {
   if (gameState === "start") {
     ctx.fillText("좌클릭 / 스페이스: 공격", W / 2, H / 2 - 18);
     ctx.fillText(`분노 최대치: 자동 광폭화`, W / 2, H / 2 + 14);
-    ctx.fillText("사냥하고, 성장하고, 던전에서 버티세요", W / 2, H / 2 + 48);
+    ctx.fillText("종이성채에서 성장하고 발록을 반복 트라이하세요", W / 2, H / 2 + 48);
     ctx.fillText("Enter 또는 클릭으로 시작", W / 2, H / 2 + 84);
   } else if (gameState === "dead") {
     ctx.fillText(`${Math.ceil(deathTimer)}초 후 세이프티 존에서 부활합니다`, W / 2, H / 2 + 12);
-    ctx.fillText("강화된 검은 죽은 자리에 떨어졌습니다", W / 2, H / 2 + 48);
+    ctx.fillText("레벨과 검 강화는 유지됩니다. 다시 달려가세요", W / 2, H / 2 + 48);
   } else {
     ctx.fillText("Enter로 다시 시작", W / 2, H / 2 + 12);
   }
@@ -2363,6 +2384,7 @@ function startGame() {
 function resetGame() {
   try {
     localStorage.removeItem(SAVE_KEY);
+    localStorage.removeItem(LEGACY_SAVE_KEY);
   } catch (_) {}
   stage = 1;
   player.x = 4.5;
@@ -2376,6 +2398,7 @@ function resetGame() {
   player.level = 1;
   player.xp = 0;
   player.nextXp = 60;
+  player.attackPower = 5;
   player.weaponLevel = 0;
   berserk = false;
   deathTimer = 0;
@@ -2396,7 +2419,7 @@ function resetGame() {
   items = [];
   map = buildMap(stage);
   enemies = buildEnemies(stage);
-  notice = "던전 필드";
+  notice = "Paper Citadel";
   noticeTimer = 0;
 }
 
