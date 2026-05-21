@@ -1849,10 +1849,10 @@ function drawWeapon() {
   const sway = swing > 0 ? 0 : Math.sin(performance.now() * 0.006) * 3;
   const reach = lunge;
 
-  const nearX = W * (0.84 + (1 - windup) * 0.05 - reach * 0.13 + recoil * 0.06) + sway;
+  const nearX = W * (0.89 + (1 - windup) * 0.05 - reach * 0.13 + recoil * 0.06) + sway;
   const nearY = H * (1.12 + (1 - windup) * 0.04 - reach * 0.04 + recoil * 0.05);
-  const farX = W * (0.62 - reach * 0.22);
-  const farY = H * (0.78 - reach * 0.39);
+  const farX = W * (0.57 - reach * 0.22);
+  const farY = H * (0.81 - reach * 0.39);
   drawForwardPole(nearX, nearY, farX, farY, reach * 1.55, false, true);
 
   if (hitSpark > 0) drawHitSpark();
@@ -2130,16 +2130,16 @@ function drawHudLegacyPanel() {
   drawMiniMap();
   drawCrosshair();
   if (berserk) {
-    const pulse = 0.45 + Math.sin(performance.now() * 0.012) * 0.16;
-    ctx.fillStyle = `rgba(188, 18, 10, ${0.16 + pulse * 0.12})`;
+    const pulse = 0.5 + Math.sin(performance.now() * 0.0014) * 0.035;
+    ctx.fillStyle = `rgba(188, 18, 10, ${0.18 + pulse * 0.035})`;
     ctx.fillRect(0, 0, W, H);
     const furyGlow = ctx.createRadialGradient(W / 2, H / 2, W * 0.1, W / 2, H / 2, W * 0.62);
-    furyGlow.addColorStop(0, `rgba(255, 130, 42, ${0.08 * pulse})`);
-    furyGlow.addColorStop(0.58, `rgba(190, 38, 18, ${0.2 * pulse})`);
-    furyGlow.addColorStop(1, `rgba(90, 8, 5, ${0.44 * pulse})`);
+    furyGlow.addColorStop(0, `rgba(255, 130, 42, ${0.055 + 0.025 * pulse})`);
+    furyGlow.addColorStop(0.58, `rgba(190, 38, 18, ${0.15 + 0.04 * pulse})`);
+    furyGlow.addColorStop(1, `rgba(90, 8, 5, ${0.34 + 0.05 * pulse})`);
     ctx.fillStyle = furyGlow;
     ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = `rgba(255, 118, 42, ${0.55 + pulse * 0.25})`;
+    ctx.strokeStyle = `rgba(255, 118, 42, ${0.58 + pulse * 0.08})`;
     ctx.lineWidth = 6;
     ctx.strokeRect(4, 4, W - 8, H - 8);
   }
@@ -2309,7 +2309,7 @@ function drawHitDirection() {
   const side = Math.sin(hurtDirection);
   const vx = side;
   const vy = -front;
-  const pad = 34;
+  const pad = 16;
   const sx = (cx - pad) / Math.max(0.001, Math.abs(vx));
   const sy = (cy - pad) / Math.max(0.001, Math.abs(vy));
   const edge = Math.min(sx, sy);
