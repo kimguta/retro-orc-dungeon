@@ -73,6 +73,12 @@ io.on("connection", (socket) => {
     resetDungeon();
   });
 
+  socket.on("test:resetCharacters", () => {
+    const current = players.get(socket.id);
+    if (!current?.isTestAccount) return;
+    resetCharacters();
+  });
+
   socket.on("disconnect", () => {
     const current = players.get(socket.id);
     if (!current) return;
@@ -133,6 +139,8 @@ function newCharacter(name) {
     attackPower: 5,
     weaponLevel: 0,
     armorLevel: 0,
+    weaponScrolls: 0,
+    armorScrolls: 0,
     kills: 0,
     deaths: 0,
     lastLoginAt: Date.now(),
@@ -162,6 +170,27 @@ function resetDungeon() {
   ensureMonsterPopulation();
   io.to(ROOM_ID).emit("dungeon:update", publicDungeon());
   io.to(ROOM_ID).emit("dungeon:notice", { text: "테스트 성채 초기화 - 1단계" });
+}
+
+function resetCharacters() {
+  for (const key of Object.keys(users)) delete users[key];
+  for (const player of players.values()) {
+    const reset = newCharacter(player.name);
+    Object.assign(player, reset, {
+      x: player.x,
+      y: player.y,
+      angle: player.angle,
+      roomId: ROOM_ID,
+      testBoosted: false,
+      normalSnapshot: null,
+      berserk: false,
+    });
+    users[player.name] = serializeCharacter(player);
+    io.to(player.id).emit("character:update", publicCharacter(player));
+  }
+  saveUsers();
+  publishPlayers();
+  io.to(ROOM_ID).emit("dungeon:notice", { text: "캐릭터 데이터 초기화" });
 }
 
 function publicDungeon() {
@@ -219,6 +248,7 @@ function publicPlayers() {
     level: player.level,
     weaponLevel: player.weaponLevel,
     armorLevel: player.armorLevel,
+    hop: player.hop || 0,
     moving: player.moving,
     berserk: player.berserk,
     action: player.action,
@@ -240,12 +270,18 @@ function tickDungeon(dt) {
       continue;
     }
     const target = nearestPlayer(enemy);
-    if (!target || inSafeZone(target.x, target.y)) continue;
+    if (!target || inSafeZone(target.x, target.y)) {
+      wanderEnemy(enemy, dt, now);
+      continue;
+    }
     const dx = target.x - enemy.x;
     const dy = target.y - enemy.y;
     const dist = Math.hypot(dx, dy) || 1;
     const aggro = enemy.type === "balrog" ? 23 : enemy.projectile ? 15 : enemy.boss ? 14 : 12;
-    if (dist > aggro || !lineOfSight(room.map, enemy.x, enemy.y, target.x, target.y)) continue;
+    if (dist > aggro || !lineOfSight(room.map, enemy.x, enemy.y, target.x, target.y)) {
+      wanderEnemy(enemy, dt, now);
+      continue;
+    }
     const reach = enemy.attackRange + enemy.radius * 0.65 + 0.18;
     if (dist > reach) {
       moveOnMap(enemy, (dx / dist) * enemy.speed * dt, (dy / dist) * enemy.speed * dt, enemy.radius);
@@ -291,6 +327,30 @@ function separateEnemies(dt) {
   }
 }
 
+function wanderEnemy(enemy, dt, now) {
+  if (enemy.type === "balrog") {
+    enemy.moving = false;
+    return;
+  }
+  const leash = enemy.boss ? 1.8 : 2.8;
+  const fromSpawn = Math.hypot(enemy.x - enemy.spawnX, enemy.y - enemy.spawnY);
+  if (fromSpawn > leash) {
+    const homeX = enemy.spawnX - enemy.x;
+    const homeY = enemy.spawnY - enemy.y;
+    const homeDist = Math.hypot(homeX, homeY) || 1;
+    moveOnMap(enemy, homeX / homeDist * enemy.speed * dt * 0.42, homeY / homeDist * enemy.speed * dt * 0.42, enemy.radius);
+    enemy.moving = true;
+    return;
+  }
+  if (!enemy.wanderUntil || now >= enemy.wanderUntil) {
+    enemy.wanderUntil = now + 700 + Math.floor(Math.random() * 1500);
+    enemy.wanderAngle += (Math.random() - 0.5) * Math.PI * 1.2;
+  }
+  const pace = enemy.boss ? 0.14 : 0.24;
+  moveOnMap(enemy, Math.cos(enemy.wanderAngle) * enemy.speed * dt * pace, Math.sin(enemy.wanderAngle) * enemy.speed * dt * pace, enemy.radius);
+  enemy.moving = true;
+}
+
 function enemySeparationMass(enemy) {
   if (enemy.type === "balrog") return 5;
   if (enemy.boss) return 2.4;
@@ -334,7 +394,7 @@ function attackEnemies(socket, attack) {
 function applyEnemyDamage(socket, player, enemy, damage) {
   enemy.hp = Math.max(0, enemy.hp - damage);
   enemy.hitFlash = 1;
-  io.to(ROOM_ID).emit("enemy:hit", { id: enemy.id, x: enemy.x, y: enemy.y, damage, boss: enemy.boss });
+  io.to(ROOM_ID).emit("enemy:hit", { id: enemy.id, x: enemy.x, y: enemy.y, damage, boss: enemy.boss, attackerId: player.id });
   if (enemy.hp > 0) return;
   enemy.dead = true;
   enemy.respawnAt = Date.now() + respawnDelay(enemy);
@@ -416,13 +476,15 @@ function makeEnemy(spawn, id, tier) {
     moving: false,
     attackPose: 0,
     hitFlash: 0,
+    wanderAngle: Math.random() * Math.PI * 2,
+    wanderUntil: 0,
   };
 }
 
 function enemyStats(type, tier) {
   const growth = Math.max(0, tier - 1);
-  const hpScale = 1 + growth * 0.16 + growth * growth * 0.012;
-  const damageScale = 1 + growth * 0.1 + growth * growth * 0.005;
+  const hpScale = 1 + growth * 0.22 + growth * growth * 0.018;
+  const damageScale = 1 + growth * 0.14 + growth * growth * 0.008;
   const base = {
     skeleton: { hp: 10, speed: 0.94, damage: 4, radius: 0.27, xp: 24, attackRange: 1.15 },
     orc: { hp: 16, speed: 0.74, damage: 6, radius: 0.32, xp: 42, attackRange: 1.28 },
@@ -435,11 +497,12 @@ function enemyStats(type, tier) {
     warlockLord: { hp: 250, speed: 0.48, damage: 24, radius: 0.36, xp: 760, attackRange: 5.35, projectile: true, boss: true },
     balrog: { hp: 1300, speed: 0.5, damage: 55, radius: 0.9, xp: 4200, attackRange: 2.45, boss: true },
   }[type] || { hp: 16, speed: 0.74, damage: 6, radius: 0.32, xp: 42, attackRange: 1.28 };
-  const bossHp = base.boss ? 1.28 : 1;
+  const bossHp = type === "balrog" ? 4.2 : base.boss ? 1.9 : 1.25;
+  const bossDamage = type === "balrog" ? 1.65 : base.boss ? 1.28 : 1.08;
   return {
     ...base,
     hp: Math.ceil(base.hp * hpScale * bossHp),
-    damage: Math.ceil(base.damage * damageScale),
+    damage: Math.ceil(base.damage * damageScale * bossDamage),
     xp: Math.ceil(base.xp * (1 + growth * 0.35)),
   };
 }
@@ -479,7 +542,9 @@ function applyTestBoost(player) {
 }
 
 function restoreNormalTest(player) {
-  const snapshot = player.normalSnapshot || newCharacter(player.name);
+  const snapshot = player.normalSnapshot && player.normalSnapshot.level < 9999
+    ? player.normalSnapshot
+    : newCharacter(player.name);
   Object.assign(player, snapshot, { testBoosted: false, berserk: false, normalSnapshot: null });
 }
 
@@ -498,6 +563,8 @@ function serializeCharacter(player) {
     attackPower: Math.max(5, Math.floor(player.attackPower || 5)),
     weaponLevel: Math.max(0, Math.floor(player.weaponLevel || 0)),
     armorLevel: Math.max(0, Math.floor(player.armorLevel || 0)),
+    weaponScrolls: Math.max(0, Math.floor(player.weaponScrolls || 0)),
+    armorScrolls: Math.max(0, Math.floor(player.armorScrolls || 0)),
     kills: Math.max(0, Math.floor(player.kills || 0)),
     deaths: Math.max(0, Math.floor(player.deaths || 0)),
     lastLoginAt: Date.now(),
@@ -505,7 +572,9 @@ function serializeCharacter(player) {
 }
 
 function persistCharacter(player) {
-  users[player.name] = serializeCharacter(player);
+  users[player.name] = player.testBoosted && player.normalSnapshot
+    ? { ...player.normalSnapshot, lastLoginAt: Date.now() }
+    : serializeCharacter(player);
 }
 
 function sanitizeState(state) {
@@ -523,7 +592,10 @@ function sanitizeState(state) {
     attackPower: Math.max(5, Math.floor(finite(state.attackPower, 5))),
     weaponLevel: Math.max(0, Math.floor(finite(state.weaponLevel, 0))),
     armorLevel: Math.max(0, Math.floor(finite(state.armorLevel, 0))),
+    weaponScrolls: Math.max(0, Math.floor(finite(state.weaponScrolls, 0))),
+    armorScrolls: Math.max(0, Math.floor(finite(state.armorScrolls, 0))),
     kills: Math.max(0, Math.floor(finite(state.kills, 0))),
+    hop: Math.max(0, Math.min(0.7, finite(state.hop, 0))),
     moving: Boolean(state.moving),
     berserk: Boolean(state.berserk),
     action: state.action === "specialAttack" || state.action === "attack" ? state.action : "idle",

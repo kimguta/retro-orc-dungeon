@@ -47,6 +47,8 @@ const player = {
   attackPower: 5,
   weaponLevel: 0,
   armorLevel: 0,
+  weaponScrolls: 0,
+  armorScrolls: 0,
 };
 
 const roomState = {
@@ -287,19 +289,19 @@ function spawnVariance(type, x, y, variance) {
 }
 
 function enemyStats(type, tierBonus) {
-  const growth = tierPower(tierBonus, type === "balrog" ? 0.26 : isBossType(type) ? 0.18 : 0.07);
+  const growth = tierPower(tierBonus, type === "balrog" ? 0.38 : isBossType(type) ? 0.24 : 0.11);
   const speedTier = Math.min(8, tierBonus);
   const stats = {
-    skeleton: { hp: 10 + growth * 2, speed: 0.94 + speedTier * 0.035, damage: 4 + growth * 0.42, radius: 0.27, xp: 18 + growth * 6, attackRange: 1.15, windup: 0.32, cooldown: 0.8 },
-    orc: { hp: 16 + growth * 2.6, speed: 0.74 + speedTier * 0.035, damage: 6 + growth * 0.7, radius: 0.32, xp: 28 + growth * 8, attackRange: 1.28, windup: 0.4, cooldown: 1.02 },
-    ogre: { hp: 34 + growth * 4.8, speed: 0.44 + speedTier * 0.022, damage: 14 + growth * 1.1, radius: 0.48, xp: 72 + growth * 14, attackRange: 1.6, windup: 0.66, cooldown: 1.42 },
-    warlock: { hp: 20 + growth * 3, speed: 0.52 + speedTier * 0.024, damage: 7 + growth * 0.78, radius: 0.3, xp: 54 + growth * 12, attackRange: 4.75, windup: 0.58, cooldown: 1.5, projectile: true },
+    skeleton: { hp: 13 + growth * 2.8, speed: 0.94 + speedTier * 0.035, damage: 5 + growth * 0.52, radius: 0.27, xp: 18 + growth * 6, attackRange: 1.15, windup: 0.32, cooldown: 0.8 },
+    orc: { hp: 22 + growth * 3.7, speed: 0.74 + speedTier * 0.035, damage: 8 + growth * 0.9, radius: 0.32, xp: 28 + growth * 8, attackRange: 1.28, windup: 0.4, cooldown: 1.02 },
+    ogre: { hp: 48 + growth * 6.4, speed: 0.44 + speedTier * 0.022, damage: 17 + growth * 1.35, radius: 0.48, xp: 72 + growth * 14, attackRange: 1.6, windup: 0.66, cooldown: 1.42 },
+    warlock: { hp: 28 + growth * 4.2, speed: 0.52 + speedTier * 0.024, damage: 9 + growth * 0.96, radius: 0.3, xp: 54 + growth * 12, attackRange: 4.75, windup: 0.58, cooldown: 1.5, projectile: true },
     skeletonKing: { hp: 150 + growth * 23, speed: 0.56 + speedTier * 0.026, damage: 18 + growth * 1.55, radius: 0.42, xp: 260 + growth * 38, attackRange: 1.58, windup: 0.5, cooldown: 1.1, boss: true },
     boss: { hp: 140 + growth * 22, speed: 0.62 + speedTier * 0.03, damage: 18 + growth * 1.72, radius: 0.42, xp: 240 + growth * 36, attackRange: 1.5, windup: 0.48, cooldown: 1.15, boss: true },
     deathKnight: { hp: 220 + growth * 31, speed: 0.68 + speedTier * 0.026, damage: 24 + growth * 1.9, radius: 0.43, xp: 360 + growth * 50, attackRange: 1.65, windup: 0.48, cooldown: 1.02, boss: true },
     ogreLord: { hp: 310 + growth * 42, speed: 0.42 + speedTier * 0.02, damage: 34 + growth * 2.25, radius: 0.58, xp: 470 + growth * 64, attackRange: 1.85, windup: 0.66, cooldown: 1.28, boss: true },
     warlockLord: { hp: 250 + growth * 35, speed: 0.48 + speedTier * 0.022, damage: 24 + growth * 1.95, radius: 0.36, xp: 430 + growth * 60, attackRange: 5.35, windup: 0.62, cooldown: 1.18, projectile: true, boss: true },
-    balrog: { hp: 1300 + growth * 118, speed: 0.5 + speedTier * 0.018, damage: 55 + growth * 3.5, radius: 0.9, xp: 2400 + growth * 210, attackRange: 2.45, windup: 0.68, cooldown: 1.18, boss: true },
+    balrog: { hp: 4200 + growth * 310, speed: 0.5 + speedTier * 0.018, damage: 88 + growth * 5.4, radius: 0.9, xp: 2400 + growth * 210, attackRange: 2.45, windup: 0.68, cooldown: 1.18, boss: true },
   };
   return stats[type] || stats.orc;
 }
@@ -336,6 +338,8 @@ function saveProgress() {
       attackPower: player.attackPower,
       weaponLevel: player.weaponLevel,
       armorLevel: player.armorLevel,
+      weaponScrolls: player.weaponScrolls,
+      armorScrolls: player.armorScrolls,
       kills,
       roomState,
     }));
@@ -358,6 +362,8 @@ function loadProgress() {
     player.attackPower = Math.max(5, Number(data.attackPower) || (5 + Math.floor((player.level - 1) * 1.2)));
     player.weaponLevel = Math.max(0, Number(data.weaponLevel) || 0);
     player.armorLevel = Math.max(0, Number(data.armorLevel) || 0);
+    player.weaponScrolls = Math.max(0, Number(data.weaponScrolls) || 0);
+    player.armorScrolls = Math.max(0, Number(data.armorScrolls) || 0);
     kills = Math.max(0, Number(data.kills) || 0);
     const savedRoom = data.roomState || data;
     roomState.balrogDefeatedCount = Math.max(0, Number(savedRoom.balrogDefeatedCount) || 0);
@@ -374,6 +380,7 @@ function spawnItem(type, x, y, value = 0) {
     y,
     value,
     bob: Math.random() * Math.PI * 2,
+    expiresAt: performance.now() + 30000,
   });
 }
 
@@ -550,7 +557,7 @@ function dropLoot(target) {
   if (target.type === "ogre" || target.type === "warlock") {
     if (roll < 0.035) spawnItem(Math.random() < 0.5 ? "scroll" : "armorScroll", target.x, target.y);
     else if (roll < 0.4) spawnItem("rage", target.x, target.y);
-    else if (roll < 0.56) spawnItem("xp", target.x, target.y);
+    else if (roll < 0.56) spawnItem("xp", target.x, target.y, Math.max(55, Math.floor((target.xp || 55) * 0.62)));
     else if (roll < 0.82) spawnItem("health", target.x, target.y);
     return;
   }
@@ -570,6 +577,7 @@ function scatterBossLoot(target, count, legendary) {
     const roll = Math.random();
     let type = roll < 0.34 ? "scroll" : roll < 0.68 ? "armorScroll" : roll < 0.82 ? "health" : roll < 0.92 ? "xp" : "rage";
     if (legendary && i < 2) type = "legendScroll";
+    if (!legendary && i < 2) type = i % 2 ? "bossArmorScroll" : "bossScroll";
     if (!isWall(x, y)) spawnItem(type, x, y, type === "xp" ? Math.max(80, Math.floor((target.xp || 80) * 0.7)) : 0);
   }
 }
@@ -651,7 +659,7 @@ function beginNamedRun(name) {
   if (nameScreen) nameScreen.classList.add("is-hidden");
   startGame();
   if (isTestCharacter()) {
-    notice = "테스트 계정: 1 무적 토글 / 2 성채 1단계";
+    notice = "테스트 계정: 1 무적 토글 / 2 성채 초기화 / 3 캐릭터 초기화";
     noticeTimer = 3.2;
   }
   connectMultiplayer();
@@ -710,6 +718,16 @@ function resetTestDungeonTier() {
   saveProgress();
 }
 
+function resetTestCharacters() {
+  if (multiplayerSocket?.connected) {
+    multiplayerSocket.emit("test:resetCharacters");
+    notice = "캐릭터 데이터 초기화 요청";
+    noticeTimer = 2.6;
+    return;
+  }
+  resetGame();
+}
+
 function connectMultiplayer() {
   if (!SOCKET_SERVER_URL || typeof io !== "function") {
     setNameStatus("싱글 모드로 시작합니다.");
@@ -754,11 +772,11 @@ function connectMultiplayer() {
     notice = text;
     noticeTimer = 3.2;
   });
-  multiplayerSocket.on("enemy:hit", ({ id, x, y, damage, boss }) => {
+  multiplayerSocket.on("enemy:hit", ({ id, x, y, damage, boss, attackerId }) => {
     const target = enemies.find((enemy) => enemy.id === id);
     if (target) target.hitFlash = 1;
     spawnDamagePop(x, y, damage, boss);
-    hitSpark = 1;
+    if (attackerId === multiplayerSocket.id) hitSpark = 1;
   });
   multiplayerSocket.on("enemy:defeated", ({ enemy }) => {
     const target = enemies.find((entry) => entry.id === enemy.id) || enemy;
@@ -816,8 +834,11 @@ function emitPlayerState(dt) {
     attackPower: player.attackPower,
     weaponLevel: player.weaponLevel,
     armorLevel: player.armorLevel,
+    weaponScrolls: player.weaponScrolls,
+    armorScrolls: player.armorScrolls,
     kills,
     berserk,
+    hop: jumpLift,
     moving: keys.has("KeyW") || keys.has("KeyA") || keys.has("KeyS") || keys.has("KeyD"),
     action: swing > 0 ? swingType === "special" ? "specialAttack" : "attack" : "idle",
   });
@@ -834,6 +855,9 @@ function applyServerCharacter(character) {
   player.attackPower = character.attackPower;
   player.weaponLevel = character.weaponLevel;
   player.armorLevel = character.armorLevel;
+  player.weaponScrolls = character.weaponScrolls || 0;
+  player.armorScrolls = character.armorScrolls || 0;
+  if (character.level < 9999) testBoosted = false;
   kills = character.kills || 0;
 }
 
@@ -1097,6 +1121,9 @@ function update(dt) {
   dialogueTimer = Math.max(0, dialogueTimer - dt);
   for (const item of items) {
     item.bob += dt * 4;
+  }
+  for (let i = items.length - 1; i >= 0; i -= 1) {
+    if (items[i].expiresAt && performance.now() >= items[i].expiresAt) items.splice(i, 1);
   }
   for (const remote of remotePlayers.values()) {
     remote.x += ((remote.targetX ?? remote.x) - remote.x) * Math.min(1, dt * 12);
@@ -1403,15 +1430,13 @@ function collectItems() {
       notice = "경험치 획득";
       noticeTimer = 1.6;
       items.splice(i, 1);
-    } else if (item.type === "scroll") {
-      player.weaponLevel += 1;
-      notice = `강화 주문서 - 검 +${player.weaponLevel}`;
+    } else if (item.type === "scroll" || item.type === "bossScroll") {
+      applyUpgradeScroll("weapon", item.type === "bossScroll" ? 1 : 0);
       noticeTimer = 2.2;
       saveProgress();
       items.splice(i, 1);
-    } else if (item.type === "armorScroll") {
-      player.armorLevel += 1;
-      notice = `갑옷 강화 - 갑옷 +${player.armorLevel}`;
+    } else if (item.type === "armorScroll" || item.type === "bossArmorScroll") {
+      applyUpgradeScroll("armor", item.type === "bossArmorScroll" ? 1 : 0);
       noticeTimer = 2.2;
       saveProgress();
       items.splice(i, 1);
@@ -1426,6 +1451,37 @@ function collectItems() {
       items.splice(i, 1);
     }
   }
+}
+
+function upgradeScrollCost(level) {
+  if (level < 10) return 1;
+  if (level < 20) return 3;
+  if (level < 40) return 6;
+  if (level < 80) return 12;
+  if (level < 120) return 24;
+  if (level < 200) return 48;
+  return 80;
+}
+
+function applyUpgradeScroll(kind, guaranteedLevels = 0) {
+  const levelKey = kind === "armor" ? "armorLevel" : "weaponLevel";
+  const scrollKey = kind === "armor" ? "armorScrolls" : "weaponScrolls";
+  const label = kind === "armor" ? "갑옷" : "검";
+  if (guaranteedLevels > 0) {
+    player[levelKey] += guaranteedLevels;
+    notice = `${label} 강화 +${guaranteedLevels} - ${label} +${player[levelKey]}`;
+    return;
+  }
+  player[scrollKey] += 1;
+  let cost = upgradeScrollCost(player[levelKey]);
+  if (player[scrollKey] >= cost) {
+    player[scrollKey] -= cost;
+    player[levelKey] += 1;
+    cost = upgradeScrollCost(player[levelKey]);
+    notice = `강화 성공 - ${label} +${player[levelKey]}`;
+    return;
+  }
+  notice = `${label} 주문서 ${player[scrollKey]}/${cost}`;
 }
 
 function hasLineOfSight(e) {
@@ -1663,7 +1719,7 @@ function drawRemotePlayers() {
     const size = Math.min(H * 0.82, (H / entry.dist) * 0.72);
     const depthIndex = Math.floor((screenX / W) * RAYS);
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < entry.dist - 0.2) continue;
-    const y = HALF_H - size * 0.52;
+    const y = HALF_H - size * 0.52 - Math.max(0, entry.remote.hop || 0) * 54;
     drawPaperStandee(screenX - size / 2, y, size, 0.92);
     drawRemoteWarrior(entry.remote, screenX - size / 2, y, size);
     drawNameplate(
@@ -1683,6 +1739,7 @@ function drawRemoteWarrior(remote, x, y, size) {
   const attack = remote.action === "attack" || remote.action === "specialAttack";
   const bob = moving ? Math.abs(Math.sin(performance.now() * 0.012 + remote.x * 2)) * px : 0;
   const palette = swordPalette(remote.weaponLevel || 0);
+  const armor = armorPalette(remote.armorLevel || 0);
   y += bob - (attack ? 2 * px : 0);
   rect(x + 4 * px, y + 2 * px, 10 * px, 22 * px, "#180f0b");
   rect(x + 13 * px, y + 4 * px, 1 * px, 18 * px, "rgba(255, 231, 180, 0.22)");
@@ -1692,20 +1749,17 @@ function drawRemoteWarrior(remote, x, y, size) {
   rect(x + 6 * px, y + 5 * px, 2 * px, 1 * px, "#1a130e");
   rect(x + 11 * px, y + 5 * px, 2 * px, 1 * px, "#1a130e");
   rect(x + 8 * px, y + 7 * px, 3 * px, 1 * px, "#7e4021");
-  rect(x + 4 * px, y + 9 * px, 10 * px, 10 * px, remote.berserk ? "#7f241e" : "#354d65");
-  rect(x + 5 * px, y + 10 * px, 8 * px, 2 * px, "#688eab");
-  rect(x + 7 * px, y + 13 * px, 5 * px, 1 * px, "#9fc1d6");
+  rect(x + 4 * px, y + 9 * px, 10 * px, 10 * px, remote.berserk ? "#7f241e" : armor.body);
+  rect(x + 5 * px, y + 10 * px, 8 * px, 2 * px, armor.light);
+  rect(x + 7 * px, y + 13 * px, 5 * px, 1 * px, armor.glint);
   rect(x + 8 * px, y + 14 * px, 1 * px, 4 * px, "#1d2833");
   rect(x + 3 * px, y + 10 * px, 3 * px, 8 * px, "#263644");
   rect(x + 13 * px, y + 10 * px, 3 * px, 8 * px, "#263644");
   rect(x + 6 * px, y + 19 * px, 3 * px, 5 * px, "#211b18");
   rect(x + 11 * px, y + 19 * px, 3 * px, 5 * px, "#211b18");
-  rect(x + 2 * px, y + 11 * px, 2 * px, 7 * px, armorTint(remote.armorLevel || 0));
-  rect(x + 15 * px, y + 11 * px, 2 * px, 7 * px, armorTint(remote.armorLevel || 0));
-  const swordX = attack ? x + 15 * px : x + 16 * px;
-  const swordY = attack ? y + 8 * px : y + 12 * px;
-  rect(swordX, swordY, 2 * px, attack ? 13 * px : 11 * px, palette.shadow);
-  rect(swordX + px * 0.45, swordY - (attack ? 4 : 3) * px, px, attack ? 17 * px : 14 * px, palette.blade);
+  rect(x + 2 * px, y + 11 * px, 2 * px, 7 * px, armor.edge);
+  rect(x + 15 * px, y + 11 * px, 2 * px, 7 * px, armor.edge);
+  drawRemoteSword(x, y, px, palette, attack);
   if (remote.berserk) {
     ctx.save();
     ctx.globalAlpha = 0.34;
@@ -1717,10 +1771,51 @@ function drawRemoteWarrior(remote, x, y, size) {
   }
 }
 
-function armorTint(level) {
-  if (level >= 80) return "#8feaff";
-  if (level >= 30) return "#b6d7ea";
-  return "#8b949d";
+function armorPalette(level) {
+  const stops = [
+    { at: 0, body: "#354d65", light: "#688eab", glint: "#9fc1d6", edge: "#8b949d" },
+    { at: 30, body: "#40576a", light: "#86a7bc", glint: "#d4ecf7", edge: "#b6d7ea" },
+    { at: 80, body: "#2f6971", light: "#59a9b8", glint: "#bdf8ff", edge: "#8feaff" },
+    { at: 140, body: "#5d3e67", light: "#9f6fb1", glint: "#efd0ff", edge: "#d4a7ff" },
+    { at: 220, body: "#493823", light: "#b18b45", glint: "#ffedab", edge: "#ffd36b" },
+  ];
+  const upper = stops.find((stop) => level <= stop.at) || stops[stops.length - 1];
+  const lower = stops[Math.max(0, stops.indexOf(upper) - 1)];
+  const t = upper === lower ? 0 : Math.max(0, Math.min(1, (level - lower.at) / (upper.at - lower.at)));
+  return {
+    body: mixColor(lower.body, upper.body, t),
+    light: mixColor(lower.light, upper.light, t),
+    glint: mixColor(lower.glint, upper.glint, t),
+    edge: mixColor(lower.edge, upper.edge, t),
+  };
+}
+
+function drawRemoteSword(x, y, px, palette, attack) {
+  const hiltX = x + (attack ? 14 : 15) * px;
+  const hiltY = y + (attack ? 13 : 12) * px;
+  const tipX = x + (attack ? 24 : 23) * px;
+  const tipY = y + (attack ? 5 : 2) * px;
+  ctx.save();
+  ctx.strokeStyle = palette.shadow;
+  ctx.lineWidth = Math.max(2, px * 2.2);
+  ctx.lineCap = "square";
+  ctx.beginPath();
+  ctx.moveTo(hiltX, hiltY);
+  ctx.lineTo(tipX, tipY);
+  ctx.stroke();
+  ctx.strokeStyle = palette.blade;
+  ctx.lineWidth = Math.max(1, px * 1.15);
+  ctx.beginPath();
+  ctx.moveTo(hiltX + px * 0.3, hiltY - px * 0.2);
+  ctx.lineTo(tipX, tipY);
+  ctx.stroke();
+  ctx.strokeStyle = palette.guard;
+  ctx.lineWidth = Math.max(2, px * 1.35);
+  ctx.beginPath();
+  ctx.moveTo(hiltX - px * 1.2, hiltY - px * 0.8);
+  ctx.lineTo(hiltX + px * 1.5, hiltY + px * 0.8);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function spriteScale(e) {
@@ -2027,12 +2122,22 @@ function drawItemSprite(item, x, y, size) {
     rect(x + 4 * px, y + 3 * px, 2 * px, 1 * px, "#9d5a22");
     rect(x + 4 * px, y + 5 * px, 2 * px, 1 * px, "#9d5a22");
     rect(x + 1 * px, y + 1 * px, 2 * px, 2 * px, "#fff2b8");
+  } else if (item.type === "bossScroll") {
+    rect(x + 2 * px, y + 1 * px, 6 * px, 8 * px, "#52250c");
+    rect(x + 3 * px, y + 2 * px, 4 * px, 6 * px, "#ffd56f");
+    rect(x + 4 * px, y + 2 * px, 2 * px, 5 * px, "#fff4c2");
+    rect(x + 1 * px, y + 4 * px, 8 * px, 1 * px, "#a03119");
   } else if (item.type === "armorScroll") {
     rect(x + 2 * px, y + 1 * px, 6 * px, 8 * px, "#112a35");
     rect(x + 3 * px, y + 2 * px, 4 * px, 6 * px, "#76e6ff");
     rect(x + 4 * px, y + 3 * px, 2 * px, 4 * px, "#e6fcff");
     rect(x + 2 * px, y + 4 * px, 6 * px, 1 * px, "#1c738e");
     rect(x + 1 * px, y + 1 * px, 2 * px, 2 * px, "#c8f8ff");
+  } else if (item.type === "bossArmorScroll") {
+    rect(x + 2 * px, y + 1 * px, 6 * px, 8 * px, "#113440");
+    rect(x + 3 * px, y + 2 * px, 4 * px, 6 * px, "#bff6ff");
+    rect(x + 4 * px, y + 2 * px, 2 * px, 5 * px, "#ffffff");
+    rect(x + 1 * px, y + 4 * px, 8 * px, 1 * px, "#1c738e");
   } else if (item.type === "legendScroll") {
     rect(x + 2 * px, y + 1 * px, 6 * px, 8 * px, "#3d0f0a");
     rect(x + 3 * px, y + 2 * px, 4 * px, 6 * px, "#ff4a24");
@@ -2345,13 +2450,17 @@ function drawWeapon() {
   const thrust = progress < 0.46 ? Math.sin((progress / 0.46) * Math.PI * 0.5) : Math.max(0, 1 - (progress - 0.46) / 0.36);
   const lunge = swing > 0 ? thrust : 0;
   const recoil = swing > 0 && progress > 0.58 ? Math.min(1, (progress - 0.58) / 0.32) : 0;
-  const sway = swing > 0 ? 0 : Math.sin(performance.now() * 0.006) * 3;
+  const moving = keys.has("KeyW") || keys.has("KeyA") || keys.has("KeyS") || keys.has("KeyD");
+  const idleSway = Math.sin(performance.now() * 0.006) * 3;
+  const walkSway = moving && swing === 0 ? Math.sin(performance.now() * 0.014) * 10 : 0;
+  const walkBob = moving && swing === 0 ? Math.abs(Math.sin(performance.now() * 0.014)) * 8 : 0;
+  const sway = swing > 0 ? 0 : idleSway + walkSway;
   const reach = lunge;
 
   const nearX = W * (0.89 + (1 - windup) * 0.05 - reach * 0.13 + recoil * 0.06) + sway;
-  const nearY = H * (1.12 + (1 - windup) * 0.04 - reach * 0.04 + recoil * 0.05);
-  const farX = W * (0.57 - reach * 0.22);
-  const farY = H * (0.81 - reach * 0.39);
+  const nearY = H * (1.12 + (1 - windup) * 0.04 - reach * 0.04 + recoil * 0.05) + walkBob;
+  const farX = W * (0.57 - reach * 0.07) + walkSway * 0.28;
+  const farY = H * (0.81 - reach * 0.39) + walkBob * 0.4;
   drawForwardPole(nearX, nearY, farX, farY, reach * 1.55, false, true);
 
   if (hitSpark > 0) drawHitSpark();
@@ -2824,8 +2933,8 @@ function drawParticipantRoster(x, y, w) {
     },
     ...remotePlayers.values(),
   ];
-  const shown = members.slice(0, 6);
-  const rowH = 31;
+  const shown = members.slice(0, 10);
+  const rowH = 25;
   const h = 42 + shown.length * rowH + (members.length > shown.length ? 18 : 0);
   drawHudPanel(x, y, w, h);
   drawText(`참가자 ${Math.max(serverPlayerCount, members.length)}명`, x + 16, y + 24, 14, "#8feaff");
@@ -2890,10 +2999,11 @@ function drawInteractionHud() {
   if (!nearby || dialogueTimer > 0) return;
   ctx.textAlign = "center";
   ctx.fillStyle = "rgba(10, 7, 4, 0.72)";
-  ctx.fillRect(W / 2 - 140, H - 126, 280, 30);
+  const y = H - 168;
+  ctx.fillRect(W / 2 - 140, y, 280, 30);
   ctx.strokeStyle = "#d8bd76";
-  ctx.strokeRect(W / 2 - 140, H - 126, 280, 30);
-  drawText("E 대화하기", W / 2, H - 106, 14, "#ffe39a");
+  ctx.strokeRect(W / 2 - 140, y, 280, 30);
+  drawText("E 대화하기", W / 2, y + 20, 14, "#ffe39a");
   ctx.textAlign = "left";
 }
 
@@ -2942,11 +3052,6 @@ function drawMiniMap() {
     ctx.strokeRect(x0 + balrog.x * cell - 7, y0 + balrog.y * cell - 7, 14, 14);
   }
 
-  for (const item of items) {
-    ctx.fillStyle = itemColor(item);
-    ctx.fillRect(x0 + item.x * cell - 1, y0 + item.y * cell - 1, 3, 3);
-  }
-
   for (const prop of WORLD_PROPS) {
     ctx.fillStyle = "#c89b58";
     ctx.fillRect(x0 + prop.x * cell - 1, y0 + prop.y * cell - 1, 2, 2);
@@ -2976,13 +3081,19 @@ function drawMiniMap() {
   }
 
   for (const remote of remotePlayers.values()) {
+    ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+    ctx.fillRect(x0 + remote.x * cell - 3, y0 + remote.y * cell - 3, 6, 6);
     ctx.fillStyle = "#64d6ff";
-    ctx.fillRect(x0 + remote.x * cell - 2, y0 + remote.y * cell - 2, 4, 4);
+    ctx.fillRect(x0 + remote.x * cell - 2, y0 + remote.y * cell - 2, 5, 5);
   }
 
+  ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
+  ctx.beginPath();
+  ctx.arc(x0 + player.x * cell, y0 + player.y * cell, 4.1, 0, Math.PI * 2);
+  ctx.fill();
   ctx.fillStyle = "#fff3b0";
   ctx.beginPath();
-  ctx.arc(x0 + player.x * cell, y0 + player.y * cell, 2.4, 0, Math.PI * 2);
+  ctx.arc(x0 + player.x * cell, y0 + player.y * cell, 3.1, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = "#fff3b0";
   ctx.beginPath();
@@ -3110,6 +3221,8 @@ function resetGame() {
   player.attackPower = 5;
   player.weaponLevel = 0;
   player.armorLevel = 0;
+  player.weaponScrolls = 0;
+  player.armorScrolls = 0;
   berserk = false;
   deathTimer = 0;
   kills = 0;
@@ -3169,6 +3282,11 @@ window.addEventListener("keydown", (event) => {
   if (gameState === "play" && isTestCharacter() && (event.code === "Digit2" || event.code === "Numpad2")) {
     event.preventDefault();
     resetTestDungeonTier();
+    return;
+  }
+  if (gameState === "play" && isTestCharacter() && (event.code === "Digit3" || event.code === "Numpad3")) {
+    event.preventDefault();
+    resetTestCharacters();
     return;
   }
   keys.add(event.code);
