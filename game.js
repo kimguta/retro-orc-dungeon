@@ -763,8 +763,9 @@ function connectMultiplayer() {
     if (Number.isFinite(savedKills)) kills = savedKills;
     gainXp(xp || 0);
   });
-  multiplayerSocket.on("player:damaged", ({ hp, sourceX, sourceY }) => {
+  multiplayerSocket.on("player:damaged", ({ damage, hp, sourceX, sourceY }) => {
     player.hp = hp;
+    addRage(Math.max(7, Math.min(22, Math.ceil((damage || 0) * 0.42))));
     showPlayerHit(sourceX, sourceY);
     if (player.hp <= 0) startPlayerDeath();
   });
@@ -2913,6 +2914,7 @@ function drawText(text, x, y, size, color) {
 function drawEndScreen() {
   ctx.fillStyle = "rgba(4, 3, 2, 0.72)";
   ctx.fillRect(0, 0, W, H);
+  if (gameState === "start" && nameScreen && !nameScreen.classList.contains("is-hidden")) return;
   ctx.textAlign = "center";
   ctx.fillStyle = gameState === "over" ? "#b52626" : "#e6c766";
   ctx.font = gameState === "start" ? "600 48px Noto Sans KR, Malgun Gothic, sans-serif" : "600 54px Noto Sans KR, Malgun Gothic, sans-serif";

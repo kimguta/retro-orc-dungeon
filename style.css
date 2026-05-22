@@ -93,10 +93,17 @@ canvas {
 }
 
 .name-panel h1 {
-  margin: 7px 0 20px;
+  margin: 7px 0 10px;
   color: #f3c46e;
   font-size: 38px;
   letter-spacing: 0;
+}
+
+.name-panel .entry-copy {
+  margin: 0 0 20px;
+  color: #e5d4a9;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .name-panel label {
