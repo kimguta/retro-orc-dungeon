@@ -1558,6 +1558,7 @@ function drawWorld() {
   sky.addColorStop(1, zone.sky[1]);
   ctx.fillStyle = sky;
   ctx.fillRect(0, -72, W, HALF_H + 72);
+  drawCeilingDetails(townView);
 
   const floor = ctx.createLinearGradient(0, HALF_H, 0, H + 96);
   floor.addColorStop(0, zone.floor[0]);
@@ -1591,8 +1592,11 @@ function drawWorld() {
     const row = Math.floor((hit.y + hit.x) * 2.1);
     const offsetU = row % 2 ? 0.14 : 0;
     const joint = Math.max(1, wallH / 92);
-    ctx.fillStyle = hitTown ? "rgba(255, 226, 167, 0.12)" : "rgba(246, 220, 171, 0.11)";
+    ctx.fillStyle = hitTown ? "rgba(255, 226, 167, 0.14)" : "rgba(246, 220, 171, 0.13)";
     for (let by = y + blockH * 0.28; by < y + wallH; by += blockH) {
+      ctx.fillStyle = "rgba(24, 13, 9, 0.24)";
+      ctx.fillRect(x, by - joint, colW, joint * 2);
+      ctx.fillStyle = hitTown ? "rgba(255, 226, 167, 0.14)" : "rgba(246, 220, 171, 0.13)";
       ctx.fillRect(x, by, colW, joint);
     }
     const u = (hit.wallU + offsetU) % 1;
@@ -1604,6 +1608,10 @@ function drawWorld() {
     if (wallH > 90 && u > 0.18 && u < 0.82 && (r + Math.floor(hit.x * 3 + hit.y * 5)) % 9 === 0) {
       ctx.fillStyle = "rgba(255, 246, 211, 0.065)";
       ctx.fillRect(x, y + wallH * 0.12, colW, wallH * 0.18);
+    }
+    if (wallH > 64 && (u < 0.035 || u > 0.965)) {
+      ctx.fillStyle = "rgba(21, 12, 9, 0.3)";
+      ctx.fillRect(x, y + wallH * 0.06, colW, wallH * 0.88);
     }
 
     ctx.fillStyle = "rgba(18, 10, 7, 0.24)";
@@ -1623,6 +1631,23 @@ function drawWorld() {
     const ty = HALF_H + ((i * 71 + 41) % (H - HALF_H));
     ctx.fillRect(tx, ty, 2, 2);
   }
+}
+
+function drawCeilingDetails(townView) {
+  ctx.save();
+  ctx.globalAlpha = townView ? 0.16 : 0.2;
+  ctx.strokeStyle = townView ? "rgba(255, 225, 177, 0.2)" : "rgba(255, 201, 133, 0.16)";
+  ctx.lineWidth = 2;
+  for (let i = -2; i <= 2; i += 1) {
+    ctx.beginPath();
+    ctx.moveTo(W * (0.08 + i * 0.03), HALF_H * 0.98);
+    ctx.quadraticCurveTo(W * 0.5, HALF_H * (0.34 + Math.abs(i) * 0.05), W * (0.92 - i * 0.03), HALF_H * 0.98);
+    ctx.stroke();
+  }
+  ctx.globalAlpha *= 0.7;
+  ctx.fillStyle = "rgba(10, 7, 8, 0.28)";
+  ctx.fillRect(0, 0, W, Math.max(10, H * 0.028));
+  ctx.restore();
 }
 
 function drawFloorDetails(townView) {
@@ -1910,11 +1935,34 @@ function spriteScale(e) {
 
 function drawEnemy(e, x, y, size, dist) {
   drawFloorContact(x + size / 2, y + size * 0.95, size, e.type === "balrog" ? "#ff5a22" : e.boss ? "#ffb65c" : "#d8bd76", e.boss ? 0.36 : 0.24);
+  drawEnemyCutout(e, x, y, size);
   drawPaperStandee(x, y, size, e.type === "balrog" ? 1.22 : e.boss ? 1.06 : 0.9);
   if (e.type === "balrog") drawBalrog(e, x, y, size, dist);
   else if (e.type === "skeleton" || e.type === "skeletonKing" || e.type === "deathKnight") drawSkeleton(e, x, y, size, dist);
   else if (e.type === "warlock" || e.type === "warlockLord") drawWarlock(e, x, y, size, dist);
   else drawOrc(e, x, y, size, dist);
+}
+
+function drawEnemyCutout(e, x, y, size) {
+  const ink = "rgba(12, 7, 6, 0.96)";
+  ctx.save();
+  ctx.fillStyle = ink;
+  if (e.type === "warlock" || e.type === "warlockLord") {
+    tri(x + size * 0.12, y + size * 0.72, x + size * 0.5, y - size * 0.06, x + size * 0.89, y + size * 0.72, ink);
+    ctx.fillRect(Math.round(x + size * 0.22), Math.round(y + size * 0.12), Math.ceil(size * 0.56), Math.ceil(size * 0.76));
+  } else if (e.type === "balrog") {
+    tri(x - size * 0.05, y + size * 0.58, x + size * 0.24, y + size * 0.14, x + size * 0.18, y + size * 0.84, ink);
+    tri(x + size * 1.05, y + size * 0.58, x + size * 0.76, y + size * 0.14, x + size * 0.82, y + size * 0.84, ink);
+    ctx.fillRect(Math.round(x + size * 0.2), Math.round(y + size * 0.08), Math.ceil(size * 0.6), Math.ceil(size * 0.86));
+  } else if (e.type === "skeleton" || e.type === "skeletonKing" || e.type === "deathKnight") {
+    ctx.fillRect(Math.round(x + size * 0.24), Math.round(y + size * 0.12), Math.ceil(size * 0.52), Math.ceil(size * 0.82));
+    ctx.fillRect(Math.round(x + size * 0.16), Math.round(y + size * 0.44), Math.ceil(size * 0.68), Math.ceil(size * 0.26));
+  } else {
+    tri(x + size * 0.14, y + size * 0.32, x - size * 0.02, y + size * 0.16, x + size * 0.26, y + size * 0.42, ink);
+    tri(x + size * 0.86, y + size * 0.32, x + size * 1.02, y + size * 0.16, x + size * 0.74, y + size * 0.42, ink);
+    ctx.fillRect(Math.round(x + size * 0.18), Math.round(y + size * 0.1), Math.ceil(size * 0.64), Math.ceil(size * 0.84));
+  }
+  ctx.restore();
 }
 
 function drawPaperStandee(x, y, size, widthScale = 1) {
@@ -2024,15 +2072,13 @@ function drawNameplate(cx, y, width, name, pct, fill) {
   const clamped = Math.max(0, Math.min(1, pct || 0));
   ctx.save();
   ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(20, 12, 10, 0.9)";
+  ctx.fillStyle = "rgba(14, 9, 7, 0.92)";
   ctx.fillRect(x - 5, y - 20, w + 10, 30);
-  ctx.fillStyle = "rgba(255, 239, 196, 0.92)";
-  ctx.fillRect(x - 2, y - 17, w + 4, 13);
-  ctx.fillStyle = "rgba(111, 209, 255, 0.26)";
-  ctx.fillRect(x + 2, y - 16, Math.max(8, w * 0.28), 2);
-  ctx.strokeStyle = "rgba(255, 196, 103, 0.72)";
+  ctx.fillStyle = "rgba(255, 228, 166, 0.12)";
+  ctx.fillRect(x - 2, y - 17, w + 4, 12);
+  ctx.strokeStyle = "rgba(255, 196, 103, 0.6)";
   ctx.strokeRect(x - 5, y - 20, w + 10, 30);
-  drawText(name, cx, y - 7, 12, "#2a160e");
+  drawText(name, cx, y - 7, 13, "#fff4c9");
   ctx.fillStyle = "#24130d";
   ctx.fillRect(x, y, w, h);
   ctx.fillStyle = fill;
@@ -3001,10 +3047,6 @@ function drawHudPanel(x, y, w, h) {
   ctx.fillRect(x, y, w, h);
   ctx.fillStyle = "rgba(255, 232, 179, 0.08)";
   ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
-  ctx.fillStyle = "rgba(255, 191, 84, 0.92)";
-  ctx.fillRect(x + 7, y + 5, Math.min(42, Math.max(14, w * 0.16)), 3);
-  ctx.fillStyle = "rgba(112, 214, 255, 0.42)";
-  ctx.fillRect(x + w - Math.min(30, w * 0.12) - 7, y + 5, Math.min(30, w * 0.12), 3);
   ctx.fillStyle = "rgba(0, 0, 0, 0.36)";
   ctx.fillRect(x + 6, y + h - 9, w - 12, 4);
   ctx.strokeStyle = "rgba(255, 190, 95, 0.86)";
