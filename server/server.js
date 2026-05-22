@@ -98,6 +98,7 @@ setInterval(saveUsers, 3000);
 
 function joinPlayer(socket, rawName) {
   const name = sanitizeName(rawName);
+  evictDuplicatePlayers(name, socket.id);
   const saved = users[name];
   const character = saved || newCharacter(name);
   const player = {
@@ -122,6 +123,16 @@ function joinPlayer(socket, rawName) {
   saveUsers();
   ensureMonsterPopulation();
   return player;
+}
+
+function evictDuplicatePlayers(name, incomingId) {
+  for (const current of [...players.values()]) {
+    if (current.id === incomingId || current.name !== name) continue;
+    persistCharacter(current);
+    players.delete(current.id);
+    io.to(ROOM_ID).emit("player:left", { id: current.id });
+    io.sockets.sockets.get(current.id)?.disconnect(true);
+  }
 }
 
 function newCharacter(name) {
