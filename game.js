@@ -1662,12 +1662,18 @@ function drawRemoteWarrior(remote, x, y, size) {
   const bob = moving ? Math.abs(Math.sin(performance.now() * 0.012 + remote.x * 2)) * px : 0;
   const palette = swordPalette(remote.weaponLevel || 0);
   y += bob - (attack ? 2 * px : 0);
+  rect(x + 4 * px, y + 2 * px, 10 * px, 22 * px, "#180f0b");
+  rect(x + 13 * px, y + 4 * px, 1 * px, 18 * px, "rgba(255, 231, 180, 0.22)");
   rect(x + 5 * px, y + 2 * px, 8 * px, 7 * px, "#d0ab78");
   rect(x + 4 * px, y + 1 * px, 10 * px, 3 * px, "#58412f");
+  rect(x + 5 * px, y + 0 * px, 8 * px, 1 * px, "#d5a95e");
   rect(x + 6 * px, y + 5 * px, 2 * px, 1 * px, "#1a130e");
   rect(x + 11 * px, y + 5 * px, 2 * px, 1 * px, "#1a130e");
+  rect(x + 8 * px, y + 7 * px, 3 * px, 1 * px, "#7e4021");
   rect(x + 4 * px, y + 9 * px, 10 * px, 10 * px, remote.berserk ? "#7f241e" : "#354d65");
   rect(x + 5 * px, y + 10 * px, 8 * px, 2 * px, "#688eab");
+  rect(x + 7 * px, y + 13 * px, 5 * px, 1 * px, "#9fc1d6");
+  rect(x + 8 * px, y + 14 * px, 1 * px, 4 * px, "#1d2833");
   rect(x + 3 * px, y + 10 * px, 3 * px, 8 * px, "#263644");
   rect(x + 13 * px, y + 10 * px, 3 * px, 8 * px, "#263644");
   rect(x + 6 * px, y + 19 * px, 3 * px, 5 * px, "#211b18");
@@ -1715,12 +1721,20 @@ function drawEnemy(e, x, y, size, dist) {
 
 function drawPaperStandee(x, y, size, widthScale = 1) {
   const baseY = y + size * 0.92;
+  const left = x + size * (0.31 - widthScale * 0.06);
+  const baseW = size * (0.38 + widthScale * 0.12);
   ctx.save();
   ctx.globalAlpha = 0.9;
-  ctx.fillStyle = "#5a3a20";
-  ctx.fillRect(Math.round(x + size * (0.31 - widthScale * 0.06)), Math.round(baseY), Math.ceil(size * (0.38 + widthScale * 0.12)), Math.max(2, Math.ceil(size * 0.04)));
-  ctx.fillStyle = "#b77a3d";
+  ctx.fillStyle = "#24140d";
+  ctx.fillRect(Math.round(left - size * 0.018), Math.round(baseY + size * 0.018), Math.ceil(baseW + size * 0.036), Math.max(2, Math.ceil(size * 0.05)));
+  ctx.fillStyle = "#6a4323";
+  ctx.fillRect(Math.round(left), Math.round(baseY), Math.ceil(baseW), Math.max(2, Math.ceil(size * 0.045)));
+  ctx.fillStyle = "#d29a54";
+  ctx.fillRect(Math.round(left + size * 0.02), Math.round(baseY + size * 0.006), Math.ceil(baseW * 0.45), Math.max(1, Math.ceil(size * 0.012)));
+  ctx.fillStyle = "#9b6433";
   ctx.fillRect(Math.round(x + size * 0.44), Math.round(baseY - size * 0.075), Math.max(2, Math.ceil(size * 0.12)), Math.max(3, Math.ceil(size * 0.09)));
+  ctx.fillStyle = "#e1b66f";
+  ctx.fillRect(Math.round(x + size * 0.45), Math.round(baseY - size * 0.07), Math.max(1, Math.ceil(size * 0.022)), Math.max(2, Math.ceil(size * 0.068)));
   ctx.restore();
 }
 
@@ -1770,10 +1784,14 @@ function propScale(type) {
 function drawTownNpc(npc, x, y, size, dist) {
   const px = Math.max(2, Math.floor(size / 18));
 
+  rect(x + 4 * px, y + 1 * px, 11 * px, 21 * px, "#160f0c");
+  rect(x + 14 * px, y + 3 * px, 1 * px, 18 * px, "rgba(255, 230, 178, 0.2)");
   rect(x + 5 * px, y + 2 * px, 8 * px, 7 * px, "#bd9a68");
   rect(x + 4 * px, y + 1 * px, 10 * px, 3 * px, "#59402f");
+  rect(x + 5 * px, y + 0 * px, 8 * px, 1 * px, "#c18d49");
   rect(x + 3 * px, y + 8 * px, 12 * px, 9 * px, "#3f5d70");
   rect(x + 4 * px, y + 10 * px, 10 * px, 5 * px, "#4f7690");
+  rect(x + 6 * px, y + 9 * px, 6 * px, 1 * px, "#91b1c3");
   rect(x + 2 * px, y + 9 * px, 3 * px, 7 * px, "#2d3f4c");
   rect(x + 14 * px, y + 9 * px, 3 * px, 7 * px, "#2d3f4c");
   rect(x + 6 * px, y + 17 * px, 3 * px, 4 * px, "#2a241d");
@@ -1782,6 +1800,8 @@ function drawTownNpc(npc, x, y, size, dist) {
   rect(x + 11 * px, y + 5 * px, 2 * px, 1 * px, "#1a130e");
   rect(x + 8 * px, y + 7 * px, 4 * px, 1 * px, "#704020");
   rect(x + 6 * px, y + 12 * px, 8 * px, 1 * px, "#d6b06d");
+  rect(x + 1 * px, y + 8 * px, 1 * px, 13 * px, "#7a4e27");
+  rect(x + 0 * px, y + 7 * px, 3 * px, 2 * px, "#d6b06d");
 
 }
 
@@ -2025,13 +2045,18 @@ function drawSkeleton(e, x, y, size, dist) {
     rect(x + 5 * px, y - 1 * px, 2 * px, 3 * px, "#ffe28a");
     rect(x + 10 * px, y - 1 * px, 2 * px, 3 * px, "#ffe28a");
   }
+  rect(x + 3 * px, y + 4 * px, 11 * px, 8 * px, "#221b18");
+  rect(x + 13 * px, y + 6 * px, 1 * px, 17 * px, "rgba(255, 241, 200, 0.2)");
   rect(x + 4 * px, y + 4 * px, 9 * px, 8 * px, bone);
   rect(x + 5 * px, y + 5 * px, 7 * px, 1 * px, "#f5edce");
+  rect(x + 4 * px, y + 7 * px, 1 * px, 3 * px, shade);
+  rect(x + 12 * px, y + 7 * px, 1 * px, 3 * px, shade);
   rect(x + 5 * px, y + (hurt ? 7 : 8) * px, 2 * px, hurt ? 1 * px : 2 * px, eye);
   rect(x + 10 * px, y + (hurt ? 7 : 8) * px, 2 * px, hurt ? 1 * px : 2 * px, eye);
   rect(x + 7 * px, y + 10 * px, 3 * px, hurt ? 2 * px : 1 * px, "#221a17");
   rect(x + 6 * px, y + 13 * px, 5 * px, 2 * px, shade);
   rect(x + 7 * px, y + 15 * px, 3 * px, 7 * px, bone);
+  rect(x + 5 * px, y + 16 * px, 7 * px, 1 * px, bone);
   rect(x + 6 * px, y + 17 * px, 1 * px, 4 * px, shade);
   rect(x + 11 * px, y + 17 * px, 1 * px, 4 * px, shade);
   rect(x + 6 * px, y + 19 * px, 6 * px, 1 * px, "#f5edce");
@@ -2040,6 +2065,8 @@ function drawSkeleton(e, x, y, size, dist) {
   rect(x + 12 * px, y + (e.attackPose > 0 ? 16 : 14) * px, 2 * px, 8 * px, bone);
   rect(x + (5 - Math.max(0, walk)) * px, y + 22 * px, 2 * px, 5 * px, bone);
   rect(x + (10 + Math.max(0, walk)) * px, y + 22 * px, 2 * px, 5 * px, bone);
+  rect(x + 4 * px, y + 26 * px, 3 * px, 1 * px, shade);
+  rect(x + 10 * px, y + 26 * px, 3 * px, 1 * px, shade);
   if (king) {
     rect(x + 2 * px, y + 13 * px, 12 * px, 4 * px, deathKnight ? "#141820" : "#292a36");
     rect(x + 3 * px, y + 14 * px, 10 * px, 1 * px, deathKnight ? "#6e7482" : "#5f6485");
@@ -2048,6 +2075,8 @@ function drawSkeleton(e, x, y, size, dist) {
     if (deathKnight) {
       rect(x + 1 * px, y + 18 * px, 14 * px, 3 * px, "#0c1017");
       rect(x + 3 * px, y + 17 * px, 10 * px, 1 * px, "#9aa3b4");
+      rect(x + 0 * px, y + 12 * px, 3 * px, 8 * px, "#121722");
+      rect(x + 1 * px, y + 13 * px, 1 * px, 6 * px, "#8590a6");
     }
   }
   ctx.globalAlpha = 1;
@@ -2063,8 +2092,11 @@ function drawWarlock(e, x, y, size, dist) {
   y += bob - e.attackPose * 2 * px + (hurt ? Math.sin(performance.now() * 0.1) * px : 0);
   x += walk * px * 0.22;
   ctx.globalAlpha = Math.max(0.9, 1 - dist / 30);
+  tri(x + 3 * px, y + 5 * px, x + 8 * px, y - 1 * px, x + 14 * px, y + 5 * px, lord ? "#0d0417" : "#160b24");
+  tri(x + 2 * px, y + 22 * px, x + 8.5 * px, y + 6 * px, x + 16 * px, y + 22 * px, lord ? "#0e0619" : "#190d28");
   rect(x + 3 * px, y + 5 * px, 11 * px, 18 * px, flash ? "#a982d8" : lord ? "#170824" : "#241334");
   rect(x + 5 * px, y + 3 * px, 7 * px, 7 * px, flash ? "#d7b6ff" : lord ? "#4b1465" : "#3a1e58");
+  rect(x + 13 * px, y + 6 * px, 1 * px, 17 * px, "rgba(234, 192, 255, 0.2)");
   if (lord) {
     rect(x + 4 * px, y + 1 * px, 9 * px, 3 * px, "#68430c");
     rect(x + 6 * px, y + 0 * px, 5 * px, 2 * px, "#f0b84a");
@@ -2080,6 +2112,10 @@ function drawWarlock(e, x, y, size, dist) {
   rect(x + 2 * px, y + (e.attackPose > 0 ? 11 : 13) * px, 4 * px, 9 * px, "#321b49");
   rect(x + 12 * px, y + (e.attackPose > 0 ? 16 : 13) * px, 4 * px, 9 * px, "#321b49");
   rect(x + 13 * px, y + 18 * px, 3 * px, 3 * px, lord ? "#ff7cff" : "#b75cff");
+  rect(x + 1 * px, y + 8 * px, 1 * px, 17 * px, "#40261a");
+  rect(x + 0 * px, y + 7 * px, 3 * px, 3 * px, lord ? "#ff7cff" : "#b75cff");
+  rect(x + 1 * px, y + 8 * px, 1 * px, 1 * px, "#fff0ff");
+  rect(x + 7 * px, y + 16 * px, 4 * px, 1 * px, lord ? "#a14be3" : "#684095");
   rect(x + 6 * px, y + 23 * px, 3 * px, 3 * px, "#100b16");
   rect(x + 10 * px, y + 23 * px, 3 * px, 3 * px, "#100b16");
   if (e.attackWindup > 0) {
@@ -2100,6 +2136,10 @@ function drawBalrog(e, x, y, size, dist) {
   x += walk * px * 0.22;
   ctx.globalAlpha = Math.max(0.94, 1 - dist / 36);
 
+  tri(x + 4 * px, y + 15 * px, x - 3 * px, y + 6 * px, x + 1 * px, y + 29 * px, "#150404");
+  tri(x + 14 * px, y + 15 * px, x + 21 * px, y + 6 * px, x + 17 * px, y + 29 * px, "#150404");
+  tri(x + 4 * px, y + 17 * px, x - 1 * px, y + 10 * px, x + 1 * px, y + 24 * px, "#6f1c13");
+  tri(x + 14 * px, y + 17 * px, x + 19 * px, y + 10 * px, x + 17 * px, y + 24 * px, "#6f1c13");
   rect(x + 2 * px, y + 7 * px, 14 * px, 12 * px, flash ? "#ffcf9a" : "#2a0907");
   rect(x + 4 * px, y + 5 * px, 10 * px, 9 * px, flash ? "#ffd7a8" : "#5a1110");
   rect(x + 1 * px, y + 9 * px, 4 * px, 3 * px, "#1a0504");
@@ -2117,10 +2157,13 @@ function drawBalrog(e, x, y, size, dist) {
   rect(x + (flash ? 6 : 7) * px, y + 12 * px, flash ? 6 * px : 4 * px, flash ? 1 * px : 2 * px, "#0b0303");
   rect(x + 6 * px, y + 14 * px, 2 * px, 3 * px, "#f4dfc0");
   rect(x + 11 * px, y + 14 * px, 2 * px, 3 * px, "#f4dfc0");
+  rect(x + 8 * px, y + 5 * px, 2 * px, 10 * px, "rgba(255, 108, 48, 0.18)");
 
   rect(x + 3 * px, y + 18 * px, 12 * px, 12 * px, "#171010");
   rect(x + 4 * px, y + 18 * px, 10 * px, 2 * px, "#6f1c13");
+  rect(x + 2 * px, y + 18 * px, 14 * px, 1 * px, "#b13a20");
   rect(x + 5 * px, y + 22 * px, 8 * px, 2 * px, "#d63a1d");
+  rect(x + 6 * px, y + 25 * px, 6 * px, 1 * px, "#ff7b2c");
   rect(x + 1 * px, y + 20 * px, 5 * px, 7 * px, "#210808");
   rect(x + 12 * px, y + 20 * px, 5 * px, 7 * px, "#210808");
   rect(x + 0 * px, y + 24 * px, 4 * px, 3 * px, "#6f1c13");
@@ -2129,6 +2172,8 @@ function drawBalrog(e, x, y, size, dist) {
   rect(x + 10 * px, y + 30 * px, 4 * px, 7 * px, "#130706");
   rect(x + 4 * px, y + 36 * px, 5 * px, 2 * px, "#070303");
   rect(x + 10 * px, y + 36 * px, 5 * px, 2 * px, "#070303");
+  tri(x + 6 * px, y + 20 * px, x + 8 * px, y + 16 * px, x + 10 * px, y + 20 * px, "#ff5b22");
+  tri(x + 9 * px, y + 21 * px, x + 11 * px, y + 17 * px, x + 13 * px, y + 21 * px, "#ffd25a");
 
   if (winding || attack > 0) {
     rect(x + 15 * px, y + 17 * px, 3 * px, 12 * px, "#ff5b22");
@@ -2160,12 +2205,16 @@ function drawOrc(e, x, y, size, dist) {
 
   ctx.globalAlpha = Math.max(0.9, 1 - dist / 30);
 
+  rect(x + 2 * px, y + 4 * px, 13 * px, 21 * px, deepShadow);
+  rect(x + 14 * px, y + 6 * px, 1 * px, 17 * px, "rgba(240, 230, 170, 0.18)");
   rect(x + 3 * px, y + 4 * px, 11 * px, 10 * px, deepShadow);
   rect(x + 5 * px, y + 3 * px, 7 * px, 2 * px, skinLight);
   rect(x + 4 * px, y + 5 * px, 9 * px, 8 * px, skin);
   rect(x + 5 * px, y + 12 * px, 7 * px, 2 * px, shadow);
   rect(x + 1 * px, y + 7 * px, 4 * px, 3 * px, skin);
   rect(x + 12 * px, y + 7 * px, 4 * px, 3 * px, skin);
+  tri(x + 1 * px, y + 7 * px, x - 1 * px, y + 4 * px, x + 4 * px, y + 8 * px, skinLight);
+  tri(x + 16 * px, y + 7 * px, x + 18 * px, y + 4 * px, x + 13 * px, y + 8 * px, skinLight);
   rect(x + 1 * px, y + 8 * px, 2 * px, 1 * px, skinLight);
   rect(x + 14 * px, y + 8 * px, 2 * px, 1 * px, skinLight);
   rect(x + 4 * px, y + 6 * px, 9 * px, 1 * px, deepShadow);
@@ -2194,11 +2243,16 @@ function drawOrc(e, x, y, size, dist) {
 
   rect(x + 3 * px, y + 13 * px, 11 * px, 9 * px, armor);
   rect(x + 4 * px, y + 13 * px, 8 * px, 1 * px, armorLight);
+  rect(x + 2 * px, y + 12 * px, 4 * px, 3 * px, armorLight);
+  rect(x + 11 * px, y + 12 * px, 4 * px, 3 * px, armorLight);
+  rect(x + 3 * px, y + 13 * px, 2 * px, 1 * px, "#b7a06e");
+  rect(x + 12 * px, y + 13 * px, 2 * px, 1 * px, "#b7a06e");
   rect(x + 5 * px, y + 15 * px, 1 * px, 1 * px, "#b7a06e");
   rect(x + 11 * px, y + 15 * px, 1 * px, 1 * px, "#b7a06e");
   rect(x + 8 * px, y + 18 * px, 3 * px, 1 * px, "#0a0a0a");
   rect(x + 5 * px, y + 16 * px, 7 * px, 1 * px, "#806a49");
   rect(x + 7 * px, y + 17 * px, 1 * px, 5 * px, "#141414");
+  rect(x + 9 * px, y + 17 * px, 3 * px, 1 * px, "#5d4830");
   const armSwing = walk > 0 ? 1 : -1;
   const leftArmY = y + (winding ? 12 * px : attack > 0 ? 16 * px : (14 + armSwing) * px);
   const rightArmY = y + (winding ? 17 * px : attack > 0 ? 13 * px : (14 - armSwing) * px);
