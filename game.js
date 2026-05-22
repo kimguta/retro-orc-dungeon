@@ -2811,10 +2811,11 @@ function drawInteractionHud() {
 
 function drawDialogue() {
   if (dialogueTimer <= 0) return;
-  const x = 250;
-  const y = H - 170;
-  const w = W - 500;
   const h = 82;
+  const hudTop = H - 126;
+  const w = Math.min(780, Math.max(420, W - 96));
+  const x = Math.round((W - w) / 2);
+  const y = Math.max(96, hudTop - h - 22);
   ctx.fillStyle = "rgba(8, 6, 5, 0.86)";
   ctx.fillRect(x, y, w, h);
   ctx.strokeStyle = "#d8bd76";
