@@ -12,7 +12,7 @@ ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 ctx.imageSmoothingEnabled = false;
 const HALF_H = H / 2;
 const FOV = Math.PI / 3;
-const RAYS = 760;
+const RAYS = 960;
 const MAX_DEPTH = 18;
 const TILE = 64;
 const TURN_SPEED = 1.95;
@@ -1566,6 +1566,12 @@ function drawWorld() {
   ctx.fillStyle = floor;
   ctx.fillRect(0, HALF_H, W, HALF_H + 96);
   drawFloorDetails(townView);
+  const horizon = ctx.createLinearGradient(0, HALF_H - 26, 0, HALF_H + 56);
+  horizon.addColorStop(0, "rgba(0, 0, 0, 0)");
+  horizon.addColorStop(0.46, townView ? "rgba(117, 88, 49, 0.12)" : "rgba(5, 3, 2, 0.22)");
+  horizon.addColorStop(1, "rgba(0, 0, 0, 0)");
+  ctx.fillStyle = horizon;
+  ctx.fillRect(0, HALF_H - 26, W, 82);
 
   for (let r = 0; r < RAYS; r += 1) {
     const rayAngle = player.angle - FOV / 2 + (r / RAYS) * FOV;
@@ -1588,18 +1594,26 @@ function drawWorld() {
     ctx.fillStyle = `rgba(0, 0, 0, ${1 - faceShade})`;
     ctx.fillRect(x, y, colW, wallH);
 
-    const blockH = Math.max(44, wallH / 4.1);
+    const blockH = Math.max(52, wallH / 4.2);
     const row = Math.floor((hit.y + hit.x) * 2.1);
     const offsetU = row % 2 ? 0.14 : 0;
     const joint = Math.max(1, wallH / 92);
     ctx.fillStyle = hitTown ? "rgba(255, 226, 167, 0.14)" : "rgba(246, 220, 171, 0.13)";
     for (let by = y + blockH * 0.28; by < y + wallH; by += blockH) {
-      ctx.fillStyle = "rgba(24, 13, 9, 0.24)";
-      ctx.fillRect(x, by - joint, colW, joint * 2);
+      ctx.fillStyle = "rgba(20, 12, 9, 0.34)";
+      ctx.fillRect(x, by - joint, colW, joint * 2.4);
       ctx.fillStyle = hitTown ? "rgba(255, 226, 167, 0.14)" : "rgba(246, 220, 171, 0.13)";
       ctx.fillRect(x, by, colW, joint);
     }
     const u = (hit.wallU + offsetU) % 1;
+    if (wallH > 84 && (u < 0.055 || u > 0.945)) {
+      ctx.fillStyle = "rgba(8, 5, 4, 0.28)";
+      ctx.fillRect(x, y + wallH * 0.08, colW, wallH * 0.84);
+    }
+    if (wallH > 112 && u > 0.12 && u < 0.88 && (r + row) % 7 === 0) {
+      ctx.fillStyle = hitTown ? "rgba(255, 244, 205, 0.11)" : "rgba(255, 237, 194, 0.08)";
+      ctx.fillRect(x, y + wallH * 0.18, colW, wallH * 0.16);
+    }
     if ((r + Math.floor(hit.x * 13 + hit.y * 17)) % 31 === 0) {
       const nickY = y + (0.22 + ((Math.floor(hit.x * 7 + hit.y * 9) % 5) * 0.12)) * wallH;
       ctx.fillStyle = "rgba(255, 243, 197, 0.12)";
@@ -1635,18 +1649,27 @@ function drawWorld() {
 
 function drawCeilingDetails(townView) {
   ctx.save();
-  ctx.globalAlpha = townView ? 0.16 : 0.2;
-  ctx.strokeStyle = townView ? "rgba(255, 225, 177, 0.2)" : "rgba(255, 201, 133, 0.16)";
+  const beam = townView ? "rgba(255, 222, 165, 0.14)" : "rgba(214, 178, 126, 0.11)";
+  const gap = townView ? "rgba(28, 16, 10, 0.24)" : "rgba(8, 6, 6, 0.34)";
+  for (let i = 0; i < 5; i += 1) {
+    const t = i / 5;
+    const y = HALF_H * (0.11 + Math.pow(t, 1.35) * 0.78);
+    const h = Math.max(3, H * (0.012 + t * 0.016));
+    ctx.fillStyle = gap;
+    ctx.fillRect(0, y, W, h);
+    ctx.fillStyle = beam;
+    ctx.fillRect(0, y + h * 0.18, W, Math.max(1, h * 0.18));
+  }
+  ctx.strokeStyle = townView ? "rgba(255, 233, 187, 0.1)" : "rgba(226, 194, 146, 0.09)";
   ctx.lineWidth = 2;
-  for (let i = -2; i <= 2; i += 1) {
+  for (let i = -4; i <= 4; i += 1) {
     ctx.beginPath();
-    ctx.moveTo(W * (0.08 + i * 0.03), HALF_H * 0.98);
-    ctx.quadraticCurveTo(W * 0.5, HALF_H * (0.34 + Math.abs(i) * 0.05), W * (0.92 - i * 0.03), HALF_H * 0.98);
+    ctx.moveTo(W / 2 + i * 38, HALF_H * 0.1);
+    ctx.lineTo(W / 2 + i * 142, HALF_H * 0.98);
     ctx.stroke();
   }
-  ctx.globalAlpha *= 0.7;
-  ctx.fillStyle = "rgba(10, 7, 8, 0.28)";
-  ctx.fillRect(0, 0, W, Math.max(10, H * 0.028));
+  ctx.fillStyle = "rgba(7, 5, 5, 0.34)";
+  ctx.fillRect(0, 0, W, Math.max(10, H * 0.03));
   ctx.restore();
 }
 
@@ -1670,14 +1693,14 @@ function drawFloorDetails(townView) {
     ctx.lineTo(W / 2 + i * 8, HALF_H + 12);
     ctx.stroke();
   }
-  ctx.globalAlpha = townView ? 0.12 : 0.08;
-  ctx.strokeStyle = townView ? "rgba(153, 234, 255, 0.24)" : "rgba(255, 219, 151, 0.16)";
-  for (let i = 0; i < 6; i += 1) {
-    const y = HALF_H + 44 + i * i * 12;
-    ctx.beginPath();
-    ctx.moveTo(W * 0.12, y);
-    ctx.quadraticCurveTo(W * 0.5, y + 10 + i * 2, W * 0.88, y);
-    ctx.stroke();
+  ctx.globalAlpha = townView ? 0.15 : 0.12;
+  for (let i = 0; i < 7; i += 1) {
+    const t = (i + 1) / 7;
+    const y = HALF_H + Math.pow(t, 1.85) * HALF_H;
+    ctx.fillStyle = i % 2
+      ? townView ? "rgba(255, 236, 188, 0.1)" : "rgba(248, 211, 151, 0.07)"
+      : townView ? "rgba(39, 24, 15, 0.2)" : "rgba(8, 5, 4, 0.24)";
+    ctx.fillRect(0, y, W, Math.max(2, 2 + t * 5));
   }
   ctx.restore();
 }
@@ -1786,7 +1809,6 @@ function drawRemotePlayers() {
     const hopLift = Math.min(size * 0.34, Math.max(0, entry.remote.hop || 0) * 118);
     const y = HALF_H - size * 0.52 - hopLift;
     drawFloorContact(screenX, y + size * 0.94, size, "#71d4ff", 0.3);
-    drawPaperStandee(screenX - size / 2, y, size, 0.92);
     drawRemoteWarrior(entry.remote, screenX - size / 2, y, size, remoteBackView(entry.remote));
     drawNameplate(
       screenX,
@@ -1935,53 +1957,10 @@ function spriteScale(e) {
 
 function drawEnemy(e, x, y, size, dist) {
   drawFloorContact(x + size / 2, y + size * 0.95, size, e.type === "balrog" ? "#ff5a22" : e.boss ? "#ffb65c" : "#d8bd76", e.boss ? 0.36 : 0.24);
-  drawEnemyCutout(e, x, y, size);
-  drawPaperStandee(x, y, size, e.type === "balrog" ? 1.22 : e.boss ? 1.06 : 0.9);
   if (e.type === "balrog") drawBalrog(e, x, y, size, dist);
   else if (e.type === "skeleton" || e.type === "skeletonKing" || e.type === "deathKnight") drawSkeleton(e, x, y, size, dist);
   else if (e.type === "warlock" || e.type === "warlockLord") drawWarlock(e, x, y, size, dist);
   else drawOrc(e, x, y, size, dist);
-}
-
-function drawEnemyCutout(e, x, y, size) {
-  const ink = "rgba(12, 7, 6, 0.96)";
-  ctx.save();
-  ctx.fillStyle = ink;
-  if (e.type === "warlock" || e.type === "warlockLord") {
-    tri(x + size * 0.12, y + size * 0.72, x + size * 0.5, y - size * 0.06, x + size * 0.89, y + size * 0.72, ink);
-    ctx.fillRect(Math.round(x + size * 0.22), Math.round(y + size * 0.12), Math.ceil(size * 0.56), Math.ceil(size * 0.76));
-  } else if (e.type === "balrog") {
-    tri(x - size * 0.05, y + size * 0.58, x + size * 0.24, y + size * 0.14, x + size * 0.18, y + size * 0.84, ink);
-    tri(x + size * 1.05, y + size * 0.58, x + size * 0.76, y + size * 0.14, x + size * 0.82, y + size * 0.84, ink);
-    ctx.fillRect(Math.round(x + size * 0.2), Math.round(y + size * 0.08), Math.ceil(size * 0.6), Math.ceil(size * 0.86));
-  } else if (e.type === "skeleton" || e.type === "skeletonKing" || e.type === "deathKnight") {
-    ctx.fillRect(Math.round(x + size * 0.24), Math.round(y + size * 0.12), Math.ceil(size * 0.52), Math.ceil(size * 0.82));
-    ctx.fillRect(Math.round(x + size * 0.16), Math.round(y + size * 0.44), Math.ceil(size * 0.68), Math.ceil(size * 0.26));
-  } else {
-    tri(x + size * 0.14, y + size * 0.32, x - size * 0.02, y + size * 0.16, x + size * 0.26, y + size * 0.42, ink);
-    tri(x + size * 0.86, y + size * 0.32, x + size * 1.02, y + size * 0.16, x + size * 0.74, y + size * 0.42, ink);
-    ctx.fillRect(Math.round(x + size * 0.18), Math.round(y + size * 0.1), Math.ceil(size * 0.64), Math.ceil(size * 0.84));
-  }
-  ctx.restore();
-}
-
-function drawPaperStandee(x, y, size, widthScale = 1) {
-  const baseY = y + size * 0.92;
-  const left = x + size * (0.31 - widthScale * 0.06);
-  const baseW = size * (0.38 + widthScale * 0.12);
-  ctx.save();
-  ctx.globalAlpha = 0.9;
-  ctx.fillStyle = "#24140d";
-  ctx.fillRect(Math.round(left - size * 0.018), Math.round(baseY + size * 0.018), Math.ceil(baseW + size * 0.036), Math.max(2, Math.ceil(size * 0.05)));
-  ctx.fillStyle = "#6a4323";
-  ctx.fillRect(Math.round(left), Math.round(baseY), Math.ceil(baseW), Math.max(2, Math.ceil(size * 0.045)));
-  ctx.fillStyle = "#d29a54";
-  ctx.fillRect(Math.round(left + size * 0.02), Math.round(baseY + size * 0.006), Math.ceil(baseW * 0.45), Math.max(1, Math.ceil(size * 0.012)));
-  ctx.fillStyle = "#9b6433";
-  ctx.fillRect(Math.round(x + size * 0.44), Math.round(baseY - size * 0.075), Math.max(2, Math.ceil(size * 0.12)), Math.max(3, Math.ceil(size * 0.09)));
-  ctx.fillStyle = "#e1b66f";
-  ctx.fillRect(Math.round(x + size * 0.45), Math.round(baseY - size * 0.07), Math.max(1, Math.ceil(size * 0.022)), Math.max(2, Math.ceil(size * 0.068)));
-  ctx.restore();
 }
 
 function drawFloorContact(cx, baseY, size, color, alpha = 0.24) {
@@ -2018,7 +1997,6 @@ function drawTownSprites() {
       const size = Math.min(180, (H / s.dist) * 0.36);
       const y = HALF_H - size * 0.38;
       drawFloorContact(screenX, y + size * 0.94, size, "#8feaff", 0.26);
-      drawPaperStandee(screenX - size / 2, y, size, 0.72);
       drawTownNpc(s.data, screenX - size / 2, y, size, s.dist);
       if (gameState === "play") {
         drawNameplate(screenX, y - Math.max(24, size * 0.1), Math.max(64, Math.min(112, size * 0.55)), s.data.name, s.data.hp / s.data.maxHp, "#6bcf77");
@@ -2393,7 +2371,7 @@ function drawSkeleton(e, x, y, size, dist) {
   const hurt = e.hitFlash > 0.12;
   y += bob + idle * px * 0.5 - e.attackPose * 3 * px + (hurt ? Math.sin(performance.now() * 0.09) * px : 0);
   x += walk * px * 0.42 + idle * px * 0.12;
-  ctx.globalAlpha = Math.max(0.9, 1 - dist / 30);
+  ctx.globalAlpha = 1;
   if (king) {
     rect(x + 4 * px, y + 1 * px, 8 * px, 2 * px, "#d6b14d");
     rect(x + 5 * px, y - 1 * px, 2 * px, 3 * px, "#ffe28a");
@@ -2446,7 +2424,7 @@ function drawWarlock(e, x, y, size, dist) {
   const hurt = e.hitFlash > 0.12;
   y += bob + idle * px * 0.7 - e.attackPose * 2 * px + (hurt ? Math.sin(performance.now() * 0.1) * px : 0);
   x += walk * px * 0.34 + idle * px * 0.1;
-  ctx.globalAlpha = Math.max(0.9, 1 - dist / 30);
+  ctx.globalAlpha = 1;
   tri(x + 3 * px, y + 5 * px, x + 8 * px, y - 1 * px, x + 14 * px, y + 5 * px, lord ? "#0d0417" : "#160b24");
   tri(x + 2 * px, y + 22 * px, x + 8.5 * px, y + 6 * px, x + 16 * px, y + 22 * px, lord ? "#0e0619" : "#190d28");
   rect(x + 3 * px, y + 5 * px, 11 * px, 18 * px, flash ? "#a982d8" : lord ? "#170824" : "#241334");
@@ -2490,7 +2468,7 @@ function drawBalrog(e, x, y, size, dist) {
   const winding = e.attackWindup > 0;
   y += bob + idle * px * 0.34 - attack * 4 * px + (winding ? 2 * px : 0);
   x += walk * px * 0.28;
-  ctx.globalAlpha = Math.max(0.94, 1 - dist / 36);
+  ctx.globalAlpha = 1;
 
   tri(x + 4 * px, y + 15 * px, x - 3 * px, y + 6 * px, x + 1 * px, y + 29 * px, "#150404");
   tri(x + 14 * px, y + 15 * px, x + 21 * px, y + 6 * px, x + 17 * px, y + 29 * px, "#150404");
@@ -2560,7 +2538,7 @@ function drawOrc(e, x, y, size, dist) {
   const armorLight = dark ? "#3b3b3b" : "#46494a";
   const eye = dark ? "#e12621" : "#f0d447";
 
-  ctx.globalAlpha = Math.max(0.9, 1 - dist / 30);
+  ctx.globalAlpha = 1;
 
   rect(x + 2 * px, y + 4 * px, 13 * px, 21 * px, deepShadow);
   rect(x + 14 * px, y + 6 * px, 1 * px, 17 * px, "rgba(240, 230, 170, 0.18)");
