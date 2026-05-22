@@ -331,7 +331,7 @@ function respawnEnemy(enemy) {
 }
 
 function ensureMonsterPopulation() {
-  const desiredExtras = Math.max(0, Math.min(36, (players.size - 1) * 5));
+  const desiredExtras = Math.max(0, Math.min(72, players.size * 4 + Math.max(0, players.size - 1) * 5));
   const extras = room.enemies.filter((enemy) => enemy.extra).length;
   if (extras >= desiredExtras) return;
   const candidates = baseSpawns(room.mapPattern).filter((spawn) => spawn.type !== "balrog" && !isBossType(spawn.type));
@@ -522,15 +522,22 @@ function respawnDelay(enemy) {
 function baseSpawns(pattern = 0) {
   const balrog = balrogSpawn(pattern);
   return [
-    ["skeleton", 15.5, 3.5], ["skeleton", 17.5, 9.5], ["skeleton", 20.5, 11.5],
-    ["orc", 23.5, 5.5], ["orc", 29.5, 6.5], ["skeleton", 31.5, 11.5],
-    ["skeleton", 5.5, 17.5], ["skeleton", 10.5, 23.5], ["skeleton", 16.5, 22.5],
-    ["orc", 18.5, 25.5], ["orc", 25.5, 19.5], ["orc", 30.5, 19.5],
-    ["orc", 36.5, 19.5], ["ogre", 29.5, 25.5], ["skeletonKing", 14.5, 24.5],
-    ["boss", 38.5, 22.5], ["warlock", 43.5, 4.5], ["warlock", 48.5, 5.5],
-    ["warlock", 57.5, 5.5], ["warlockLord", 55.5, 13.5], ["ogre", 47.5, 19.5],
-    ["ogre", 58.5, 20.5], ["ogreLord", 58.5, 27.5], ["deathKnight", 31.5, 31.5],
-    ["deathKnight", 49.5, 33.5], ["warlockLord", 44.5, 33.5], ["balrog", balrog.x, balrog.y],
+    ["skeleton", 15.5, 3.5], ["skeleton", 16.5, 5.5], ["skeleton", 17.5, 9.5], ["skeleton", 20.5, 11.5],
+    ["skeleton", 21.5, 13.5], ["orc", 23.5, 5.5], ["orc", 28.5, 3.5], ["orc", 29.5, 6.5],
+    ["skeleton", 25.5, 10.5], ["skeleton", 31.5, 11.5], ["orc", 25.5, 12.5],
+    ["skeleton", 5.5, 17.5], ["skeleton", 9.5, 18.5], ["skeleton", 14.5, 18.5], ["skeleton", 10.5, 23.5],
+    ["skeleton", 8.5, 24.5], ["skeleton", 16.5, 22.5], ["skeleton", 6.5, 27.5], ["skeleton", 13.5, 27.5],
+    ["orc", 18.5, 25.5], ["orc", 20.5, 23.5], ["orc", 25.5, 19.5], ["orc", 30.5, 19.5],
+    ["orc", 24.5, 21.5], ["orc", 28.5, 17.5], ["orc", 36.5, 19.5], ["orc", 33.5, 23.5],
+    ["orc", 37.5, 27.5], ["orc", 40.5, 26.5], ["ogre", 29.5, 25.5], ["skeletonKing", 14.5, 24.5],
+    ["boss", 38.5, 22.5], ["warlock", 43.5, 4.5], ["warlock", 48.5, 5.5], ["warlock", 42.5, 8.5],
+    ["warlock", 57.5, 5.5], ["warlock", 50.5, 8.5], ["warlock", 45.5, 10.5], ["warlock", 52.5, 11.5],
+    ["warlockLord", 55.5, 13.5], ["ogre", 47.5, 19.5], ["ogre", 45.5, 22.5], ["ogre", 53.5, 19.5],
+    ["ogre", 58.5, 20.5], ["ogre", 49.5, 24.5], ["ogre", 56.5, 25.5], ["ogre", 47.5, 27.5],
+    ["ogreLord", 58.5, 27.5], ["deathKnight", 31.5, 31.5], ["deathKnight", 38.5, 30.5],
+    ["warlock", 34.5, 30.5], ["warlock", 42.5, 32.5], ["deathKnight", 49.5, 33.5],
+    ["deathKnight", 52.5, 31.5], ["deathKnight", 55.5, 33.5], ["warlockLord", 44.5, 33.5],
+    ["balrog", balrog.x, balrog.y],
   ].map(([type, x, y]) => ({ type, x, y }));
 }
 
