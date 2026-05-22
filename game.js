@@ -1719,7 +1719,8 @@ function drawRemotePlayers() {
     const size = Math.min(H * 0.82, (H / entry.dist) * 0.72);
     const depthIndex = Math.floor((screenX / W) * RAYS);
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < entry.dist - 0.2) continue;
-    const y = HALF_H - size * 0.52 - Math.max(0, entry.remote.hop || 0) * 54;
+    const hopLift = Math.min(size * 0.34, Math.max(0, entry.remote.hop || 0) * 118);
+    const y = HALF_H - size * 0.52 - hopLift;
     drawPaperStandee(screenX - size / 2, y, size, 0.92);
     drawRemoteWarrior(entry.remote, screenX - size / 2, y, size);
     drawNameplate(
@@ -1792,9 +1793,9 @@ function armorPalette(level) {
 
 function drawRemoteSword(x, y, px, palette, attack) {
   const hiltX = x + (attack ? 14 : 15) * px;
-  const hiltY = y + (attack ? 13 : 12) * px;
+  const hiltY = y + (attack ? 14 : 14) * px;
   const tipX = x + (attack ? 24 : 23) * px;
-  const tipY = y + (attack ? 5 : 2) * px;
+  const tipY = y + (attack ? 7 : 6) * px;
   ctx.save();
   ctx.strokeStyle = palette.shadow;
   ctx.lineWidth = Math.max(2, px * 2.2);
@@ -2457,11 +2458,11 @@ function drawWeapon() {
   const sway = swing > 0 ? 0 : idleSway + walkSway;
   const reach = lunge;
 
-  const nearX = W * (0.89 + (1 - windup) * 0.05 - reach * 0.13 + recoil * 0.06) + sway;
-  const nearY = H * (1.12 + (1 - windup) * 0.04 - reach * 0.04 + recoil * 0.05) + walkBob;
-  const farX = W * (0.57 - reach * 0.07) + walkSway * 0.28;
-  const farY = H * (0.81 - reach * 0.39) + walkBob * 0.4;
-  drawForwardPole(nearX, nearY, farX, farY, reach * 1.55, false, true);
+  const nearX = W * (0.89 + (1 - windup) * 0.05 - reach * 0.27 + recoil * 0.09) + sway;
+  const nearY = H * (1.12 + (1 - windup) * 0.04 - reach * 0.2 + recoil * 0.09) + walkBob;
+  const farX = W * (0.57 - reach * 0.045) + walkSway * 0.28;
+  const farY = H * (0.81 - reach * 0.3) + walkBob * 0.4;
+  drawForwardPole(nearX, nearY, farX, farY, reach * 1.95, false, true);
 
   if (hitSpark > 0) drawHitSpark();
 }
