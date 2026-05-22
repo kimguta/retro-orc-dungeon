@@ -78,6 +78,7 @@ let jumpLift = 0;
 let jumpVelocity = 0;
 let damagePops = [];
 let deathParticles = [];
+let deathBursts = [];
 let notice = "던전 필드";
 let noticeTimer = 0;
 let dialogueText = "";
@@ -397,20 +398,34 @@ function spawnDamagePop(x, y, value, boss) {
 
 function spawnDeathBurst(target) {
   const palette = deathPalette(target.type);
-  const count = target.type === "balrog" ? 124 : target.boss ? 82 : target.type === "ogre" ? 66 : 48;
+  const count = target.type === "balrog" ? 176 : target.boss ? 116 : target.type === "ogre" ? 88 : 68;
+  deathBursts.push({
+    x: target.x,
+    y: target.y,
+    z: target.type === "balrog" ? 0.62 : target.boss ? 0.48 : 0.34,
+    life: target.type === "balrog" ? 0.72 : target.boss ? 0.56 : 0.42,
+    maxLife: target.type === "balrog" ? 0.72 : target.boss ? 0.56 : 0.42,
+    boss: Boolean(target.boss),
+    balrog: target.type === "balrog",
+    palette,
+  });
+  screenShake = Math.max(screenShake, target.type === "balrog" ? 3.1 : target.boss ? 1.95 : 1.2);
   for (let i = 0; i < count; i += 1) {
     const angle = Math.random() * Math.PI * 2;
-    const speed = 0.45 + Math.random() * (target.boss ? 2.1 : 1.45);
+    const speed = 0.6 + Math.random() * (target.boss ? 2.8 : 1.9);
+    const spark = i % 5 === 0;
+    const puff = i % 11 === 0;
     deathParticles.push({
       x: target.x + (Math.random() - 0.5) * target.radius,
       y: target.y + (Math.random() - 0.5) * target.radius,
       z: 0.2 + Math.random() * (target.boss ? 1.15 : 0.85),
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
-      vz: 0.9 + Math.random() * 2.4,
-      life: 0.55 + Math.random() * (target.boss ? 0.65 : 0.4),
+      vz: 1.05 + Math.random() * (target.boss ? 3.1 : 2.55),
+      life: 0.52 + Math.random() * (target.boss ? 0.82 : 0.52),
       maxLife: 0,
-      size: 0.035 + Math.random() * (target.boss ? 0.085 : 0.055),
+      size: 0.038 + Math.random() * (target.boss ? 0.11 : 0.068),
+      kind: spark ? "spark" : puff ? "puff" : "shard",
       color: palette[Math.floor(Math.random() * palette.length)],
     });
     deathParticles[deathParticles.length - 1].maxLife = deathParticles[deathParticles.length - 1].life;
@@ -510,6 +525,7 @@ function startPlayerDeath() {
   projectiles = [];
   damagePops = [];
   deathParticles = [];
+  deathBursts = [];
   dialogueText = "";
   dialogueSpeaker = "";
   dialogueTimer = 0;
@@ -532,6 +548,7 @@ function respawnPlayer() {
   projectiles = [];
   damagePops = [];
   deathParticles = [];
+  deathBursts = [];
   started = false;
   dialogueText = "";
   dialogueSpeaker = "";
@@ -712,6 +729,7 @@ function resetTestDungeonTier() {
   projectiles = [];
   damagePops = [];
   deathParticles = [];
+  deathBursts = [];
   enemies = buildEnemies();
   notice = "테스트 성채 초기화 - 1단계";
   noticeTimer = 3.2;
@@ -1152,6 +1170,10 @@ function update(dt) {
     p.life -= dt;
     if (p.life <= 0 || isWall(p.x, p.y)) deathParticles.splice(i, 1);
   }
+  for (let i = deathBursts.length - 1; i >= 0; i -= 1) {
+    deathBursts[i].life -= dt;
+    if (deathBursts[i].life <= 0) deathBursts.splice(i, 1);
+  }
   for (let i = projectiles.length - 1; i >= 0; i -= 1) {
     const p = projectiles[i];
     p.x += p.vx * dt;
@@ -1516,6 +1538,7 @@ function draw() {
   drawSprites();
   drawRemotePlayers();
   drawProjectiles();
+  drawDeathBursts();
   drawDeathParticles();
   drawDamagePops();
   drawItems();
@@ -1620,6 +1643,15 @@ function drawFloorDetails(townView) {
     ctx.beginPath();
     ctx.moveTo(W / 2 + i * 82, H);
     ctx.lineTo(W / 2 + i * 8, HALF_H + 12);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = townView ? 0.12 : 0.08;
+  ctx.strokeStyle = townView ? "rgba(153, 234, 255, 0.24)" : "rgba(255, 219, 151, 0.16)";
+  for (let i = 0; i < 6; i += 1) {
+    const y = HALF_H + 44 + i * i * 12;
+    ctx.beginPath();
+    ctx.moveTo(W * 0.12, y);
+    ctx.quadraticCurveTo(W * 0.5, y + 10 + i * 2, W * 0.88, y);
     ctx.stroke();
   }
   ctx.restore();
@@ -1728,8 +1760,9 @@ function drawRemotePlayers() {
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < entry.dist - 0.2) continue;
     const hopLift = Math.min(size * 0.34, Math.max(0, entry.remote.hop || 0) * 118);
     const y = HALF_H - size * 0.52 - hopLift;
+    drawFloorContact(screenX, y + size * 0.94, size, "#71d4ff", 0.3);
     drawPaperStandee(screenX - size / 2, y, size, 0.92);
-    drawRemoteWarrior(entry.remote, screenX - size / 2, y, size);
+    drawRemoteWarrior(entry.remote, screenX - size / 2, y, size, remoteBackView(entry.remote));
     drawNameplate(
       screenX,
       y - Math.max(22, size * 0.08),
@@ -1741,7 +1774,12 @@ function drawRemotePlayers() {
   }
 }
 
-function drawRemoteWarrior(remote, x, y, size) {
+function remoteBackView(remote) {
+  const bearing = Math.atan2(remote.y - player.y, remote.x - player.x);
+  return Math.abs(normAngle((remote.angle || 0) - bearing)) < Math.PI * 0.48;
+}
+
+function drawRemoteWarrior(remote, x, y, size, backView = false) {
   const px = Math.max(2, Math.floor(size / 18));
   const moving = Boolean(remote.moving);
   const attack = remote.action === "attack" || remote.action === "specialAttack";
@@ -1749,14 +1787,21 @@ function drawRemoteWarrior(remote, x, y, size) {
   const palette = swordPalette(remote.weaponLevel || 0);
   const armor = armorPalette(remote.armorLevel || 0);
   y += bob - (attack ? 2 * px : 0);
+  if (backView) {
+    drawRemoteWarriorBack(remote, x, y, px, palette, armor, attack, moving);
+    return;
+  }
   rect(x + 4 * px, y + 2 * px, 10 * px, 22 * px, "#180f0b");
   rect(x + 13 * px, y + 4 * px, 1 * px, 18 * px, "rgba(255, 231, 180, 0.22)");
   rect(x + 5 * px, y + 2 * px, 8 * px, 7 * px, "#d0ab78");
   rect(x + 4 * px, y + 1 * px, 10 * px, 3 * px, "#58412f");
   rect(x + 5 * px, y + 0 * px, 8 * px, 1 * px, "#d5a95e");
+  rect(x + 4 * px, y + 4 * px, 1 * px, 3 * px, "#ffd0a4");
   rect(x + 6 * px, y + 5 * px, 2 * px, 1 * px, "#1a130e");
   rect(x + 11 * px, y + 5 * px, 2 * px, 1 * px, "#1a130e");
   rect(x + 8 * px, y + 7 * px, 3 * px, 1 * px, "#7e4021");
+  rect(x + 5 * px, y + 7 * px, 1 * px, 1 * px, "#e89472");
+  rect(x + 13 * px, y + 7 * px, 1 * px, 1 * px, "#e89472");
   rect(x + 4 * px, y + 9 * px, 10 * px, 10 * px, remote.berserk ? "#7f241e" : armor.body);
   rect(x + 5 * px, y + 10 * px, 8 * px, 2 * px, armor.light);
   rect(x + 7 * px, y + 13 * px, 5 * px, 1 * px, armor.glint);
@@ -1771,6 +1816,33 @@ function drawRemoteWarrior(remote, x, y, size) {
   if (remote.berserk) {
     ctx.save();
     ctx.globalAlpha = 0.34;
+    ctx.fillStyle = "#ff542a";
+    ctx.beginPath();
+    ctx.ellipse(x + 9.5 * px, y + 13 * px, 10 * px, 14 * px, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawRemoteWarriorBack(remote, x, y, px, palette, armor, attack, moving) {
+  const step = moving ? Math.sin(performance.now() * 0.012 + remote.y * 2.4) : 0;
+  rect(x + 4 * px, y + 2 * px, 10 * px, 22 * px, "#180f0b");
+  rect(x + 5 * px, y + 1 * px, 8 * px, 8 * px, "#5b412e");
+  rect(x + 4 * px, y + 2 * px, 10 * px, 3 * px, "#704f36");
+  rect(x + 6 * px, y + 4 * px, 6 * px, 4 * px, "#3c2b21");
+  rect(x + 4 * px, y + 9 * px, 10 * px, 10 * px, remote.berserk ? "#7f241e" : armor.body);
+  rect(x + 5 * px, y + 10 * px, 8 * px, 2 * px, armor.light);
+  rect(x + 7 * px, y + 13 * px, 4 * px, 5 * px, "#253341");
+  rect(x + 3 * px, y + 11 * px, 3 * px, 7 * px, armor.edge);
+  rect(x + 13 * px, y + 11 * px, 3 * px, 7 * px, armor.edge);
+  rect(x + 6 * px, y + 19 * px, 3 * px, 5 * px, "#211b18");
+  rect(x + 11 * px, y + 19 * px, 3 * px, 5 * px, "#211b18");
+  rect(x + (5 - Math.max(0, step)) * px, y + 23 * px, 4 * px, 1 * px, "#110d0c");
+  rect(x + (10 + Math.max(0, step)) * px, y + 23 * px, 4 * px, 1 * px, "#110d0c");
+  drawRemoteSword(x - px * 0.8, y + px * 0.8, px, palette, attack);
+  if (remote.berserk) {
+    ctx.save();
+    ctx.globalAlpha = 0.32;
     ctx.fillStyle = "#ff542a";
     ctx.beginPath();
     ctx.ellipse(x + 9.5 * px, y + 13 * px, 10 * px, 14 * px, 0, 0, Math.PI * 2);
@@ -1837,6 +1909,7 @@ function spriteScale(e) {
 }
 
 function drawEnemy(e, x, y, size, dist) {
+  drawFloorContact(x + size / 2, y + size * 0.95, size, e.type === "balrog" ? "#ff5a22" : e.boss ? "#ffb65c" : "#d8bd76", e.boss ? 0.36 : 0.24);
   drawPaperStandee(x, y, size, e.type === "balrog" ? 1.22 : e.boss ? 1.06 : 0.9);
   if (e.type === "balrog") drawBalrog(e, x, y, size, dist);
   else if (e.type === "skeleton" || e.type === "skeletonKing" || e.type === "deathKnight") drawSkeleton(e, x, y, size, dist);
@@ -1863,6 +1936,19 @@ function drawPaperStandee(x, y, size, widthScale = 1) {
   ctx.restore();
 }
 
+function drawFloorContact(cx, baseY, size, color, alpha = 0.24) {
+  const w = Math.max(10, size * 0.34);
+  const h = Math.max(3, size * 0.055);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = "#110a07";
+  ctx.fillRect(Math.round(cx - w * 0.58), Math.round(baseY), Math.ceil(w * 1.16), Math.ceil(h));
+  ctx.globalAlpha = alpha * 0.84;
+  ctx.fillStyle = color;
+  ctx.fillRect(Math.round(cx - w * 0.42), Math.round(baseY + h * 0.18), Math.ceil(w * 0.84), Math.max(1, Math.ceil(h * 0.32)));
+  ctx.restore();
+}
+
 function drawTownSprites() {
   const sprites = [
     ...WORLD_PROPS.map((prop) => ({ kind: "prop", data: prop })),
@@ -1883,6 +1969,7 @@ function drawTownSprites() {
     if (s.kind === "npc") {
       const size = Math.min(180, (H / s.dist) * 0.36);
       const y = HALF_H - size * 0.38;
+      drawFloorContact(screenX, y + size * 0.94, size, "#8feaff", 0.26);
       drawPaperStandee(screenX - size / 2, y, size, 0.72);
       drawTownNpc(s.data, screenX - size / 2, y, size, s.dist);
       if (gameState === "play") {
@@ -1937,14 +2024,16 @@ function drawNameplate(cx, y, width, name, pct, fill) {
   const clamped = Math.max(0, Math.min(1, pct || 0));
   ctx.save();
   ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(12, 8, 5, 0.78)";
-  ctx.fillRect(x - 4, y - 18, w + 8, 27);
-  ctx.fillStyle = "rgba(242, 206, 134, 0.1)";
-  ctx.fillRect(x - 2, y - 16, w + 4, 10);
-  ctx.strokeStyle = "rgba(238, 198, 118, 0.38)";
-  ctx.strokeRect(x - 4, y - 18, w + 8, 27);
-  drawText(name, cx, y - 7, 12, "#fff1bd");
-  ctx.fillStyle = "#21120d";
+  ctx.fillStyle = "rgba(20, 12, 10, 0.9)";
+  ctx.fillRect(x - 5, y - 20, w + 10, 30);
+  ctx.fillStyle = "rgba(255, 239, 196, 0.92)";
+  ctx.fillRect(x - 2, y - 17, w + 4, 13);
+  ctx.fillStyle = "rgba(111, 209, 255, 0.26)";
+  ctx.fillRect(x + 2, y - 16, Math.max(8, w * 0.28), 2);
+  ctx.strokeStyle = "rgba(255, 196, 103, 0.72)";
+  ctx.strokeRect(x - 5, y - 20, w + 10, 30);
+  drawText(name, cx, y - 7, 12, "#2a160e");
+  ctx.fillStyle = "#24130d";
   ctx.fillRect(x, y, w, h);
   ctx.fillStyle = fill;
   ctx.fillRect(x + 1, y + 1, Math.max(0, (w - 2) * clamped), h - 2);
@@ -2081,9 +2170,89 @@ function drawDeathParticles() {
     const alpha = Math.max(0, s.p.life / s.p.maxLife);
     ctx.save();
     ctx.globalAlpha = alpha;
-    rect(screenX - size / 2, HALF_H - lift - size / 2, size, size, s.p.color);
+    const py = HALF_H - lift - size / 2;
+    if (s.p.kind === "spark") {
+      drawParticleSpark(screenX, py + size / 2, size, s.p.color);
+    } else if (s.p.kind === "puff") {
+      drawParticlePuff(screenX, py + size / 2, size, s.p.color);
+    } else {
+      drawParticleShard(screenX, py + size / 2, size, s.p.color);
+    }
     ctx.restore();
   }
+}
+
+function drawDeathBursts() {
+  for (const burst of deathBursts) {
+    const dx = burst.x - player.x;
+    const dy = burst.y - player.y;
+    const dist = Math.hypot(dx, dy);
+    const angle = normAngle(Math.atan2(dy, dx) - player.angle);
+    if (Math.abs(angle) > FOV * 0.72 || !hasLineOfSight(burst)) continue;
+    const screenX = W / 2 + Math.tan(angle) * (W / FOV);
+    const depthIndex = Math.floor((screenX / W) * RAYS);
+    if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < dist - 0.18) continue;
+    const progress = 1 - burst.life / burst.maxLife;
+    const size = Math.min(H * (burst.balrog ? 0.72 : 0.42), (H / Math.max(0.38, dist)) * (burst.balrog ? 0.78 : burst.boss ? 0.54 : 0.38));
+    const y = HALF_H - (H / Math.max(0.45, dist)) * burst.z * 0.26;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, 1 - progress) * 0.9;
+    drawComicBurst(screenX, y, size * (0.52 + progress * 0.6), burst.palette, burst.balrog);
+    ctx.restore();
+  }
+}
+
+function drawComicBurst(cx, cy, size, palette, huge = false) {
+  const outer = size * 0.52;
+  const inner = size * (huge ? 0.18 : 0.22);
+  ctx.fillStyle = palette[palette.length - 1] || "#20110d";
+  ctx.beginPath();
+  for (let i = 0; i < 20; i += 1) {
+    const angle = (Math.PI * 2 * i) / 20;
+    const radius = i % 2 ? inner : outer;
+    const x = cx + Math.cos(angle) * radius;
+    const y = cy + Math.sin(angle) * radius;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = palette[0] || "#ff5a22";
+  ctx.beginPath();
+  for (let i = 0; i < 16; i += 1) {
+    const angle = (Math.PI * 2 * i) / 16 + 0.12;
+    const radius = i % 2 ? inner * 0.72 : outer * 0.66;
+    const x = cx + Math.cos(angle) * radius;
+    const y = cy + Math.sin(angle) * radius;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = palette[3] || "#fff0a8";
+  ctx.fillRect(Math.round(cx - size * 0.09), Math.round(cy - size * 0.035), Math.ceil(size * 0.18), Math.max(2, Math.ceil(size * 0.07)));
+}
+
+function drawParticleSpark(cx, cy, size, color) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(2, size * 0.24);
+  ctx.beginPath();
+  ctx.moveTo(cx - size * 0.72, cy);
+  ctx.lineTo(cx + size * 0.72, cy);
+  ctx.moveTo(cx, cy - size * 0.72);
+  ctx.lineTo(cx, cy + size * 0.72);
+  ctx.stroke();
+}
+
+function drawParticlePuff(cx, cy, size, color) {
+  ctx.fillStyle = "#140c09";
+  ctx.fillRect(Math.round(cx - size * 0.6), Math.round(cy - size * 0.32), Math.ceil(size * 1.2), Math.ceil(size * 0.64));
+  ctx.fillStyle = color;
+  ctx.fillRect(Math.round(cx - size * 0.44), Math.round(cy - size * 0.44), Math.ceil(size * 0.88), Math.ceil(size * 0.88));
+}
+
+function drawParticleShard(cx, cy, size, color) {
+  tri(cx - size * 0.58, cy + size * 0.38, cx + size * 0.64, cy, cx - size * 0.18, cy - size * 0.56, color);
 }
 
 function drawItems() {
@@ -2102,6 +2271,7 @@ function drawItems() {
     const depthIndex = Math.floor((screenX / W) * RAYS);
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < s.dist - 0.2) continue;
     const y = HALF_H + H / Math.max(1, s.dist) * 0.24 - size + Math.sin(s.item.bob) * 5;
+    drawFloorContact(screenX, HALF_H + H / Math.max(1, s.dist) * 0.27, size * 0.92, itemColor(s.item), 0.28);
     drawItemSprite(s.item, screenX - size / 2, y, size);
   }
 }
@@ -2827,16 +2997,20 @@ function drawHudLegacyPanel() {
 }
 
 function drawHudPanel(x, y, w, h) {
-  ctx.fillStyle = "rgba(11, 8, 6, 0.9)";
+  ctx.fillStyle = "rgba(18, 11, 9, 0.92)";
   ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = "rgba(214, 169, 86, 0.08)";
+  ctx.fillStyle = "rgba(255, 232, 179, 0.08)";
   ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
-  ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
-  ctx.fillRect(x + 5, y + h - 9, w - 10, 4);
-  ctx.strokeStyle = "rgba(142, 102, 49, 0.8)";
+  ctx.fillStyle = "rgba(255, 191, 84, 0.92)";
+  ctx.fillRect(x + 7, y + 5, Math.min(42, Math.max(14, w * 0.16)), 3);
+  ctx.fillStyle = "rgba(112, 214, 255, 0.42)";
+  ctx.fillRect(x + w - Math.min(30, w * 0.12) - 7, y + 5, Math.min(30, w * 0.12), 3);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.36)";
+  ctx.fillRect(x + 6, y + h - 9, w - 12, 4);
+  ctx.strokeStyle = "rgba(255, 190, 95, 0.86)";
   ctx.lineWidth = 1;
   ctx.strokeRect(x, y, w, h);
-  ctx.strokeStyle = "rgba(255, 222, 146, 0.18)";
+  ctx.strokeStyle = "rgba(255, 238, 194, 0.22)";
   ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);
 }
 
@@ -3248,6 +3422,7 @@ function resetGame() {
   swingType = "normal";
   damagePops = [];
   deathParticles = [];
+  deathBursts = [];
   projectiles = [];
   hitSpark = 0;
   screenShake = 0;
