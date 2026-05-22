@@ -332,21 +332,21 @@ function wanderEnemy(enemy, dt, now) {
     enemy.moving = false;
     return;
   }
-  const leash = enemy.boss ? 1.8 : 2.8;
+  const leash = enemy.boss ? 2.4 : 4.2;
   const fromSpawn = Math.hypot(enemy.x - enemy.spawnX, enemy.y - enemy.spawnY);
   if (fromSpawn > leash) {
     const homeX = enemy.spawnX - enemy.x;
     const homeY = enemy.spawnY - enemy.y;
     const homeDist = Math.hypot(homeX, homeY) || 1;
-    moveOnMap(enemy, homeX / homeDist * enemy.speed * dt * 0.42, homeY / homeDist * enemy.speed * dt * 0.42, enemy.radius);
+    moveOnMap(enemy, homeX / homeDist * enemy.speed * dt * 0.56, homeY / homeDist * enemy.speed * dt * 0.56, enemy.radius);
     enemy.moving = true;
     return;
   }
   if (!enemy.wanderUntil || now >= enemy.wanderUntil) {
-    enemy.wanderUntil = now + 700 + Math.floor(Math.random() * 1500);
-    enemy.wanderAngle += (Math.random() - 0.5) * Math.PI * 1.2;
+    enemy.wanderUntil = now + 850 + Math.floor(Math.random() * 1750);
+    enemy.wanderAngle += (Math.random() - 0.5) * Math.PI * 1.45;
   }
-  const pace = enemy.boss ? 0.14 : 0.24;
+  const pace = enemy.boss ? 0.22 : 0.4;
   moveOnMap(enemy, Math.cos(enemy.wanderAngle) * enemy.speed * dt * pace, Math.sin(enemy.wanderAngle) * enemy.speed * dt * pace, enemy.radius);
   enemy.moving = true;
 }

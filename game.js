@@ -1129,6 +1129,13 @@ function update(dt) {
     remote.x += ((remote.targetX ?? remote.x) - remote.x) * Math.min(1, dt * 12);
     remote.y += ((remote.targetY ?? remote.y) - remote.y) * Math.min(1, dt * 12);
   }
+  if (serverDungeonLive) {
+    for (const e of enemies) {
+      if (e.dead) continue;
+      const cadence = e.moving ? (e.boss ? 4.8 : 6.4) : 1.35;
+      e.step = (e.step || 0) + dt * cadence;
+    }
+  }
   for (let i = damagePops.length - 1; i >= 0; i -= 1) {
     damagePops[i].life -= dt;
     damagePops[i].rise += dt * 0.28;
@@ -2161,12 +2168,13 @@ function drawSkeleton(e, x, y, size, dist) {
   const flash = e.hitFlash > 0;
   const walk = e.moving ? Math.sin(e.step) : 0;
   const bob = e.moving ? Math.abs(Math.sin(e.step)) * px : 0;
+  const idle = e.moving ? 0 : monsterIdle(e, 0.72);
   const bone = flash ? "#fff4c8" : deathKnight ? "#a8a29a" : "#d8d0ad";
   const shade = deathKnight ? "#20222b" : king ? "#8e7b55" : "#8f8870";
   const eye = deathKnight ? "#ff6a22" : king ? "#e12621" : "#5ed1ff";
   const hurt = e.hitFlash > 0.12;
-  y += bob - e.attackPose * 3 * px + (hurt ? Math.sin(performance.now() * 0.09) * px : 0);
-  x += walk * px * 0.3;
+  y += bob + idle * px * 0.5 - e.attackPose * 3 * px + (hurt ? Math.sin(performance.now() * 0.09) * px : 0);
+  x += walk * px * 0.42 + idle * px * 0.12;
   ctx.globalAlpha = Math.max(0.9, 1 - dist / 30);
   if (king) {
     rect(x + 4 * px, y + 1 * px, 8 * px, 2 * px, "#d6b14d");
@@ -2216,9 +2224,10 @@ function drawWarlock(e, x, y, size, dist) {
   const flash = e.hitFlash > 0;
   const walk = e.moving ? Math.sin(e.step) : 0;
   const bob = e.moving ? Math.abs(Math.sin(e.step)) * px : 0;
+  const idle = e.moving ? 0 : monsterIdle(e, 1.08);
   const hurt = e.hitFlash > 0.12;
-  y += bob - e.attackPose * 2 * px + (hurt ? Math.sin(performance.now() * 0.1) * px : 0);
-  x += walk * px * 0.22;
+  y += bob + idle * px * 0.7 - e.attackPose * 2 * px + (hurt ? Math.sin(performance.now() * 0.1) * px : 0);
+  x += walk * px * 0.34 + idle * px * 0.1;
   ctx.globalAlpha = Math.max(0.9, 1 - dist / 30);
   tri(x + 3 * px, y + 5 * px, x + 8 * px, y - 1 * px, x + 14 * px, y + 5 * px, lord ? "#0d0417" : "#160b24");
   tri(x + 2 * px, y + 22 * px, x + 8.5 * px, y + 6 * px, x + 16 * px, y + 22 * px, lord ? "#0e0619" : "#190d28");
@@ -2258,10 +2267,11 @@ function drawBalrog(e, x, y, size, dist) {
   const flash = e.hitFlash > 0;
   const walk = e.moving ? Math.sin(e.step) : 0;
   const bob = e.moving ? Math.abs(Math.sin(e.step)) * px * 0.7 : 0;
+  const idle = e.moving ? 0 : monsterIdle(e, 0.48);
   const attack = e.attackPose;
   const winding = e.attackWindup > 0;
-  y += bob - attack * 4 * px + (winding ? 2 * px : 0);
-  x += walk * px * 0.22;
+  y += bob + idle * px * 0.34 - attack * 4 * px + (winding ? 2 * px : 0);
+  x += walk * px * 0.28;
   ctx.globalAlpha = Math.max(0.94, 1 - dist / 36);
 
   tri(x + 4 * px, y + 15 * px, x - 3 * px, y + 6 * px, x + 1 * px, y + 29 * px, "#150404");
@@ -2318,11 +2328,12 @@ function drawOrc(e, x, y, size, dist) {
   const flash = e.hitFlash > 0;
   const walk = e.moving ? Math.sin(e.step) : 0;
   const bob = e.moving ? Math.abs(Math.sin(e.step)) * px : 0;
+  const idle = e.moving ? 0 : monsterIdle(e, 0.82);
   const attack = e.attackPose;
   const winding = e.attackWindup > 0;
   const hurt = e.hitFlash > 0.1;
-  y += bob - attack * 3 * px + (winding ? 2 * px : 0) + (hurt ? Math.sin(performance.now() * 0.11) * px : 0);
-  x += walk * px * 0.35 + (winding ? Math.sin(e.step + 1.2) * px * 0.5 : 0) + (hurt ? Math.sin(performance.now() * 0.16) * px * 0.7 : 0);
+  y += bob + idle * px * 0.42 - attack * 3 * px + (winding ? 2 * px : 0) + (hurt ? Math.sin(performance.now() * 0.11) * px : 0);
+  x += walk * px * 0.48 + idle * px * 0.14 + (winding ? Math.sin(e.step + 1.2) * px * 0.5 : 0) + (hurt ? Math.sin(performance.now() * 0.16) * px * 0.7 : 0);
   const skin = flash ? "#f6e9b8" : ogreLord ? "#4e5f29" : ogre ? "#6b7f38" : dark ? "#1d5f32" : "#2f9c45";
   const skinLight = flash ? "#fff6cf" : ogreLord ? "#839448" : ogre ? "#9aaa55" : dark ? "#3a8745" : "#5fc765";
   const shadow = ogreLord ? "#252d17" : ogre ? "#323d1d" : dark ? "#0e2817" : "#145b28";
@@ -2427,6 +2438,11 @@ function drawOrc(e, x, y, size, dist) {
 function rect(x, y, w, h, color) {
   ctx.fillStyle = color;
   ctx.fillRect(Math.round(x), Math.round(y), Math.ceil(w), Math.ceil(h));
+}
+
+function monsterIdle(e, rate = 1) {
+  const seed = (e.x || e.spawnX || 0) * 1.7 + (e.y || e.spawnY || 0) * 2.3;
+  return Math.sin(performance.now() * 0.0024 * rate + seed);
 }
 
 function tri(x1, y1, x2, y2, x3, y3, color) {
