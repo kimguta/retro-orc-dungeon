@@ -2067,24 +2067,26 @@ function drawTownNpc(npc, x, y, size, dist) {
 
 function drawNameplate(cx, y, width, name, pct, fill) {
   const w = Math.round(width);
-  const h = 7;
+  const h = 8;
   const x = Math.round(cx - w / 2);
   const clamped = Math.max(0, Math.min(1, pct || 0));
   ctx.save();
   ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(14, 9, 7, 0.92)";
-  ctx.fillRect(x - 5, y - 20, w + 10, 30);
-  ctx.fillStyle = "rgba(255, 228, 166, 0.12)";
-  ctx.fillRect(x - 2, y - 17, w + 4, 12);
-  ctx.strokeStyle = "rgba(255, 196, 103, 0.6)";
-  ctx.strokeRect(x - 5, y - 20, w + 10, 30);
-  drawText(name, cx, y - 7, 13, "#fff4c9");
+  ctx.font = "500 14px Trebuchet MS, Noto Sans KR, Malgun Gothic, Apple SD Gothic Neo, sans-serif";
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = "rgba(5, 3, 2, 0.98)";
+  ctx.lineWidth = 3;
+  ctx.strokeText(name, Math.round(cx), Math.round(y - 9));
+  ctx.fillStyle = "#fff7dc";
+  ctx.fillText(name, Math.round(cx), Math.round(y - 9));
+  ctx.fillStyle = "rgba(5, 3, 2, 0.92)";
+  ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
   ctx.fillStyle = "#24130d";
   ctx.fillRect(x, y, w, h);
   ctx.fillStyle = fill;
   ctx.fillRect(x + 1, y + 1, Math.max(0, (w - 2) * clamped), h - 2);
-  ctx.strokeStyle = "#0c0806";
-  ctx.strokeRect(x, y, w, h);
+  ctx.fillStyle = "rgba(255, 248, 218, 0.34)";
+  ctx.fillRect(x + 1, y + 1, Math.max(0, (w - 2) * clamped), 2);
   ctx.restore();
 }
 
