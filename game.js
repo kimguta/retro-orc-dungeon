@@ -62,7 +62,7 @@ const keys = new Set();
 const depths = new Array(RAYS).fill(MAX_DEPTH);
 let last = performance.now();
 let kills = 0;
-loadProgress();
+if (!SOCKET_SERVER_URL) loadProgress();
 let swing = 0;
 let swingCooldown = 0;
 let swingType = "normal";
@@ -323,7 +323,7 @@ function zoneSpawnType(original) {
 }
 
 function saveProgress() {
-  if (multiplayerSocket?.connected) return;
+  if (SOCKET_SERVER_URL) return;
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       level: player.level,
@@ -757,6 +757,7 @@ function connectMultiplayer() {
   multiplayerSocket.on("enemy:defeated", ({ enemy }) => {
     const target = enemies.find((entry) => entry.id === enemy.id) || enemy;
     spawnDeathBurst(target);
+    dropLoot(target);
   });
   multiplayerSocket.on("player:reward", ({ xp, kills: savedKills }) => {
     if (Number.isFinite(savedKills)) kills = savedKills;
