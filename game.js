@@ -72,6 +72,8 @@ let messagePulse = 0;
 let started = false;
 let hitSpark = 0;
 let screenShake = 0;
+let jumpLift = 0;
+let jumpVelocity = 0;
 let damagePops = [];
 let deathParticles = [];
 let notice = "던전 필드";
@@ -496,6 +498,8 @@ function startPlayerDeath() {
   swing = 0;
   swingCooldown = 0;
   swingType = "normal";
+  jumpLift = 0;
+  jumpVelocity = 0;
   projectiles = [];
   damagePops = [];
   deathParticles = [];
@@ -516,6 +520,8 @@ function respawnPlayer() {
   swing = 0;
   swingCooldown = 0;
   swingType = "normal";
+  jumpLift = 0;
+  jumpVelocity = 0;
   projectiles = [];
   damagePops = [];
   deathParticles = [];
@@ -1079,6 +1085,7 @@ function update(dt) {
   }
 
   player.angle = normAngle(player.angle);
+  updateJump(dt);
   swing = Math.max(0, swing - dt * (swingType === "special" ? 3.55 : 2.85));
   if (swing === 0) swingType = "normal";
   swingCooldown = Math.max(0, swingCooldown - dt);
@@ -1206,6 +1213,18 @@ function update(dt) {
 
   collectItems();
   emitPlayerState(dt);
+}
+
+function startJump() {
+  if (gameState !== "play" || jumpLift > 0.01) return;
+  jumpVelocity = 3.65;
+}
+
+function updateJump(dt) {
+  if (jumpLift <= 0 && jumpVelocity <= 0) return;
+  jumpLift = Math.max(0, jumpLift + jumpVelocity * dt);
+  jumpVelocity -= 10.8 * dt;
+  if (jumpLift === 0 && jumpVelocity < 0) jumpVelocity = 0;
 }
 
 function meleeReach(e) {
@@ -1427,6 +1446,8 @@ function draw() {
     const wobble = Math.sin(performance.now() * 0.08) * screenShake * 4;
     ctx.translate(wobble, -wobble * 0.45);
   }
+  ctx.save();
+  if (jumpLift > 0) ctx.translate(0, jumpLift * 54);
   drawWorld();
   drawTownSprites();
   drawSprites();
@@ -1437,6 +1458,7 @@ function draw() {
   drawItems();
   drawVignette();
   drawWeapon();
+  ctx.restore();
   drawHud();
   if (gameState !== "play") drawEndScreen();
   ctx.restore();
@@ -1445,17 +1467,17 @@ function draw() {
 function drawWorld() {
   const zone = zoneAt();
   const townView = isTown();
-  const sky = ctx.createLinearGradient(0, 0, 0, HALF_H);
+  const sky = ctx.createLinearGradient(0, -72, 0, HALF_H);
   sky.addColorStop(0, zone.sky[0]);
   sky.addColorStop(1, zone.sky[1]);
   ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, W, HALF_H);
+  ctx.fillRect(0, -72, W, HALF_H + 72);
 
-  const floor = ctx.createLinearGradient(0, HALF_H, 0, H);
+  const floor = ctx.createLinearGradient(0, HALF_H, 0, H + 96);
   floor.addColorStop(0, zone.floor[0]);
   floor.addColorStop(1, zone.floor[1]);
   ctx.fillStyle = floor;
-  ctx.fillRect(0, HALF_H, W, HALF_H);
+  ctx.fillRect(0, HALF_H, W, HALF_H + 96);
   drawFloorDetails(townView);
 
   for (let r = 0; r < RAYS; r += 1) {
@@ -3046,7 +3068,7 @@ function drawEndScreen() {
   ctx.fillStyle = "#d9c99a";
   ctx.font = "500 20px Noto Sans KR, Malgun Gothic, sans-serif";
   if (gameState === "start") {
-    ctx.fillText("좌클릭 / 스페이스: 공격", W / 2, H / 2 - 18);
+    ctx.fillText("좌클릭 공격 / 스페이스 점프", W / 2, H / 2 - 18);
     ctx.fillText(`분노 최대치: 자동 광폭화`, W / 2, H / 2 + 14);
     ctx.fillText("종이성채에서 성장하고 발록을 반복 트라이하세요", W / 2, H / 2 + 48);
     ctx.fillText("Enter 또는 클릭으로 시작", W / 2, H / 2 + 84);
@@ -3099,6 +3121,8 @@ function resetGame() {
   projectiles = [];
   hitSpark = 0;
   screenShake = 0;
+  jumpLift = 0;
+  jumpVelocity = 0;
   dialogueText = "";
   dialogueSpeaker = "";
   dialogueTimer = 0;
@@ -3153,7 +3177,7 @@ window.addEventListener("keydown", (event) => {
   }
   if (event.code === "Space") {
     event.preventDefault();
-    if (gameState !== "start") attack("normal");
+    if (!event.repeat) startJump();
   }
   if (event.code === "Enter" && gameState !== "play" && gameState !== "dead") resetGame();
 });
