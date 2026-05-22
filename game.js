@@ -1566,12 +1566,6 @@ function drawWorld() {
   ctx.fillStyle = floor;
   ctx.fillRect(0, HALF_H, W, HALF_H + 96);
   drawFloorDetails(townView);
-  const horizon = ctx.createLinearGradient(0, HALF_H - 26, 0, HALF_H + 56);
-  horizon.addColorStop(0, "rgba(0, 0, 0, 0)");
-  horizon.addColorStop(0.46, townView ? "rgba(117, 88, 49, 0.12)" : "rgba(5, 3, 2, 0.22)");
-  horizon.addColorStop(1, "rgba(0, 0, 0, 0)");
-  ctx.fillStyle = horizon;
-  ctx.fillRect(0, HALF_H - 26, W, 82);
 
   for (let r = 0; r < RAYS; r += 1) {
     const rayAngle = player.angle - FOV / 2 + (r / RAYS) * FOV;
@@ -1594,26 +1588,18 @@ function drawWorld() {
     ctx.fillStyle = `rgba(0, 0, 0, ${1 - faceShade})`;
     ctx.fillRect(x, y, colW, wallH);
 
-    const blockH = Math.max(52, wallH / 4.2);
+    const blockH = Math.max(44, wallH / 4.1);
     const row = Math.floor((hit.y + hit.x) * 2.1);
     const offsetU = row % 2 ? 0.14 : 0;
     const joint = Math.max(1, wallH / 92);
     ctx.fillStyle = hitTown ? "rgba(255, 226, 167, 0.14)" : "rgba(246, 220, 171, 0.13)";
     for (let by = y + blockH * 0.28; by < y + wallH; by += blockH) {
-      ctx.fillStyle = "rgba(20, 12, 9, 0.34)";
-      ctx.fillRect(x, by - joint, colW, joint * 2.4);
+      ctx.fillStyle = "rgba(24, 13, 9, 0.24)";
+      ctx.fillRect(x, by - joint, colW, joint * 2);
       ctx.fillStyle = hitTown ? "rgba(255, 226, 167, 0.14)" : "rgba(246, 220, 171, 0.13)";
       ctx.fillRect(x, by, colW, joint);
     }
     const u = (hit.wallU + offsetU) % 1;
-    if (wallH > 84 && (u < 0.055 || u > 0.945)) {
-      ctx.fillStyle = "rgba(8, 5, 4, 0.28)";
-      ctx.fillRect(x, y + wallH * 0.08, colW, wallH * 0.84);
-    }
-    if (wallH > 112 && u > 0.12 && u < 0.88 && (r + row) % 7 === 0) {
-      ctx.fillStyle = hitTown ? "rgba(255, 244, 205, 0.11)" : "rgba(255, 237, 194, 0.08)";
-      ctx.fillRect(x, y + wallH * 0.18, colW, wallH * 0.16);
-    }
     if ((r + Math.floor(hit.x * 13 + hit.y * 17)) % 31 === 0) {
       const nickY = y + (0.22 + ((Math.floor(hit.x * 7 + hit.y * 9) % 5) * 0.12)) * wallH;
       ctx.fillStyle = "rgba(255, 243, 197, 0.12)";
@@ -1649,27 +1635,18 @@ function drawWorld() {
 
 function drawCeilingDetails(townView) {
   ctx.save();
-  const beam = townView ? "rgba(255, 222, 165, 0.14)" : "rgba(214, 178, 126, 0.11)";
-  const gap = townView ? "rgba(28, 16, 10, 0.24)" : "rgba(8, 6, 6, 0.34)";
-  for (let i = 0; i < 5; i += 1) {
-    const t = i / 5;
-    const y = HALF_H * (0.11 + Math.pow(t, 1.35) * 0.78);
-    const h = Math.max(3, H * (0.012 + t * 0.016));
-    ctx.fillStyle = gap;
-    ctx.fillRect(0, y, W, h);
-    ctx.fillStyle = beam;
-    ctx.fillRect(0, y + h * 0.18, W, Math.max(1, h * 0.18));
-  }
-  ctx.strokeStyle = townView ? "rgba(255, 233, 187, 0.1)" : "rgba(226, 194, 146, 0.09)";
+  ctx.globalAlpha = townView ? 0.16 : 0.2;
+  ctx.strokeStyle = townView ? "rgba(255, 225, 177, 0.2)" : "rgba(255, 201, 133, 0.16)";
   ctx.lineWidth = 2;
-  for (let i = -4; i <= 4; i += 1) {
+  for (let i = -2; i <= 2; i += 1) {
     ctx.beginPath();
-    ctx.moveTo(W / 2 + i * 38, HALF_H * 0.1);
-    ctx.lineTo(W / 2 + i * 142, HALF_H * 0.98);
+    ctx.moveTo(W * (0.08 + i * 0.03), HALF_H * 0.98);
+    ctx.quadraticCurveTo(W * 0.5, HALF_H * (0.34 + Math.abs(i) * 0.05), W * (0.92 - i * 0.03), HALF_H * 0.98);
     ctx.stroke();
   }
-  ctx.fillStyle = "rgba(7, 5, 5, 0.34)";
-  ctx.fillRect(0, 0, W, Math.max(10, H * 0.03));
+  ctx.globalAlpha *= 0.7;
+  ctx.fillStyle = "rgba(10, 7, 8, 0.28)";
+  ctx.fillRect(0, 0, W, Math.max(10, H * 0.028));
   ctx.restore();
 }
 
@@ -1693,14 +1670,14 @@ function drawFloorDetails(townView) {
     ctx.lineTo(W / 2 + i * 8, HALF_H + 12);
     ctx.stroke();
   }
-  ctx.globalAlpha = townView ? 0.15 : 0.12;
-  for (let i = 0; i < 7; i += 1) {
-    const t = (i + 1) / 7;
-    const y = HALF_H + Math.pow(t, 1.85) * HALF_H;
-    ctx.fillStyle = i % 2
-      ? townView ? "rgba(255, 236, 188, 0.1)" : "rgba(248, 211, 151, 0.07)"
-      : townView ? "rgba(39, 24, 15, 0.2)" : "rgba(8, 5, 4, 0.24)";
-    ctx.fillRect(0, y, W, Math.max(2, 2 + t * 5));
+  ctx.globalAlpha = townView ? 0.12 : 0.08;
+  ctx.strokeStyle = townView ? "rgba(153, 234, 255, 0.24)" : "rgba(255, 219, 151, 0.16)";
+  for (let i = 0; i < 6; i += 1) {
+    const y = HALF_H + 44 + i * i * 12;
+    ctx.beginPath();
+    ctx.moveTo(W * 0.12, y);
+    ctx.quadraticCurveTo(W * 0.5, y + 10 + i * 2, W * 0.88, y);
+    ctx.stroke();
   }
   ctx.restore();
 }
