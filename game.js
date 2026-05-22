@@ -87,6 +87,11 @@ let characterName = "";
 let multiplayerSocket = null;
 let multiplayerRoomId = "";
 let networkTimer = 0;
+let serverDungeonLive = false;
+let serverPlayerCount = 1;
+let balrogRespawnAt = 0;
+let mapPattern = 0;
+let testBoosted = false;
 const remotePlayers = new Map();
 
 const SPAWN_POINTS = [
@@ -318,6 +323,7 @@ function zoneSpawnType(original) {
 }
 
 function saveProgress() {
+  if (multiplayerSocket?.connected) return;
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       level: player.level,
@@ -545,7 +551,7 @@ function dropLoot(target) {
 
   if (roll < 0.02) spawnItem(Math.random() < 0.55 ? "scroll" : "armorScroll", target.x, target.y);
   else if (roll < 0.32) spawnItem("rage", target.x, target.y);
-  else if (roll < 0.46) spawnItem("xp", target.x, target.y);
+  else if (roll < 0.46) spawnItem("xp", target.x, target.y, Math.max(35, Math.floor((target.xp || 35) * 0.55)));
   else if (roll < 0.72) spawnItem("health", target.x, target.y);
 }
 
@@ -558,7 +564,7 @@ function scatterBossLoot(target, count, legendary) {
     const roll = Math.random();
     let type = roll < 0.34 ? "scroll" : roll < 0.68 ? "armorScroll" : roll < 0.82 ? "health" : roll < 0.92 ? "xp" : "rage";
     if (legendary && i < 2) type = "legendScroll";
-    if (!isWall(x, y)) spawnItem(type, x, y);
+    if (!isWall(x, y)) spawnItem(type, x, y, type === "xp" ? Math.max(80, Math.floor((target.xp || 80) * 0.7)) : 0);
   }
 }
 
@@ -603,6 +609,7 @@ function balrogEnemy() {
 }
 
 function balrogRespawnSeconds() {
+  if (balrogRespawnAt) return Math.max(0, Math.ceil((balrogRespawnAt - Date.now()) / 1000));
   const balrog = enemies.find((e) => e.type === "balrog" && e.dead);
   return balrog ? Math.max(0, Math.ceil(balrog.respawnTimer || 0)) : 0;
 }
@@ -638,7 +645,7 @@ function beginNamedRun(name) {
   if (nameScreen) nameScreen.classList.add("is-hidden");
   startGame();
   if (isTestCharacter()) {
-    notice = "테스트 계정: 1 초고스탯 / 2 성채 1단계";
+    notice = "테스트 계정: 1 무적 토글 / 2 성채 1단계";
     noticeTimer = 3.2;
   }
   connectMultiplayer();
@@ -649,6 +656,21 @@ function isTestCharacter() {
 }
 
 function applyTestBoost() {
+  testBoosted = !testBoosted;
+  if (multiplayerSocket?.connected) {
+    multiplayerSocket.emit("test:boost", { enabled: testBoosted });
+    player.rage = testBoosted ? player.maxRage : player.rage;
+    notice = testBoosted ? "테스트 무적 모드" : "테스트 노멀 모드";
+    noticeTimer = 2.4;
+    return;
+  }
+  if (!testBoosted) {
+    resetGame();
+    beginNamedRun(characterName);
+    notice = "테스트 노멀 모드";
+    noticeTimer = 2.4;
+    return;
+  }
   player.level = 9999;
   player.weaponLevel = 9999;
   player.armorLevel = 9999;
@@ -666,6 +688,10 @@ function applyTestBoost() {
 }
 
 function resetTestDungeonTier() {
+  if (multiplayerSocket?.connected) {
+    multiplayerSocket.emit("test:resetTier");
+    return;
+  }
   roomState.dungeonTier = 1;
   roomState.balrogDefeatedCount = 0;
   items = [];
@@ -689,12 +715,16 @@ function connectMultiplayer() {
     transports: ["websocket", "polling"],
   });
   multiplayerSocket.on("connect", () => setNameStatus("성채에 접속했습니다."));
-  multiplayerSocket.on("room:joined", ({ roomId, players = [] }) => {
+  multiplayerSocket.on("room:joined", ({ roomId, players = [], character, resumed, dungeon }) => {
     multiplayerRoomId = roomId;
     remotePlayers.clear();
     for (const remote of players) upsertRemotePlayer(remote);
-    notice = `${roomId} 입장`;
-    noticeTimer = 2.2;
+    if (character) applyServerCharacter(character);
+    if (dungeon) applyServerDungeon(dungeon);
+    const loaded = resumed ? "저장 캐릭터를 이어서 불러왔습니다." : "새 캐릭터가 서버에 저장됩니다.";
+    setNameStatus(loaded);
+    notice = resumed ? `${character.displayName} 이어하기` : `${roomId} 입장`;
+    noticeTimer = 2.6;
   });
   multiplayerSocket.on("players:update", (players = []) => {
     const seen = new Set();
@@ -712,6 +742,31 @@ function connectMultiplayer() {
     const remote = remotePlayers.get(id);
     if (remote) remote.action = action || "attack";
   });
+  multiplayerSocket.on("character:update", (character) => applyServerCharacter(character));
+  multiplayerSocket.on("dungeon:update", (dungeon) => applyServerDungeon(dungeon));
+  multiplayerSocket.on("dungeon:notice", ({ text }) => {
+    notice = text;
+    noticeTimer = 3.2;
+  });
+  multiplayerSocket.on("enemy:hit", ({ id, x, y, damage, boss }) => {
+    const target = enemies.find((enemy) => enemy.id === id);
+    if (target) target.hitFlash = 1;
+    spawnDamagePop(x, y, damage, boss);
+    hitSpark = 1;
+  });
+  multiplayerSocket.on("enemy:defeated", ({ enemy }) => {
+    const target = enemies.find((entry) => entry.id === enemy.id) || enemy;
+    spawnDeathBurst(target);
+  });
+  multiplayerSocket.on("player:reward", ({ xp, kills: savedKills }) => {
+    if (Number.isFinite(savedKills)) kills = savedKills;
+    gainXp(xp || 0);
+  });
+  multiplayerSocket.on("player:damaged", ({ hp, sourceX, sourceY }) => {
+    player.hp = hp;
+    showPlayerHit(sourceX, sourceY);
+    if (player.hp <= 0) startPlayerDeath();
+  });
   multiplayerSocket.on("connect_error", () => setNameStatus("멀티 서버 연결 대기 중입니다. 싱글 플레이는 계속됩니다."));
   multiplayerSocket.on("disconnect", () => {
     multiplayerRoomId = "";
@@ -725,8 +780,10 @@ function upsertRemotePlayer(remote) {
   remotePlayers.set(remote.id, {
     ...previous,
     ...remote,
-    x: Number(remote.x) || previous.x || 4.5,
-    y: Number(remote.y) || previous.y || 4.5,
+    x: previous.x ?? (Number(remote.x) || 4.5),
+    y: previous.y ?? (Number(remote.y) || 4.5),
+    targetX: Number(remote.x) || previous.targetX || 4.5,
+    targetY: Number(remote.y) || previous.targetY || 4.5,
     angle: Number(remote.angle) || 0,
     action: remote.action || previous.action || "idle",
   });
@@ -743,13 +800,57 @@ function emitPlayerState(dt) {
     angle: player.angle,
     hp: player.hp,
     maxHp: player.maxHp,
+    rage: player.rage,
+    maxRage: player.maxRage,
     level: player.level,
+    xp: player.xp,
+    nextXp: player.nextXp,
+    attackPower: player.attackPower,
     weaponLevel: player.weaponLevel,
     armorLevel: player.armorLevel,
+    kills,
     berserk,
     moving: keys.has("KeyW") || keys.has("KeyA") || keys.has("KeyS") || keys.has("KeyD"),
     action: swing > 0 ? swingType === "special" ? "specialAttack" : "attack" : "idle",
   });
+}
+
+function applyServerCharacter(character) {
+  player.level = character.level;
+  player.xp = character.xp;
+  player.nextXp = character.nextXp;
+  player.hp = character.hp || character.maxHp;
+  player.maxHp = character.maxHp;
+  player.rage = character.rage || 0;
+  player.maxRage = character.maxRage;
+  player.attackPower = character.attackPower;
+  player.weaponLevel = character.weaponLevel;
+  player.armorLevel = character.armorLevel;
+  kills = character.kills || 0;
+}
+
+function applyServerDungeon(dungeon) {
+  serverDungeonLive = true;
+  serverPlayerCount = dungeon.playerCount || 1;
+  roomState.dungeonTier = dungeon.dungeonTier || 1;
+  roomState.balrogDefeatedCount = dungeon.balrogDefeatedCount || 0;
+  balrogRespawnAt = dungeon.balrogRespawnAt || 0;
+  if (mapPattern !== (dungeon.mapPattern || 0)) {
+    mapPattern = dungeon.mapPattern || 0;
+    map = buildMap(mapPattern);
+  }
+  const previous = new Map(enemies.map((enemy) => [enemy.id, enemy]));
+  enemies = (dungeon.enemies || []).map((enemy) => ({
+    step: Math.random() * Math.PI * 2,
+    attackTimer: 0,
+    attackWindup: 0,
+    stun: 0,
+    knockX: 0,
+    knockY: 0,
+    alert: 0,
+    ...previous.get(enemy.id),
+    ...enemy,
+  }));
 }
 
 function buildBaseMap() {
@@ -815,8 +916,21 @@ function wallLine(grid, x1, y1, x2, y2) {
   }
 }
 
-function buildMap() {
-  return BASE_MAP.slice();
+function buildMap(pattern = 0) {
+  const grid = BASE_MAP.map((row) => row.split(""));
+  if (pattern === 1) {
+    carveArea(grid, 36, 9, 8, 3);
+    carveArea(grid, 47, 10, 12, 5);
+    wallLine(grid, 55, 8, 55, 11);
+    wallLine(grid, 48, 13, 51, 13);
+  }
+  if (pattern === 2) {
+    carveArea(grid, 22, 28, 11, 6);
+    carveArea(grid, 20, 30, 5, 3);
+    wallLine(grid, 27, 30, 27, 33);
+    wallLine(grid, 31, 32, 34, 32);
+  }
+  return grid.map((row) => row.join(""));
 }
 
 function isWall(x, y) {
@@ -963,6 +1077,10 @@ function update(dt) {
   for (const item of items) {
     item.bob += dt * 4;
   }
+  for (const remote of remotePlayers.values()) {
+    remote.x += ((remote.targetX ?? remote.x) - remote.x) * Math.min(1, dt * 12);
+    remote.y += ((remote.targetY ?? remote.y) - remote.y) * Math.min(1, dt * 12);
+  }
   for (let i = damagePops.length - 1; i >= 0; i -= 1) {
     damagePops[i].life -= dt;
     damagePops[i].rise += dt * 0.28;
@@ -997,7 +1115,7 @@ function update(dt) {
     }
   }
 
-  for (const e of enemies) {
+  if (!serverDungeonLive) for (const e of enemies) {
     if (e.dead) {
       e.respawnTimer = Math.max(0, e.respawnTimer - dt);
       if (e.respawnTimer === 0 && (e.boss || Math.hypot(player.x - e.spawnX, player.y - e.spawnY) > 6)) {
@@ -1106,6 +1224,10 @@ function damagePlayer(rawDamage, sourceX, sourceY) {
   const mitigation = Math.min(0.82, player.armorLevel / (player.armorLevel + 90));
   const damage = Math.max(1, Math.ceil(rawDamage * (1 - mitigation)));
   player.hp = Math.max(0, player.hp - damage);
+  showPlayerHit(sourceX, sourceY);
+}
+
+function showPlayerHit(sourceX, sourceY) {
   player.hurt = 1;
   hurtDirection = normAngle(Math.atan2(sourceY - player.y, sourceX - player.x) - player.angle);
   hurtDirectionTimer = 0.62;
@@ -1134,6 +1256,10 @@ function attack(kind = "normal") {
   const baseDamage = player.attackPower + player.weaponLevel + levelAttackBonus();
   const rageDamage = berserk ? 1.5 : 1;
   const damage = Math.ceil((kind === "special" ? baseDamage * 2 + 2 : baseDamage) * rageDamage);
+  if (serverDungeonLive && multiplayerSocket?.connected) {
+    multiplayerSocket.emit("dungeon:attack", { kind });
+    return;
+  }
   const hits = getAttackHits(hitRange, hitAngle);
   const targets = kind === "special" ? hits.map((hit) => hit.e) : hits.slice(0, 1).map((hit) => hit.e);
 
@@ -1240,7 +1366,7 @@ function collectItems() {
       noticeTimer = 1.6;
       items.splice(i, 1);
     } else if (item.type === "xp") {
-      gainXp(35 + player.level * 6);
+      gainXp(item.value || 35 + player.level * 6);
       notice = "경험치 획득";
       noticeTimer = 1.6;
       items.splice(i, 1);
@@ -1288,9 +1414,9 @@ function draw() {
     ctx.translate(wobble, -wobble * 0.45);
   }
   drawWorld();
+  drawTownSprites();
   drawSprites();
   drawRemotePlayers();
-  drawTownSprites();
   drawProjectiles();
   drawDeathParticles();
   drawDamagePops();
@@ -1486,9 +1612,13 @@ function drawRemoteWarrior(remote, x, y, size) {
   rect(swordX, swordY, 2 * px, attack ? 13 * px : 11 * px, palette.shadow);
   rect(swordX + px * 0.45, swordY - (attack ? 4 : 3) * px, px, attack ? 17 * px : 14 * px, palette.blade);
   if (remote.berserk) {
-    ctx.strokeStyle = "rgba(255, 82, 40, 0.72)";
-    ctx.lineWidth = Math.max(2, px);
-    ctx.strokeRect(x + 2 * px, y, 15 * px, 24 * px);
+    ctx.save();
+    ctx.globalAlpha = 0.34;
+    ctx.fillStyle = "#ff542a";
+    ctx.beginPath();
+    ctx.ellipse(x + 9.5 * px, y + 13 * px, 10 * px, 14 * px, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 }
 
@@ -2476,9 +2606,8 @@ function drawHud() {
   const statX = 150 + barW;
   drawHudPanel(statX, panelY + 18, 280, 90);
   drawText(`LV ${player.level}`, statX + 20, panelY + 50, 16, "#f3c46e");
-  drawText(`XP ${player.xp}/${player.nextXp}`, statX + 20, panelY + 80, 13, "#cdb681");
+  drawText(`XP ${compactNumber(player.xp)}/${compactNumber(player.nextXp)}`, statX + 20, panelY + 80, 13, "#cdb681");
   drawText(`KILL ${kills}`, statX + 148, panelY + 50, 15, "#f4dfbd");
-  drawText(zoneAt().short, statX + 148, panelY + 80, 13, isTown() ? "#f3c46e" : "#cdb681");
 
   const weaponX = Math.max(statX + 302, W - 344);
   drawHudPanel(weaponX, panelY + 18, 326, 90);
@@ -2488,11 +2617,10 @@ function drawHud() {
   else if (player.rage >= SPECIAL_RAGE_COST) drawText("우클릭 특수공격 준비", weaponX + 20, panelY + 82, 13, "#f3c46e");
   else drawText(`특수공격 분노 ${SPECIAL_RAGE_COST}`, weaponX + 20, panelY + 82, 13, "#9f8a60");
 
-  const hintX = Math.min(weaponX - 28, W - 520);
-  if (hintX > statX + 298) {
-    const balrog = balrogEnemy();
-    drawText(balrog ? `목표: ${directionTo(balrog.x, balrog.y)}쪽 발록` : "목표 완료: 발록 처치", hintX, panelY + 82, 13, balrog ? "#ffb199" : "#f3c46e");
-  }
+  const balrogGoal = balrogEnemy();
+  drawHudPanel(W - 248, 138, 210, 68);
+  drawText(zoneAt().name, W - 228, 164, 14, isTown() ? "#f3c46e" : "#cdb681");
+  drawText(balrogGoal ? `목표: ${directionTo(balrogGoal.x, balrogGoal.y)}쪽 발록` : "목표: 발록 재등장 대기", W - 228, 188, 12, balrogGoal ? "#ffb199" : "#8feaff");
 
   const boss = balrogEnemy() || enemies.find((e) => e.boss && !e.dead);
   if (boss && (Math.hypot(player.x - boss.x, player.y - boss.y) < 8 || boss.hp < boss.maxHp)) {
@@ -2510,6 +2638,8 @@ function drawHud() {
     balrogEnemy() ? "#ff8b74" : "#8feaff",
   );
   drawText(`처치 ${roomState.balrogDefeatedCount}회`, W - 118, 106, 13, "#cdb681");
+  drawHudPanel(W - 248, 216, 210, 48);
+  drawText(`참가 ${serverPlayerCount}명`, W - 228, 246, 15, "#8feaff");
 
   if (player.hurt > 0) {
     ctx.fillStyle = `rgba(255, 245, 220, ${player.hurt * 0.13})`;
@@ -2531,6 +2661,14 @@ function drawHud() {
     drawText(notice, W / 2, 118, 22, "#f3c46e");
     ctx.textAlign = "left";
   }
+}
+
+function compactNumber(value) {
+  const number = Math.floor(Number(value) || 0);
+  if (number >= 1000000000) return `${(number / 1000000000).toFixed(1)}B`;
+  if (number >= 1000000) return `${(number / 1000000).toFixed(1)}M`;
+  if (number >= 10000) return `${Math.floor(number / 1000)}K`;
+  return `${number}`;
 }
 
 function drawHitDirection() {
@@ -2644,6 +2782,11 @@ function drawMiniMap() {
       ctx.strokeStyle = e.type === "balrog" ? "#fff0a0" : "#ffd06a";
       ctx.strokeRect(mx - 1, my - 1, size + 2, size + 2);
     }
+  }
+
+  for (const remote of remotePlayers.values()) {
+    ctx.fillStyle = "#64d6ff";
+    ctx.fillRect(x0 + remote.x * cell - 2, y0 + remote.y * cell - 2, 4, 4);
   }
 
   ctx.fillStyle = "#fff3b0";

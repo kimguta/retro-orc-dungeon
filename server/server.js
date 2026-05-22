@@ -1,113 +1,474 @@
+const fs = require("fs");
+const path = require("path");
 const http = require("http");
 const cors = require("cors");
 const express = require("express");
 const { Server } = require("socket.io");
 
 const PORT = Number(process.env.PORT) || 3000;
-const MAX_PLAYERS_PER_ROOM = Number(process.env.MAX_PLAYERS_PER_ROOM) || 20;
 const CLIENT_ORIGINS = (process.env.CLIENT_ORIGIN || "http://127.0.0.1:4173,http://localhost:4173")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+const DATA_DIR = path.join(__dirname, "data");
+const USERS_FILE = path.join(DATA_DIR, "users.json");
+const ROOM_ID = "citadel";
+const MAP_W = 64;
+const MAP_H = 36;
+const BALROG_RESPAWN_MS = 150000;
+const users = loadUsers();
+const players = new Map();
+const room = createRoom();
 
 const app = express();
 app.use(cors({ origin: CLIENT_ORIGINS }));
 app.get("/health", (_, res) => {
-  res.json({ ok: true, rooms: rooms.size, players: players.size });
+  res.json({ ok: true, rooms: 1, players: players.size, tier: room.dungeonTier, balrogRespawnAt: room.balrogRespawnAt });
 });
 
-const httpServer = http.createServer(app);
-const io = new Server(httpServer, {
-  cors: { origin: CLIENT_ORIGINS },
-});
-
-const rooms = new Map();
-const players = new Map();
-let nextRoomNumber = 1;
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: CLIENT_ORIGINS } });
 
 io.on("connection", (socket) => {
-  const joined = joinRoom(socket, socket.handshake.auth?.name);
+  const player = joinPlayer(socket, socket.handshake.auth?.name);
+  socket.join(ROOM_ID);
   socket.emit("room:joined", {
-    roomId: joined.roomId,
-    players: roomPlayers(joined.roomId).filter((player) => player.id !== socket.id),
+    roomId: ROOM_ID,
+    players: publicPlayers().filter((remote) => remote.id !== socket.id),
+    character: publicCharacter(player),
+    resumed: player.resumed,
+    dungeon: publicDungeon(),
   });
-  publishPlayers(joined.roomId);
+  publishPlayers();
 
   socket.on("player:update", (state = {}) => {
-    const player = players.get(socket.id);
-    if (!player) return;
-    Object.assign(player, sanitizeState(state));
-    publishPlayers(player.roomId);
+    const current = players.get(socket.id);
+    if (!current) return;
+    Object.assign(current, sanitizeState(state));
+    persistCharacter(current);
   });
 
   socket.on("player:action", ({ action } = {}) => {
-    const player = players.get(socket.id);
-    if (!player) return;
-    player.action = action === "specialAttack" ? "specialAttack" : "attack";
-    socket.to(player.roomId).emit("player:action", { id: socket.id, action: player.action });
+    const current = players.get(socket.id);
+    if (!current) return;
+    current.action = action === "specialAttack" ? "specialAttack" : "attack";
+    socket.to(ROOM_ID).emit("player:action", { id: socket.id, action: current.action });
+  });
+
+  socket.on("dungeon:attack", (attack = {}) => attackEnemies(socket, attack));
+
+  socket.on("test:boost", ({ enabled } = {}) => {
+    const current = players.get(socket.id);
+    if (!current?.isTestAccount) return;
+    if (enabled) applyTestBoost(current);
+    else restoreNormalTest(current);
+    persistCharacter(current);
+    socket.emit("character:update", publicCharacter(current));
+    publishPlayers();
+  });
+
+  socket.on("test:resetTier", () => {
+    const current = players.get(socket.id);
+    if (!current?.isTestAccount) return;
+    resetDungeon();
   });
 
   socket.on("disconnect", () => {
-    const player = players.get(socket.id);
-    if (!player) return;
-    const room = rooms.get(player.roomId);
-    room?.players.delete(socket.id);
+    const current = players.get(socket.id);
+    if (!current) return;
+    persistCharacter(current);
     players.delete(socket.id);
-    socket.to(player.roomId).emit("player:left", { id: socket.id });
-    publishPlayers(player.roomId);
-    if (room && room.players.size === 0) rooms.delete(room.id);
+    socket.to(ROOM_ID).emit("player:left", { id: socket.id });
+    publishPlayers();
   });
 });
 
-function joinRoom(socket, rawName) {
-  const room = findRoom();
+setInterval(() => {
+  tickDungeon(0.1);
+  io.to(ROOM_ID).emit("dungeon:update", publicDungeon());
+}, 100);
+setInterval(publishPlayers, 120);
+setInterval(saveUsers, 3000);
+
+function joinPlayer(socket, rawName) {
   const name = sanitizeName(rawName);
+  const saved = users[name];
+  const character = saved || newCharacter(name);
   const player = {
     id: socket.id,
-    roomId: room.id,
+    roomId: ROOM_ID,
     name,
-    displayName: name.endsWith("_test") ? name.slice(0, -5) : name,
+    displayName: character.displayName,
+    isTestAccount: character.isTestAccount,
+    resumed: Boolean(saved),
     x: 4.5,
     y: 4.5,
     angle: 0,
-    hp: 100,
-    maxHp: 100,
-    level: 1,
-    weaponLevel: 0,
-    armorLevel: 0,
     moving: false,
     berserk: false,
     action: "idle",
+    testBoosted: false,
+    normalSnapshot: null,
+    ...character,
   };
-  room.players.add(socket.id);
   players.set(socket.id, player);
-  socket.join(room.id);
-  return { roomId: room.id, player };
+  users[name] = serializeCharacter(player);
+  saveUsers();
+  ensureMonsterPopulation();
+  return player;
 }
 
-function findRoom() {
-  for (const room of rooms.values()) {
-    if (room.players.size < MAX_PLAYERS_PER_ROOM) return room;
+function newCharacter(name) {
+  const isTestAccount = name.toLowerCase().endsWith("_test");
+  return {
+    displayName: isTestAccount ? name.slice(0, -5) : name,
+    isTestAccount,
+    level: 1,
+    xp: 0,
+    nextXp: 60,
+    hp: 100,
+    maxHp: 100,
+    rage: 0,
+    maxRage: 100,
+    attackPower: 5,
+    weaponLevel: 0,
+    armorLevel: 0,
+    kills: 0,
+    deaths: 0,
+    lastLoginAt: Date.now(),
+  };
+}
+
+function createRoom() {
+  return {
+    id: ROOM_ID,
+    dungeonTier: 1,
+    balrogDefeatedCount: 0,
+    mapPattern: 0,
+    map: buildMap(0),
+    enemies: baseSpawns(0).map((spawn, index) => makeEnemy(spawn, index, 1)),
+    balrogRespawnAt: 0,
+    nextEnemyId: 1000,
+  };
+}
+
+function resetDungeon() {
+  room.dungeonTier = 1;
+  room.balrogDefeatedCount = 0;
+  room.mapPattern = 0;
+  room.map = buildMap(0);
+  room.balrogRespawnAt = 0;
+  room.enemies = baseSpawns(0).map((spawn, index) => makeEnemy(spawn, index, 1));
+  ensureMonsterPopulation();
+  io.to(ROOM_ID).emit("dungeon:update", publicDungeon());
+  io.to(ROOM_ID).emit("dungeon:notice", { text: "테스트 성채 초기화 - 1단계" });
+}
+
+function publicDungeon() {
+  return {
+    roomId: ROOM_ID,
+    dungeonTier: room.dungeonTier,
+    balrogDefeatedCount: room.balrogDefeatedCount,
+    balrogRespawnAt: room.balrogRespawnAt,
+    mapPattern: room.mapPattern,
+    playerCount: players.size,
+    enemies: room.enemies.map(publicEnemy),
+  };
+}
+
+function publicEnemy(enemy) {
+  return {
+    id: enemy.id,
+    type: enemy.type,
+    level: enemy.level,
+    x: enemy.x,
+    y: enemy.y,
+    spawnX: enemy.spawnX,
+    spawnY: enemy.spawnY,
+    hp: enemy.hp,
+    maxHp: enemy.maxHp,
+    radius: enemy.radius,
+    speed: enemy.speed,
+    damage: enemy.damage,
+    xp: enemy.xp,
+    attackRange: enemy.attackRange,
+    projectile: enemy.projectile,
+    boss: enemy.boss,
+    moving: enemy.moving,
+    attackPose: enemy.attackPose,
+    hitFlash: enemy.hitFlash,
+    dead: enemy.dead,
+    respawnTimer: Math.max(0, Math.ceil((enemy.respawnAt - Date.now()) / 1000)),
+  };
+}
+
+function publicCharacter(player) {
+  return serializeCharacter(player);
+}
+
+function publicPlayers() {
+  return [...players.values()].map((player) => ({
+    id: player.id,
+    name: player.name,
+    displayName: player.displayName,
+    x: player.x,
+    y: player.y,
+    angle: player.angle,
+    hp: player.hp,
+    maxHp: player.maxHp,
+    level: player.level,
+    weaponLevel: player.weaponLevel,
+    armorLevel: player.armorLevel,
+    moving: player.moving,
+    berserk: player.berserk,
+    action: player.action,
+  }));
+}
+
+function publishPlayers() {
+  io.to(ROOM_ID).emit("players:update", publicPlayers());
+}
+
+function tickDungeon(dt) {
+  ensureMonsterPopulation();
+  const now = Date.now();
+  for (const enemy of room.enemies) {
+    enemy.hitFlash = Math.max(0, enemy.hitFlash - dt * 5);
+    enemy.attackPose = Math.max(0, enemy.attackPose - dt * 3);
+    if (enemy.dead) {
+      if (enemy.respawnAt && now >= enemy.respawnAt) respawnEnemy(enemy);
+      continue;
+    }
+    const target = nearestPlayer(enemy);
+    if (!target || inSafeZone(target.x, target.y)) continue;
+    const dx = target.x - enemy.x;
+    const dy = target.y - enemy.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    const aggro = enemy.type === "balrog" ? 23 : enemy.projectile ? 15 : enemy.boss ? 14 : 12;
+    if (dist > aggro || !lineOfSight(room.map, enemy.x, enemy.y, target.x, target.y)) continue;
+    const reach = enemy.attackRange + enemy.radius * 0.65 + 0.18;
+    if (dist > reach) {
+      moveOnMap(enemy, (dx / dist) * enemy.speed * dt, (dy / dist) * enemy.speed * dt, enemy.radius);
+      enemy.moving = true;
+      continue;
+    }
+    enemy.moving = false;
+    if (now >= enemy.nextAttackAt) {
+      enemy.nextAttackAt = now + Math.floor((enemy.type === "balrog" ? 1250 : enemy.boss ? 1100 : 950));
+      enemy.attackPose = 1;
+      damagePlayerFromEnemy(target, enemy);
+    }
   }
-  const room = { id: `room-${nextRoomNumber++}`, players: new Set() };
-  rooms.set(room.id, room);
-  return room;
 }
 
-function roomPlayers(roomId) {
-  const room = rooms.get(roomId);
-  if (!room) return [];
-  return [...room.players].map((id) => players.get(id)).filter(Boolean);
+function damagePlayerFromEnemy(player, enemy) {
+  const mitigation = Math.min(0.82, player.armorLevel / (player.armorLevel + 90));
+  const damage = Math.max(1, Math.ceil(enemy.damage * (1 - mitigation)));
+  player.hp = Math.max(0, player.hp - damage);
+  if (player.hp === 0) player.deaths += 1;
+  persistCharacter(player);
+  io.to(player.id).emit("player:damaged", { damage, hp: player.hp, sourceX: enemy.x, sourceY: enemy.y });
 }
 
-function publishPlayers(roomId) {
-  if (!rooms.has(roomId)) return;
-  io.to(roomId).emit("players:update", roomPlayers(roomId));
+function attackEnemies(socket, attack) {
+  const player = players.get(socket.id);
+  if (!player) return;
+  const kind = attack.kind === "special" ? "special" : "normal";
+  const range = kind === "special" ? 3.05 : 2.15;
+  const arc = kind === "special" ? 0.62 : 0.38;
+  const base = Math.max(1, player.attackPower + player.weaponLevel + Math.floor((player.level - 1) / 2));
+  const damage = Math.ceil((kind === "special" ? base * 2 + 2 : base) * (player.berserk ? 1.5 : 1));
+  const hits = room.enemies
+    .filter((enemy) => !enemy.dead)
+    .map((enemy) => {
+      const dx = enemy.x - player.x;
+      const dy = enemy.y - player.y;
+      return { enemy, dist: Math.hypot(dx, dy), delta: Math.abs(normAngle(Math.atan2(dy, dx) - player.angle)) };
+    })
+    .filter((hit) =>
+      hit.dist < range + hit.enemy.radius * 0.78
+      && hit.delta < arc
+      && lineOfSight(room.map, player.x, player.y, hit.enemy.x, hit.enemy.y))
+    .sort((a, b) => a.dist - b.dist);
+  const targets = kind === "special" ? hits : hits.slice(0, 1);
+  for (const hit of targets) applyEnemyDamage(socket, player, hit.enemy, damage);
 }
 
-function sanitizeName(value) {
-  const name = String(value || "전사").replace(/\s+/g, " ").trim().slice(0, 18);
-  return name || "전사";
+function applyEnemyDamage(socket, player, enemy, damage) {
+  enemy.hp = Math.max(0, enemy.hp - damage);
+  enemy.hitFlash = 1;
+  io.to(ROOM_ID).emit("enemy:hit", { id: enemy.id, x: enemy.x, y: enemy.y, damage, boss: enemy.boss });
+  if (enemy.hp > 0) return;
+  enemy.dead = true;
+  enemy.respawnAt = Date.now() + respawnDelay(enemy);
+  player.kills += 1;
+  grantXp(player, enemy.xp);
+  persistCharacter(player);
+  socket.emit("player:reward", { xp: enemy.xp, kills: player.kills, enemyId: enemy.id });
+  io.to(ROOM_ID).emit("enemy:defeated", { enemy: publicEnemy(enemy), killerId: player.id });
+  if (enemy.type === "balrog") onBalrogDefeated();
+}
+
+function onBalrogDefeated() {
+  room.balrogDefeatedCount += 1;
+  room.dungeonTier += 1;
+  room.balrogRespawnAt = Date.now() + BALROG_RESPAWN_MS;
+  io.to(ROOM_ID).emit("dungeon:notice", { text: `발록 처치 - 성채 ${room.dungeonTier}단계 준비` });
+}
+
+function respawnEnemy(enemy) {
+  if (enemy.type === "balrog") {
+    if (Date.now() < room.balrogRespawnAt) return;
+    room.mapPattern = (room.mapPattern + 1) % 3;
+    room.map = buildMap(room.mapPattern);
+    const next = balrogSpawn(room.mapPattern);
+    enemy.spawnX = next.x;
+    enemy.spawnY = next.y;
+    room.balrogRespawnAt = 0;
+    io.to(ROOM_ID).emit("dungeon:notice", { text: `발록 재등장 - 성채 ${room.dungeonTier}단계` });
+  }
+  Object.assign(enemy, makeEnemy({ type: enemy.type, x: enemy.spawnX, y: enemy.spawnY }, enemy.id, room.dungeonTier));
+}
+
+function ensureMonsterPopulation() {
+  const desiredExtras = Math.max(0, Math.min(36, (players.size - 1) * 5));
+  const extras = room.enemies.filter((enemy) => enemy.extra).length;
+  if (extras >= desiredExtras) return;
+  const candidates = baseSpawns(room.mapPattern).filter((spawn) => spawn.type !== "balrog" && !isBossType(spawn.type));
+  for (let index = extras; index < desiredExtras; index += 1) {
+    const base = candidates[(index * 7 + room.dungeonTier) % candidates.length];
+    const shift = ((index % 3) - 1) * 0.42;
+    const enemy = makeEnemy({ type: base.type, x: base.x + shift, y: base.y - shift }, room.nextEnemyId++, room.dungeonTier);
+    enemy.extra = true;
+    room.enemies.push(enemy);
+  }
+}
+
+function nearestPlayer(enemy) {
+  let best = null;
+  for (const player of players.values()) {
+    const dist = Math.hypot(player.x - enemy.x, player.y - enemy.y);
+    if (!best || dist < best.dist) best = { ...player, dist };
+  }
+  return best;
+}
+
+function makeEnemy(spawn, id, tier) {
+  const stats = enemyStats(spawn.type, tier);
+  const level = enemyLevel(spawn.type, tier);
+  return {
+    id: typeof id === "string" ? id : `monster-${id}`,
+    type: spawn.type,
+    level,
+    x: spawn.x,
+    y: spawn.y,
+    spawnX: spawn.x,
+    spawnY: spawn.y,
+    hp: stats.hp,
+    maxHp: stats.hp,
+    radius: stats.radius,
+    speed: stats.speed,
+    damage: stats.damage,
+    xp: stats.xp,
+    attackRange: stats.attackRange,
+    projectile: Boolean(stats.projectile),
+    boss: Boolean(stats.boss),
+    dead: false,
+    respawnAt: 0,
+    nextAttackAt: 0,
+    moving: false,
+    attackPose: 0,
+    hitFlash: 0,
+  };
+}
+
+function enemyStats(type, tier) {
+  const growth = Math.max(0, tier - 1);
+  const hpScale = 1 + growth * 0.16 + growth * growth * 0.012;
+  const damageScale = 1 + growth * 0.1 + growth * growth * 0.005;
+  const base = {
+    skeleton: { hp: 10, speed: 0.94, damage: 4, radius: 0.27, xp: 24, attackRange: 1.15 },
+    orc: { hp: 16, speed: 0.74, damage: 6, radius: 0.32, xp: 42, attackRange: 1.28 },
+    ogre: { hp: 34, speed: 0.44, damage: 14, radius: 0.48, xp: 108, attackRange: 1.6 },
+    warlock: { hp: 20, speed: 0.52, damage: 7, radius: 0.3, xp: 82, attackRange: 4.75, projectile: true },
+    skeletonKing: { hp: 150, speed: 0.56, damage: 18, radius: 0.42, xp: 420, attackRange: 1.58, boss: true },
+    boss: { hp: 140, speed: 0.62, damage: 18, radius: 0.42, xp: 390, attackRange: 1.5, boss: true },
+    deathKnight: { hp: 220, speed: 0.68, damage: 24, radius: 0.43, xp: 620, attackRange: 1.65, boss: true },
+    ogreLord: { hp: 310, speed: 0.42, damage: 34, radius: 0.58, xp: 820, attackRange: 1.85, boss: true },
+    warlockLord: { hp: 250, speed: 0.48, damage: 24, radius: 0.36, xp: 760, attackRange: 5.35, projectile: true, boss: true },
+    balrog: { hp: 1300, speed: 0.5, damage: 55, radius: 0.9, xp: 4200, attackRange: 2.45, boss: true },
+  }[type] || { hp: 16, speed: 0.74, damage: 6, radius: 0.32, xp: 42, attackRange: 1.28 };
+  const bossHp = base.boss ? 1.28 : 1;
+  return {
+    ...base,
+    hp: Math.ceil(base.hp * hpScale * bossHp),
+    damage: Math.ceil(base.damage * damageScale),
+    xp: Math.ceil(base.xp * (1 + growth * 0.35)),
+  };
+}
+
+function enemyLevel(type, tier) {
+  const base = { skeleton: 1, orc: 3, warlock: 6, ogre: 8, skeletonKing: 8, boss: 10, deathKnight: 12, warlockLord: 12, ogreLord: 14, balrog: 15 }[type] || 1;
+  return base + (tier - 1) * (type === "balrog" ? 5 : isBossType(type) ? 4 : 3);
+}
+
+function grantXp(player, amount) {
+  player.xp += Math.floor(amount);
+  while (player.xp >= player.nextXp) {
+    player.xp -= player.nextXp;
+    player.level += 1;
+    player.nextXp = Math.floor(player.nextXp * 1.27 + 24 + player.level * 2.4);
+    player.maxHp += 14;
+    player.hp = player.maxHp;
+    player.attackPower += 1;
+    player.maxRage = Math.min(220, player.maxRage + 8);
+  }
+}
+
+function applyTestBoost(player) {
+  if (!player.testBoosted) player.normalSnapshot = serializeCharacter(player);
+  player.testBoosted = true;
+  player.level = 9999;
+  player.weaponLevel = 9999;
+  player.armorLevel = 9999;
+  player.attackPower = 9999;
+  player.maxHp = 999999;
+  player.hp = player.maxHp;
+  player.maxRage = 9999;
+  player.rage = player.maxRage;
+  player.xp = 0;
+  player.nextXp = 999999999;
+  player.berserk = true;
+}
+
+function restoreNormalTest(player) {
+  const snapshot = player.normalSnapshot || newCharacter(player.name);
+  Object.assign(player, snapshot, { testBoosted: false, berserk: false, normalSnapshot: null });
+}
+
+function serializeCharacter(player) {
+  return {
+    name: player.name,
+    displayName: player.displayName,
+    isTestAccount: Boolean(player.isTestAccount),
+    level: Math.max(1, Math.floor(player.level || 1)),
+    xp: Math.max(0, Math.floor(player.xp || 0)),
+    nextXp: Math.max(60, Math.floor(player.nextXp || 60)),
+    hp: Math.max(0, Math.floor(player.hp || 0)),
+    maxHp: Math.max(100, Math.floor(player.maxHp || 100)),
+    rage: Math.max(0, Math.floor(player.rage || 0)),
+    maxRage: Math.max(100, Math.floor(player.maxRage || 100)),
+    attackPower: Math.max(5, Math.floor(player.attackPower || 5)),
+    weaponLevel: Math.max(0, Math.floor(player.weaponLevel || 0)),
+    armorLevel: Math.max(0, Math.floor(player.armorLevel || 0)),
+    kills: Math.max(0, Math.floor(player.kills || 0)),
+    deaths: Math.max(0, Math.floor(player.deaths || 0)),
+    lastLoginAt: Date.now(),
+  };
+}
+
+function persistCharacter(player) {
+  users[player.name] = serializeCharacter(player);
 }
 
 function sanitizeState(state) {
@@ -117,13 +478,126 @@ function sanitizeState(state) {
     angle: finite(state.angle, 0),
     hp: Math.max(0, finite(state.hp, 0)),
     maxHp: Math.max(1, finite(state.maxHp, 100)),
+    rage: Math.max(0, finite(state.rage, 0)),
+    maxRage: Math.max(1, finite(state.maxRage, 100)),
     level: Math.max(1, Math.floor(finite(state.level, 1))),
+    xp: Math.max(0, Math.floor(finite(state.xp, 0))),
+    nextXp: Math.max(60, Math.floor(finite(state.nextXp, 60))),
+    attackPower: Math.max(5, Math.floor(finite(state.attackPower, 5))),
     weaponLevel: Math.max(0, Math.floor(finite(state.weaponLevel, 0))),
     armorLevel: Math.max(0, Math.floor(finite(state.armorLevel, 0))),
+    kills: Math.max(0, Math.floor(finite(state.kills, 0))),
     moving: Boolean(state.moving),
     berserk: Boolean(state.berserk),
     action: state.action === "specialAttack" || state.action === "attack" ? state.action : "idle",
   };
+}
+
+function sanitizeName(value) {
+  const name = String(value || "전사").replace(/\s+/g, " ").trim().slice(0, 18);
+  return name || "전사";
+}
+
+function loadUsers() {
+  try {
+    return JSON.parse(fs.readFileSync(USERS_FILE, "utf8"));
+  } catch (_) {
+    return {};
+  }
+}
+
+function saveUsers() {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+}
+
+function respawnDelay(enemy) {
+  if (enemy.type === "balrog") return BALROG_RESPAWN_MS;
+  if (enemy.boss) return 26000;
+  if (enemy.type === "ogre") return 12000;
+  if (enemy.type === "warlock") return 10000;
+  return 6000;
+}
+
+function baseSpawns(pattern = 0) {
+  const balrog = balrogSpawn(pattern);
+  return [
+    ["skeleton", 15.5, 3.5], ["skeleton", 17.5, 9.5], ["skeleton", 20.5, 11.5],
+    ["orc", 23.5, 5.5], ["orc", 29.5, 6.5], ["skeleton", 31.5, 11.5],
+    ["skeleton", 5.5, 17.5], ["skeleton", 10.5, 23.5], ["skeleton", 16.5, 22.5],
+    ["orc", 18.5, 25.5], ["orc", 25.5, 19.5], ["orc", 30.5, 19.5],
+    ["orc", 36.5, 19.5], ["ogre", 29.5, 25.5], ["skeletonKing", 14.5, 24.5],
+    ["boss", 38.5, 22.5], ["warlock", 43.5, 4.5], ["warlock", 48.5, 5.5],
+    ["warlock", 57.5, 5.5], ["warlockLord", 55.5, 13.5], ["ogre", 47.5, 19.5],
+    ["ogre", 58.5, 20.5], ["ogreLord", 58.5, 27.5], ["deathKnight", 31.5, 31.5],
+    ["deathKnight", 49.5, 33.5], ["warlockLord", 44.5, 33.5], ["balrog", balrog.x, balrog.y],
+  ].map(([type, x, y]) => ({ type, x, y }));
+}
+
+function balrogSpawn(pattern) {
+  return [{ x: 58.5, y: 31.5 }, { x: 49.5, y: 12.5 }, { x: 31.5, y: 33.5 }][pattern % 3];
+}
+
+function buildMap(pattern = 0) {
+  const grid = Array.from({ length: MAP_H }, () => Array(MAP_W).fill("#"));
+  const carve = (x, y, w, h) => {
+    for (let cy = y; cy < y + h; cy += 1) for (let cx = x; cx < x + w; cx += 1) if (cx > 0 && cx < MAP_W - 1 && cy > 0 && cy < MAP_H - 1) grid[cy][cx] = ".";
+  };
+  const wall = (x1, y1, x2, y2) => {
+    const dx = Math.sign(x2 - x1), dy = Math.sign(y2 - y1);
+    for (let x = x1, y = y1; ; x += dx, y += dy) {
+      grid[y][x] = "#";
+      if (x === x2 && y === y2) break;
+    }
+  };
+  [[1, 1, 9, 8], [9, 4, 8, 3], [15, 2, 17, 12], [17, 12, 4, 5], [3, 15, 18, 11],
+    [5, 25, 12, 5], [16, 23, 3, 5], [27, 12, 4, 7], [23, 17, 19, 11], [30, 6, 12, 3],
+    [40, 2, 19, 14], [40, 21, 7, 3], [45, 17, 17, 12], [34, 26, 4, 5], [49, 25, 4, 6],
+    [28, 29, 23, 6], [49, 31, 6, 3], [53, 28, 10, 7]].forEach((area) => carve(...area));
+  [[21, 5, 21, 8], [26, 6, 26, 10], [7, 19, 10, 19], [13, 17, 13, 20], [14, 23, 18, 23],
+    [28, 21, 31, 21], [35, 18, 35, 20], [36, 25, 39, 25], [46, 6, 46, 9], [52, 4, 55, 4],
+    [53, 11, 57, 11], [50, 21, 50, 23], [56, 18, 56, 21], [58, 25, 60, 25],
+    [34, 32, 37, 32], [44, 30, 44, 32], [56, 30, 56, 32], [60, 31, 60, 33]].forEach((line) => wall(...line));
+  if (pattern === 1) {
+    carve(36, 9, 8, 3); carve(47, 10, 12, 5); wall(55, 8, 55, 11); wall(48, 13, 51, 13);
+  }
+  if (pattern === 2) {
+    carve(22, 28, 11, 6); carve(20, 30, 5, 3); wall(27, 30, 27, 33); wall(31, 32, 34, 32);
+  }
+  return grid.map((row) => row.join(""));
+}
+
+function lineOfSight(map, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1, dist = Math.hypot(dx, dy);
+  for (let i = 1, steps = Math.max(3, Math.ceil(dist / 0.08)); i < steps; i += 1) {
+    if (isWall(map, x1 + dx * i / steps, y1 + dy * i / steps)) return false;
+  }
+  return true;
+}
+
+function moveOnMap(actor, dx, dy, radius) {
+  const nx = actor.x + dx, ny = actor.y + dy;
+  if (!isWall(room.map, nx + Math.sign(dx) * radius, actor.y) && !isWall(room.map, nx, actor.y - radius) && !isWall(room.map, nx, actor.y + radius)) actor.x = nx;
+  if (!isWall(room.map, actor.x, ny + Math.sign(dy) * radius) && !isWall(room.map, actor.x - radius, ny) && !isWall(room.map, actor.x + radius, ny)) actor.y = ny;
+}
+
+function isWall(map, x, y) {
+  const mx = Math.floor(x), my = Math.floor(y);
+  return my < 0 || my >= map.length || mx < 0 || mx >= map[0].length || map[my][mx] === "#";
+}
+
+function inSafeZone(x, y) {
+  return x < 9.8 && y < 8.8;
+}
+
+function isBossType(type) {
+  return ["skeletonKing", "boss", "deathKnight", "ogreLord", "warlockLord", "balrog"].includes(type);
+}
+
+function normAngle(angle) {
+  while (angle < -Math.PI) angle += Math.PI * 2;
+  while (angle > Math.PI) angle -= Math.PI * 2;
+  return angle;
 }
 
 function finite(value, fallback) {
@@ -131,6 +605,6 @@ function finite(value, fallback) {
   return Number.isFinite(number) ? number : fallback;
 }
 
-httpServer.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Paper Citadel multiplayer server listening on ${PORT}`);
 });

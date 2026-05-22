@@ -11,5 +11,3 @@ services:
     envVars:
       - key: CLIENT_ORIGIN
         value: https://kimguta.github.io
-      - key: MAX_PLAYERS_PER_ROOM
-        value: "20"
