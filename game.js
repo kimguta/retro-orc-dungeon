@@ -659,7 +659,7 @@ function beginNamedRun(name) {
   if (nameScreen) nameScreen.classList.add("is-hidden");
   startGame();
   if (isTestCharacter()) {
-    notice = "테스트 계정: 1 무적 토글 / 2 성채 초기화 / 3 캐릭터 초기화";
+    notice = "테스트 계정: 1 무적 토글 / 2 성채 초기화 / 3 전체 캐릭터 초기화";
     noticeTimer = 3.2;
   }
   connectMultiplayer();
@@ -721,8 +721,8 @@ function resetTestDungeonTier() {
 function resetTestCharacters() {
   if (multiplayerSocket?.connected) {
     multiplayerSocket.emit("test:resetCharacters");
-    notice = "캐릭터 데이터 초기화 요청";
-    noticeTimer = 2.6;
+    notice = "전체 캐릭터 저장 데이터 초기화 요청";
+    noticeTimer = 3.2;
     return;
   }
   resetGame();
