@@ -1548,17 +1548,70 @@ function drawSprites() {
     .filter((s) => Math.abs(s.angle) < FOV * 0.72 && hasLineOfSight(s.e))
     .sort((a, b) => b.dist - a.dist);
 
+  const projected = [];
   for (const s of visible) {
     const screenX = W / 2 + Math.tan(s.angle) * (W / FOV);
     const size = Math.min(H * 1.45, (H / s.dist) * spriteScale(s.e));
     const depthIndex = Math.floor((screenX / W) * RAYS);
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < s.dist - 0.2) continue;
     const y = HALF_H - size * 0.55;
-    drawEnemy(s.e, screenX - size / 2, y, size, s.dist);
+    projected.push({ ...s, screenX, size, y, renderX: screenX, renderY: y });
+  }
+
+  spreadProjectedEnemies(projected);
+  for (const s of projected) {
+    drawEnemy(s.e, s.renderX - s.size / 2, s.renderY, s.size, s.dist);
     if (gameState === "play") {
-      drawNameplate(screenX, y - Math.max(22, size * 0.08), Math.max(58, Math.min(118, size * 0.5)), enemyLabel(s.e), s.e.hp / s.e.maxHp, s.e.boss ? "#d33a32" : "#d8bd76");
+      drawNameplate(
+        s.renderX,
+        s.nameplateY,
+        s.nameplateWidth,
+        enemyLabel(s.e),
+        s.e.hp / s.e.maxHp,
+        s.e.boss ? "#d33a32" : "#d8bd76",
+      );
     }
   }
+}
+
+function spreadProjectedEnemies(projected) {
+  const occupiedSprites = [];
+  const occupiedLabels = [];
+  const offsets = [
+    [0, 0],
+    [-0.68, -0.26],
+    [0.72, -0.44],
+    [-0.44, 0.34],
+    [0.5, 0.28],
+    [-0.92, -0.66],
+    [0.96, -0.72],
+  ];
+
+  for (const sprite of projected) {
+    const overlaps = occupiedSprites.filter((other) => projectedSpriteOverlap(sprite, other)).length;
+    const spread = Math.max(5, Math.min(24, sprite.size * 0.075));
+    const offset = offsets[Math.min(overlaps, offsets.length - 1)];
+    const bossSpread = sprite.e.boss ? 0.52 : 1;
+    sprite.renderX = sprite.screenX + offset[0] * spread * bossSpread;
+    sprite.renderY = sprite.y + offset[1] * spread * bossSpread;
+    sprite.nameplateWidth = Math.max(58, Math.min(118, sprite.size * 0.5));
+    sprite.nameplateY = sprite.renderY - Math.max(22, sprite.size * 0.08);
+    while (nameplateOverlap(sprite, occupiedLabels)) sprite.nameplateY -= 24;
+    occupiedSprites.push(sprite);
+    occupiedLabels.push(sprite);
+  }
+}
+
+function projectedSpriteOverlap(a, b) {
+  const width = Math.min(a.size, b.size) * 0.44;
+  const height = Math.min(a.size, b.size) * 0.48;
+  return Math.abs(a.screenX - b.renderX) < width && Math.abs(a.y - b.renderY) < height;
+}
+
+function nameplateOverlap(sprite, labels) {
+  return labels.some((other) =>
+    Math.abs(sprite.renderX - other.renderX) < (sprite.nameplateWidth + other.nameplateWidth) * 0.52
+    && Math.abs(sprite.nameplateY - other.nameplateY) < 23);
 }
 
 function drawRemotePlayers() {

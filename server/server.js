@@ -259,6 +259,43 @@ function tickDungeon(dt) {
       damagePlayerFromEnemy(target, enemy);
     }
   }
+  separateEnemies(dt);
+}
+
+function separateEnemies(dt) {
+  const alive = room.enemies.filter((enemy) => !enemy.dead);
+  for (let i = 0; i < alive.length; i += 1) {
+    const a = alive[i];
+    for (let j = i + 1; j < alive.length; j += 1) {
+      const b = alive[j];
+      let dx = b.x - a.x;
+      let dy = b.y - a.y;
+      let dist = Math.hypot(dx, dy);
+      const minDist = (a.radius + b.radius) * 0.92 + (a.boss || b.boss ? 0.08 : 0.04);
+      if (dist >= minDist) continue;
+      if (dist < 0.001) {
+        const angle = ((i * 31 + j * 17) % 16) * Math.PI / 8;
+        dx = Math.cos(angle);
+        dy = Math.sin(angle);
+        dist = 0.001;
+      }
+      const ux = dx / dist;
+      const uy = dy / dist;
+      const overlap = Math.min(minDist - Math.min(dist, minDist), 0.1 + dt * 0.6);
+      const aMass = enemySeparationMass(a);
+      const bMass = enemySeparationMass(b);
+      const totalMass = aMass + bMass;
+      moveOnMap(a, -ux * overlap * (bMass / totalMass), -uy * overlap * (bMass / totalMass), a.radius);
+      moveOnMap(b, ux * overlap * (aMass / totalMass), uy * overlap * (aMass / totalMass), b.radius);
+    }
+  }
+}
+
+function enemySeparationMass(enemy) {
+  if (enemy.type === "balrog") return 5;
+  if (enemy.boss) return 2.4;
+  if (enemy.type === "ogre") return 1.5;
+  return 1;
 }
 
 function damagePlayerFromEnemy(player, enemy) {
