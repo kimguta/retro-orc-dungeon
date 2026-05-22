@@ -2639,8 +2639,7 @@ function drawHud() {
     balrogEnemy() ? "#ff8b74" : "#8feaff",
   );
   drawText(`처치 ${roomState.balrogDefeatedCount}회`, W - 118, 106, 13, "#cdb681");
-  drawHudPanel(W - 248, 216, 210, 48);
-  drawText(`참가 ${serverPlayerCount}명`, W - 228, 246, 15, "#8feaff");
+  drawParticipantRoster(W - 248, 216, 210);
 
   if (player.hurt > 0) {
     ctx.fillStyle = `rgba(255, 245, 220, ${player.hurt * 0.13})`;
@@ -2670,6 +2669,54 @@ function compactNumber(value) {
   if (number >= 1000000) return `${(number / 1000000).toFixed(1)}M`;
   if (number >= 10000) return `${Math.floor(number / 1000)}K`;
   return `${number}`;
+}
+
+function drawParticipantRoster(x, y, w) {
+  const members = [
+    {
+      displayName: displayCharacterName(characterName) || "나",
+      level: player.level,
+      hp: player.hp,
+      maxHp: player.maxHp,
+      self: true,
+    },
+    ...remotePlayers.values(),
+  ];
+  const shown = members.slice(0, 6);
+  const rowH = 31;
+  const h = 42 + shown.length * rowH + (members.length > shown.length ? 18 : 0);
+  drawHudPanel(x, y, w, h);
+  drawText(`참가자 ${Math.max(serverPlayerCount, members.length)}명`, x + 16, y + 24, 14, "#8feaff");
+  shown.forEach((member, index) => {
+    const rowY = y + 38 + index * rowH;
+    const name = trimRosterName(member.displayName || member.name || "전사");
+    const hpPct = Math.max(0, Math.min(1, (member.hp || 0) / Math.max(1, member.maxHp || 1)));
+    drawText(`${member.self ? "나 " : ""}Lv.${member.level || 1} ${name}`, x + 14, rowY + 10, 11, member.self ? "#f3c46e" : "#f4dfbd");
+    drawRosterHpBar(x + 14, rowY + 16, w - 28, hpPct, member.self ? "#d53b35" : "#65b987");
+  });
+  if (members.length > shown.length) {
+    drawText(`+${members.length - shown.length}명 더 참가 중`, x + 14, y + h - 11, 11, "#cdb681");
+  }
+}
+
+function drawRosterHpBar(x, y, w, pct, fill) {
+  ctx.fillStyle = "rgba(0, 0, 0, 0.68)";
+  ctx.fillRect(x, y, w, 8);
+  ctx.fillStyle = "#24130d";
+  ctx.fillRect(x + 1, y + 1, w - 2, 6);
+  ctx.fillStyle = fill;
+  ctx.fillRect(x + 2, y + 2, Math.max(0, (w - 4) * pct), 4);
+  ctx.strokeStyle = "rgba(238, 198, 118, 0.45)";
+  ctx.strokeRect(x, y, w, 8);
+}
+
+function displayCharacterName(name) {
+  return `${name || ""}`.replace(/_test$/i, "");
+}
+
+function trimRosterName(name) {
+  const text = `${name || ""}`;
+  return text.length > 10 ? `${text.slice(0, 9)}.` : text;
 }
 
 function drawHitDirection() {
