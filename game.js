@@ -923,14 +923,26 @@ function buildMap(pattern = 0) {
   if (pattern === 1) {
     carveArea(grid, 36, 9, 8, 3);
     carveArea(grid, 47, 10, 12, 5);
+    carveArea(grid, 41, 15, 6, 4);
     wallLine(grid, 55, 8, 55, 11);
     wallLine(grid, 48, 13, 51, 13);
+    wallLine(grid, 40, 12, 44, 12);
   }
   if (pattern === 2) {
     carveArea(grid, 22, 28, 11, 6);
     carveArea(grid, 20, 30, 5, 3);
+    carveArea(grid, 17, 27, 8, 4);
     wallLine(grid, 27, 30, 27, 33);
     wallLine(grid, 31, 32, 34, 32);
+    wallLine(grid, 22, 27, 22, 29);
+  }
+  if (pattern === 3) {
+    carveArea(grid, 50, 15, 13, 10);
+    carveArea(grid, 40, 18, 12, 3);
+    carveArea(grid, 52, 24, 8, 4);
+    wallLine(grid, 47, 21, 50, 21);
+    wallLine(grid, 55, 18, 55, 22);
+    wallLine(grid, 60, 24, 60, 27);
   }
   return grid.map((row) => row.join(""));
 }

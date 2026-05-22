@@ -356,7 +356,7 @@ function onBalrogDefeated() {
 function respawnEnemy(enemy) {
   if (enemy.type === "balrog") {
     if (Date.now() < room.balrogRespawnAt) return;
-    room.mapPattern = (room.mapPattern + 1) % 3;
+    room.mapPattern = (room.mapPattern + 1) % 4;
     room.map = buildMap(room.mapPattern);
     const next = balrogSpawn(room.mapPattern);
     enemy.spawnX = next.x;
@@ -579,7 +579,12 @@ function baseSpawns(pattern = 0) {
 }
 
 function balrogSpawn(pattern) {
-  return [{ x: 58.5, y: 31.5 }, { x: 49.5, y: 12.5 }, { x: 31.5, y: 33.5 }][pattern % 3];
+  return [
+    { x: 58.5, y: 31.5 },
+    { x: 49.5, y: 12.5 },
+    { x: 31.5, y: 33.5 },
+    { x: 58.5, y: 20.5 },
+  ][pattern % 4];
 }
 
 function buildMap(pattern = 0) {
@@ -603,10 +608,16 @@ function buildMap(pattern = 0) {
     [53, 11, 57, 11], [50, 21, 50, 23], [56, 18, 56, 21], [58, 25, 60, 25],
     [34, 32, 37, 32], [44, 30, 44, 32], [56, 30, 56, 32], [60, 31, 60, 33]].forEach((line) => wall(...line));
   if (pattern === 1) {
-    carve(36, 9, 8, 3); carve(47, 10, 12, 5); wall(55, 8, 55, 11); wall(48, 13, 51, 13);
+    carve(36, 9, 8, 3); carve(47, 10, 12, 5); carve(41, 15, 6, 4);
+    wall(55, 8, 55, 11); wall(48, 13, 51, 13); wall(40, 12, 44, 12);
   }
   if (pattern === 2) {
-    carve(22, 28, 11, 6); carve(20, 30, 5, 3); wall(27, 30, 27, 33); wall(31, 32, 34, 32);
+    carve(22, 28, 11, 6); carve(20, 30, 5, 3); carve(17, 27, 8, 4);
+    wall(27, 30, 27, 33); wall(31, 32, 34, 32); wall(22, 27, 22, 29);
+  }
+  if (pattern === 3) {
+    carve(50, 15, 13, 10); carve(40, 18, 12, 3); carve(52, 24, 8, 4);
+    wall(47, 21, 50, 21); wall(55, 18, 55, 22); wall(60, 24, 60, 27);
   }
   return grid.map((row) => row.join(""));
 }
