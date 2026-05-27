@@ -1594,6 +1594,15 @@ function drawWorld() {
     ctx.fillStyle = `rgba(0, 0, 0, ${1 - faceShade})`;
     ctx.fillRect(x, y, colW, wallH);
 
+    const outlineAlpha = Math.min(0.9, 0.46 + Math.max(0, 1 - fixedDist / 10) * 0.36);
+    const outlineDark = `rgba(28, 16, 10, ${outlineAlpha})`;
+    const outlineLight = `rgba(255, 234, 180, ${Math.min(0.22, outlineAlpha * 0.2)})`;
+    ctx.fillStyle = outlineDark;
+    ctx.fillRect(x, Math.round(y), colW, 1);
+    ctx.fillRect(x, Math.round(y + wallH - 1), colW, 1);
+    ctx.fillStyle = outlineLight;
+    ctx.fillRect(x, Math.round(y + 1), colW, 1);
+
     const blockH = Math.max(54, wallH / 3.35);
     const row = Math.floor((hit.y + hit.x) * 2.1);
     const offsetU = row % 2 ? 0.14 : 0;
@@ -1611,12 +1620,12 @@ function drawWorld() {
     }
     const u = (hit.wallU + offsetU) % 1;
     if (fixedDist < 8 && (u < 0.012 || u > 0.988)) {
-      ctx.fillStyle = `rgba(35, 22, 15, ${edgeAlpha * 0.82})`;
+      ctx.fillStyle = `rgba(28, 16, 10, ${Math.min(0.78, edgeAlpha * 1.35)})`;
       ctx.fillRect(x, y + wallH * 0.08, colW, wallH * 0.74);
       ctx.fillStyle = "rgba(255, 238, 190, 0.12)";
       ctx.fillRect(x, y + wallH * 0.08, colW, wallH * 0.18);
     } else if (fixedDist < 4.8 && Math.abs(u - 0.5) < 0.006) {
-      ctx.fillStyle = `rgba(35, 22, 15, ${edgeAlpha * 0.45})`;
+      ctx.fillStyle = `rgba(28, 16, 10, ${Math.min(0.5, edgeAlpha * 0.85)})`;
       ctx.fillRect(x, y + wallH * 0.12, colW, wallH * 0.62);
     }
     if (u > 0.08 && u < 0.2) {
