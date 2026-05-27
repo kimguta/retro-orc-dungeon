@@ -23,6 +23,7 @@ const DEATH_RESPAWN_SECONDS = 5;
 const SAVE_KEY = "paperCitadelProgressV1";
 const LEGACY_SAVE_KEY = "shadowCitadelProgressV1";
 const LAST_NAME_KEY = "paperCitadelLastNameV1";
+const CHARACTER_BACKUP_PREFIX = "paperCitadelCharacter:";
 const SOCKET_SERVER_URL =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "http://localhost:3000"
@@ -333,6 +334,7 @@ function zoneSpawnType(original) {
 }
 
 function saveProgress() {
+  saveCharacterBackup();
   if (SOCKET_SERVER_URL) return;
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
@@ -352,6 +354,70 @@ function saveProgress() {
   } catch (_) {
     // Storage can be unavailable in private or restricted browser contexts.
   }
+}
+
+function characterSnapshot() {
+  return {
+    level: player.level,
+    xp: player.xp,
+    nextXp: player.nextXp,
+    hp: player.hp,
+    maxHp: player.maxHp,
+    rage: player.rage,
+    maxRage: player.maxRage,
+    attackPower: player.attackPower,
+    weaponLevel: player.weaponLevel,
+    armorLevel: player.armorLevel,
+    weaponScrolls: player.weaponScrolls,
+    armorScrolls: player.armorScrolls,
+    kills,
+    savedAt: Date.now(),
+  };
+}
+
+function saveCharacterBackup() {
+  if (!characterName) return;
+  try {
+    localStorage.setItem(`${CHARACTER_BACKUP_PREFIX}${characterName.toLowerCase()}`, JSON.stringify(characterSnapshot()));
+  } catch (_) {
+    // Storage can be unavailable in private or restricted browser contexts.
+  }
+}
+
+function loadCharacterBackup(name = characterName) {
+  if (!name) return null;
+  try {
+    const raw = localStorage.getItem(`${CHARACTER_BACKUP_PREFIX}${name.toLowerCase()}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function backupLooksAhead(backup, character) {
+  if (!backup || !character) return false;
+  return (Number(backup.level) || 1) > (Number(character.level) || 1)
+    || (Number(backup.weaponLevel) || 0) > (Number(character.weaponLevel) || 0)
+    || (Number(backup.armorLevel) || 0) > (Number(character.armorLevel) || 0)
+    || (Number(backup.kills) || 0) > (Number(character.kills) || 0)
+    || (Number(backup.xp) || 0) > (Number(character.xp) || 0);
+}
+
+function applyCharacterBackup(backup) {
+  if (!backup) return;
+  player.level = Math.max(player.level, Math.floor(Number(backup.level) || 1));
+  player.xp = Math.max(player.xp, Math.floor(Number(backup.xp) || 0));
+  player.nextXp = Math.max(player.nextXp, Math.floor(Number(backup.nextXp) || 60));
+  player.maxHp = Math.max(player.maxHp, Math.floor(Number(backup.maxHp) || 100));
+  player.hp = Math.max(1, Math.min(player.maxHp, Math.floor(Number(backup.hp) || player.maxHp)));
+  player.maxRage = Math.max(player.maxRage, Math.floor(Number(backup.maxRage) || 100));
+  player.rage = Math.max(player.rage, Math.floor(Number(backup.rage) || 0));
+  player.attackPower = Math.max(player.attackPower, Math.floor(Number(backup.attackPower) || 5));
+  player.weaponLevel = Math.max(player.weaponLevel, Math.floor(Number(backup.weaponLevel) || 0));
+  player.armorLevel = Math.max(player.armorLevel, Math.floor(Number(backup.armorLevel) || 0));
+  player.weaponScrolls = Math.max(player.weaponScrolls, Math.floor(Number(backup.weaponScrolls) || 0));
+  player.armorScrolls = Math.max(player.armorScrolls, Math.floor(Number(backup.armorScrolls) || 0));
+  kills = Math.max(kills, Math.floor(Number(backup.kills) || 0));
 }
 
 function loadProgress() {
@@ -482,6 +548,7 @@ function gainXp(amount) {
     noticeTimer = 3.2;
     saveProgress();
   }
+  saveProgress();
 }
 
 function spawnProjectile(e, ux, uy) {
@@ -767,7 +834,14 @@ function connectMultiplayer() {
     multiplayerRoomId = roomId;
     remotePlayers.clear();
     for (const remote of players) upsertRemotePlayer(remote);
-    if (character) applyServerCharacter(character);
+    if (character) applyServerCharacter(character, false);
+    const backup = loadCharacterBackup(characterName);
+    if (backupLooksAhead(backup, character)) {
+      applyCharacterBackup(backup);
+      saveCharacterBackup();
+      notice = "브라우저 백업으로 캐릭터 복구";
+      noticeTimer = 2.8;
+    }
     if (dungeon) applyServerDungeon(dungeon);
     const loaded = resumed ? "저장 캐릭터를 이어서 불러왔습니다." : "새 캐릭터가 서버에 저장됩니다.";
     setNameStatus(loaded);
@@ -868,7 +942,7 @@ function emitPlayerState(dt) {
   });
 }
 
-function applyServerCharacter(character) {
+function applyServerCharacter(character, updateBackup = true) {
   player.level = character.level;
   player.xp = character.xp;
   player.nextXp = character.nextXp;
@@ -883,6 +957,7 @@ function applyServerCharacter(character) {
   player.armorScrolls = character.armorScrolls || 0;
   if (character.level < 9999) testBoosted = false;
   kills = character.kills || 0;
+  if (updateBackup) saveCharacterBackup();
 }
 
 function applyServerDungeon(dungeon) {

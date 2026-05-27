@@ -20,6 +20,7 @@ const BALROG_RESPAWN_MS = 150000;
 const users = loadUsers();
 const players = new Map();
 const room = createRoom(loadRoom());
+let lastUsersSaveAt = 0;
 
 const app = express();
 app.use(cors({ origin: CLIENT_ORIGINS }));
@@ -45,7 +46,7 @@ io.on("connection", (socket) => {
   socket.on("player:update", (state = {}) => {
     const current = players.get(socket.id);
     if (!current) return;
-    Object.assign(current, sanitizeState(state));
+    mergePlayerState(current, sanitizeState(state));
     persistCharacter(current);
   });
 
@@ -604,6 +605,35 @@ function persistCharacter(player) {
   users[player.name] = player.testBoosted && player.normalSnapshot
     ? { ...player.normalSnapshot, lastLoginAt: Date.now() }
     : serializeCharacter(player);
+  const now = Date.now();
+  if (now - lastUsersSaveAt > 1000) {
+    saveUsers();
+    lastUsersSaveAt = now;
+  }
+}
+
+function mergePlayerState(player, state) {
+  const previousLevel = player.level || 1;
+  player.x = state.x;
+  player.y = state.y;
+  player.angle = state.angle;
+  player.hp = Math.max(0, Math.min(Math.max(player.maxHp || 100, state.maxHp), state.hp));
+  player.rage = state.rage;
+  player.maxRage = Math.max(player.maxRage || 100, state.maxRage);
+  player.level = Math.max(player.level || 1, state.level);
+  player.nextXp = Math.max(player.nextXp || 60, state.nextXp);
+  player.attackPower = Math.max(player.attackPower || 5, state.attackPower);
+  player.weaponLevel = Math.max(player.weaponLevel || 0, state.weaponLevel);
+  player.armorLevel = Math.max(player.armorLevel || 0, state.armorLevel);
+  player.weaponScrolls = Math.max(player.weaponScrolls || 0, state.weaponScrolls);
+  player.armorScrolls = Math.max(player.armorScrolls || 0, state.armorScrolls);
+  player.kills = Math.max(player.kills || 0, state.kills);
+  player.maxHp = Math.max(player.maxHp || 100, state.maxHp);
+  player.xp = state.level > previousLevel ? state.xp : Math.max(player.xp || 0, state.xp);
+  player.hop = state.hop;
+  player.moving = state.moving;
+  player.berserk = state.berserk;
+  player.action = state.action;
 }
 
 function sanitizeState(state) {
