@@ -1594,48 +1594,52 @@ function drawWorld() {
     ctx.fillStyle = `rgba(0, 0, 0, ${1 - faceShade})`;
     ctx.fillRect(x, y, colW, wallH);
 
-    const blockH = Math.max(48, wallH / 3.8);
+    const blockH = Math.max(54, wallH / 3.35);
     const row = Math.floor((hit.y + hit.x) * 2.1);
     const offsetU = row % 2 ? 0.14 : 0;
-    const joint = Math.max(2, wallH / 72);
-    const edgeAlpha = Math.min(0.62, 0.34 + fixedDist / 42);
-    ctx.fillStyle = `rgba(24, 13, 8, ${edgeAlpha})`;
-    ctx.fillRect(x, y, colW, Math.max(2, wallH / 34));
-    ctx.fillRect(x, y + wallH - Math.max(2, wallH / 42), colW, Math.max(2, wallH / 42));
+    const joint = Math.max(1, Math.min(3, wallH / 118));
+    const distanceFade = Math.max(0.2, 1 - fixedDist / 18);
+    const edgeAlpha = Math.min(0.24, 0.09 + distanceFade * 0.18);
+    ctx.fillStyle = `rgba(30, 18, 11, ${edgeAlpha})`;
+    ctx.fillRect(x, y, colW, Math.max(1, wallH / 58));
+    ctx.fillRect(x, y + wallH - Math.max(1, wallH / 62), colW, Math.max(1, wallH / 62));
     for (let by = y + blockH * 0.28; by < y + wallH; by += blockH) {
-      ctx.fillStyle = `rgba(24, 13, 9, ${edgeAlpha * 0.72})`;
-      ctx.fillRect(x, by - joint, colW, joint * 2);
-      ctx.fillStyle = hitTown ? "rgba(255, 230, 178, 0.18)" : "rgba(255, 232, 178, 0.14)";
+      ctx.fillStyle = `rgba(30, 18, 11, ${edgeAlpha * 0.62})`;
+      ctx.fillRect(x, by - joint * 0.5, colW, joint);
+      ctx.fillStyle = hitTown ? "rgba(255, 230, 178, 0.11)" : "rgba(255, 232, 178, 0.085)";
       ctx.fillRect(x, by, colW, joint);
     }
     const u = (hit.wallU + offsetU) % 1;
-    if (u < 0.035 || u > 0.965 || Math.abs(u - 0.5) < 0.018) {
-      ctx.fillStyle = `rgba(20, 10, 6, ${edgeAlpha})`;
-      ctx.fillRect(x, y + wallH * 0.04, colW, wallH * 0.9);
+    if (fixedDist < 8 && (u < 0.018 || u > 0.982)) {
+      ctx.fillStyle = `rgba(22, 12, 8, ${edgeAlpha * 0.62})`;
+      ctx.fillRect(x, y + wallH * 0.08, colW, wallH * 0.74);
+    } else if (fixedDist < 4.8 && Math.abs(u - 0.5) < 0.009) {
+      ctx.fillStyle = `rgba(22, 12, 8, ${edgeAlpha * 0.34})`;
+      ctx.fillRect(x, y + wallH * 0.12, colW, wallH * 0.62);
     }
     if (u > 0.08 && u < 0.2) {
-      ctx.fillStyle = "rgba(255, 238, 188, 0.1)";
+      ctx.fillStyle = "rgba(255, 238, 188, 0.055)";
       ctx.fillRect(x, y + wallH * 0.08, colW, wallH * 0.78);
     }
     if ((r + Math.floor(hit.x * 13 + hit.y * 17)) % 31 === 0) {
       const nickY = y + (0.22 + ((Math.floor(hit.x * 7 + hit.y * 9) % 5) * 0.12)) * wallH;
-      ctx.fillStyle = "rgba(255, 243, 197, 0.16)";
-      ctx.fillRect(x, nickY, colW, Math.max(2, wallH / 72));
+      ctx.fillStyle = "rgba(255, 243, 197, 0.075)";
+      ctx.fillRect(x, nickY, colW, Math.max(1, wallH / 110));
     }
     if (wallH > 90 && u > 0.18 && u < 0.82 && (r + Math.floor(hit.x * 3 + hit.y * 5)) % 9 === 0) {
-      ctx.fillStyle = "rgba(255, 246, 211, 0.065)";
+      ctx.fillStyle = "rgba(255, 246, 211, 0.04)";
       ctx.fillRect(x, y + wallH * 0.12, colW, wallH * 0.18);
     }
-    if (wallH > 64 && (u < 0.035 || u > 0.965)) {
-      ctx.fillStyle = "rgba(21, 12, 9, 0.3)";
-      ctx.fillRect(x, y + wallH * 0.06, colW, wallH * 0.88);
+    if (fixedDist < 6 && wallH > 64 && (u < 0.02 || u > 0.98)) {
+      ctx.fillStyle = "rgba(21, 12, 9, 0.08)";
+      ctx.fillRect(x, y + wallH * 0.08, colW, wallH * 0.74);
     }
 
-    ctx.fillStyle = "rgba(18, 10, 7, 0.32)";
-    ctx.fillRect(x, y, colW, Math.max(2, wallH / 34));
-    ctx.fillStyle = "rgba(255, 238, 188, 0.12)";
-    ctx.fillRect(x, y + wallH * 0.06, colW, Math.max(1, wallH / 40));
-    ctx.fillStyle = "rgba(255, 241, 199, 0.045)";
+    ctx.fillStyle = "rgba(18, 10, 7, 0.2)";
+    ctx.fillRect(x, y, colW, Math.max(1, wallH / 52));
+    ctx.fillStyle = "rgba(255, 238, 188, 0.065)";
+    ctx.fillRect(x, y + wallH * 0.06, colW, Math.max(1, wallH / 58));
+    ctx.fillStyle = "rgba(255, 241, 199, 0.035)";
     ctx.fillRect(x, y + wallH * 0.1, colW, wallH * 0.38);
 
     ctx.fillStyle = `rgba(18, 16, 14, ${Math.min(townView ? 0.16 : 0.27, fixedDist / 22)})`;
@@ -1683,6 +1687,7 @@ function drawFloorDetails(townView) {
   ctx.strokeStyle = lineColor;
   ctx.lineWidth = 1;
   for (let i = -9; i <= 9; i += 1) {
+    if (Math.abs(i) % 2 === 0) continue;
     ctx.beginPath();
     ctx.moveTo(W / 2 + i * 82, H);
     ctx.lineTo(W / 2 + i * 8, HALF_H + 12);
