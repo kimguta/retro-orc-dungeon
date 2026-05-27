@@ -1726,7 +1726,8 @@ function drawSprites() {
     const size = Math.min(H * 1.45, (H / s.dist) * spriteScale(s.e));
     const depthIndex = Math.floor((screenX / W) * RAYS);
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < s.dist - 0.2) continue;
-    const y = HALF_H - size * 0.55;
+    const groundY = HALF_H + H / Math.max(1, s.dist) * 0.27;
+    const y = groundY - size * 0.95;
     projected.push({ ...s, screenX, size, y, renderX: screenX, renderY: y });
   }
 
@@ -1765,7 +1766,7 @@ function spreadProjectedEnemies(projected) {
     const offset = offsets[Math.min(overlaps, offsets.length - 1)];
     const bossSpread = sprite.e.boss ? 0.52 : 1;
     sprite.renderX = sprite.screenX + offset[0] * spread * bossSpread;
-    sprite.renderY = sprite.y + offset[1] * spread * bossSpread;
+    sprite.renderY = sprite.y + offset[1] * spread * bossSpread * 0.18;
     sprite.nameplateWidth = Math.max(58, Math.min(118, sprite.size * 0.5));
     sprite.nameplateY = sprite.renderY - Math.max(22, sprite.size * 0.08);
     while (nameplateOverlap(sprite, occupiedLabels)) sprite.nameplateY -= 24;
@@ -1802,7 +1803,8 @@ function drawRemotePlayers() {
     const depthIndex = Math.floor((screenX / W) * RAYS);
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < entry.dist - 0.2) continue;
     const hopLift = Math.min(size * 0.34, Math.max(0, entry.remote.hop || 0) * 118);
-    const y = HALF_H - size * 0.52 - hopLift;
+    const groundY = HALF_H + H / Math.max(1, entry.dist) * 0.27;
+    const y = groundY - size * 0.94 - hopLift;
     drawFloorContact(screenX, y + size * 0.94, size, "#71d4ff", 0.3);
     drawRemoteWarrior(entry.remote, screenX - size / 2, y, size, remoteBackView(entry.remote));
     drawNameplate(
@@ -2008,7 +2010,8 @@ function drawTownSprites() {
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < s.dist - 0.2) continue;
     if (s.kind === "npc") {
       const size = Math.min(180, (H / s.dist) * 0.36);
-      const y = HALF_H - size * 0.38;
+      const groundY = HALF_H + H / Math.max(1, s.dist) * 0.27;
+      const y = groundY - size * 0.94;
       drawFloorContact(screenX, y + size * 0.94, size, "#8feaff", 0.26);
       drawTownNpc(s.data, screenX - size / 2, y, size, s.dist);
       if (gameState === "play") {
@@ -2016,7 +2019,8 @@ function drawTownSprites() {
       }
     } else {
       const size = Math.min(150, (H / s.dist) * propScale(s.data.type));
-      drawTownProp(s.data, screenX - size / 2, HALF_H + H / Math.max(1, s.dist) * 0.25 - size, size);
+      const groundY = HALF_H + H / Math.max(1, s.dist) * 0.27;
+      drawTownProp(s.data, screenX - size / 2, groundY - size, size);
     }
   }
 }
@@ -3052,8 +3056,8 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showT
   const upgradeScale = Math.min(12, player.weaponLevel) * 1.25;
   const nearW = 38 + upgradeScale + lunge * 13;
   const midW = 32 + upgradeScale * 0.72 + lunge * 6;
-  const shoulderW = Math.max(14, 22 + upgradeScale * 0.35 - lunge * 8);
-  const tipLen = 14 + upgradeScale * 0.28 + lunge * 11;
+  const shoulderW = Math.max(15, 23 + upgradeScale * 0.35 - lunge * 7);
+  const tipLen = 10 + upgradeScale * 0.18 + lunge * 8;
   const tipInset = 0.55;
   const hiltX = nearX - dx / len * 46;
   const hiltY = nearY - dy / len * 46;
@@ -3070,7 +3074,7 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showT
     [nearX + nx * (midW + 6), nearY + ny * (midW + 6)],
     [nearX - nx * (midW + 6), nearY - ny * (midW + 6)],
     [farX - nx * (shoulderW + 6), farY - ny * (shoulderW + 6)],
-    [farX + dx / len * (tipLen + 6), farY + dy / len * (tipLen + 6)],
+    [farX + dx / len * (tipLen + 4), farY + dy / len * (tipLen + 4)],
     [farX + nx * (shoulderW + 6), farY + ny * (shoulderW + 6)],
   ]);
   paperPoly([
@@ -3081,13 +3085,13 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showT
     [farX + dx / len * tipLen, farY + dy / len * tipLen],
     [farX + dx / len * (tipLen * tipInset) + nx * shoulderW * 0.32, farY + dy / len * (tipLen * tipInset) + ny * shoulderW * 0.32],
     [farX + nx * shoulderW, farY + ny * shoulderW],
-  ], palette.blade, palette.shadow, 0.22);
+  ], palette.blade, palette.shadow, 0.14);
 
-  ctx.strokeStyle = palette.highlight;
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.42)";
   ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.moveTo(nearX + nx * midW * 0.22, nearY + ny * midW * 0.22);
-  ctx.lineTo(farX + dx / len * tipLen * 0.72 + nx * shoulderW * 0.08, farY + dy / len * tipLen * 0.72 + ny * shoulderW * 0.08);
+  ctx.lineTo(farX + dx / len * tipLen * 0.48 + nx * shoulderW * 0.05, farY + dy / len * tipLen * 0.48 + ny * shoulderW * 0.05);
   ctx.stroke();
 
   paperPoly([
@@ -3354,19 +3358,19 @@ function drawHudLegacyPanel() {
 }
 
 function drawHudPanel(x, y, w, h) {
-  ctx.fillStyle = "#1b110c";
+  ctx.fillStyle = "#21150f";
   ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = "rgba(255, 238, 184, 0.08)";
+  ctx.fillStyle = "rgba(255, 236, 178, 0.11)";
   ctx.fillRect(x + 1, y + 1, w - 2, Math.min(24, h - 2));
-  ctx.fillStyle = "rgba(9, 5, 3, 0.55)";
+  ctx.fillStyle = "rgba(9, 5, 3, 0.62)";
   ctx.fillRect(x + 5, y + h - 7, w - 10, 3);
-  ctx.strokeStyle = "#5b341d";
+  ctx.strokeStyle = "#4b2a18";
   ctx.lineWidth = 2;
   ctx.strokeRect(x, y, w, h);
-  ctx.strokeStyle = "rgba(255, 221, 142, 0.26)";
+  ctx.strokeStyle = "rgba(255, 221, 142, 0.34)";
   ctx.lineWidth = 1;
   ctx.strokeRect(x + 4, y + 4, w - 8, h - 8);
-  ctx.fillStyle = "rgba(255, 218, 117, 0.24)";
+  ctx.fillStyle = "rgba(255, 218, 117, 0.3)";
   ctx.fillRect(x + 10, y + 7, Math.min(46, w - 20), 2);
 }
 
@@ -3686,17 +3690,19 @@ function drawCrosshair() {
 }
 
 function drawBar(x, y, w, h, pct, fill, bg, label = "") {
-  ctx.fillStyle = "rgba(0, 0, 0, 0.72)";
+  ctx.fillStyle = "#120905";
   ctx.fillRect(x - 4, y - 4, w + 8, h + 8);
+  ctx.fillStyle = "#4b2a18";
+  ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
   ctx.fillStyle = bg;
   ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
+  ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
   ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
   ctx.fillStyle = fill;
   ctx.fillRect(x + 3, y + 3, Math.max(0, (w - 6) * Math.max(0, Math.min(1, pct))), h - 6);
-  ctx.fillStyle = "rgba(255, 238, 177, 0.18)";
+  ctx.fillStyle = "rgba(255, 238, 177, 0.22)";
   ctx.fillRect(x + 3, y + 3, Math.max(0, (w - 6) * Math.max(0, Math.min(1, pct))), Math.max(2, Math.floor((h - 6) / 3)));
-  ctx.strokeStyle = "rgba(232, 196, 112, 0.72)";
+  ctx.strokeStyle = "rgba(255, 222, 143, 0.7)";
   ctx.lineWidth = 1;
   ctx.strokeRect(x, y, w, h);
   ctx.lineWidth = 1;
