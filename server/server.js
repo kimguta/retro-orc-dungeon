@@ -10,15 +10,16 @@ const CLIENT_ORIGINS = (process.env.CLIENT_ORIGIN || "http://127.0.0.1:4173,http
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
-const DATA_DIR = path.join(__dirname, "data");
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
 const USERS_FILE = path.join(DATA_DIR, "users.json");
+const ROOM_FILE = path.join(DATA_DIR, "room.json");
 const ROOM_ID = "citadel";
 const MAP_W = 64;
 const MAP_H = 36;
 const BALROG_RESPAWN_MS = 150000;
 const users = loadUsers();
 const players = new Map();
-const room = createRoom();
+const room = createRoom(loadRoom());
 
 const app = express();
 app.use(cors({ origin: CLIENT_ORIGINS }));
@@ -94,7 +95,14 @@ setInterval(() => {
   io.to(ROOM_ID).emit("dungeon:update", publicDungeon());
 }, 100);
 setInterval(publishPlayers, 120);
-setInterval(saveUsers, 3000);
+setInterval(() => {
+  saveUsers();
+  saveRoom();
+}, 3000);
+setImmediate(() => {
+  saveUsers();
+  saveRoom();
+});
 
 function joinPlayer(socket, rawName) {
   const name = sanitizeName(rawName);
@@ -158,16 +166,20 @@ function newCharacter(name) {
   };
 }
 
-function createRoom() {
+function createRoom(saved = null) {
+  const pattern = clampPattern(saved?.mapPattern);
+  const tier = Math.max(1, Math.floor(Number(saved?.dungeonTier) || 1));
+  const baseEnemies = baseSpawns(pattern).map((spawn, index) => makeEnemy(spawn, index, tier));
+  const enemies = Array.isArray(saved?.enemies) ? restoreEnemies(saved.enemies, baseEnemies, tier) : baseEnemies;
   return {
     id: ROOM_ID,
-    dungeonTier: 1,
-    balrogDefeatedCount: 0,
-    mapPattern: 0,
-    map: buildMap(0),
-    enemies: baseSpawns(0).map((spawn, index) => makeEnemy(spawn, index, 1)),
-    balrogRespawnAt: 0,
-    nextEnemyId: 1000,
+    dungeonTier: tier,
+    balrogDefeatedCount: Math.max(0, Math.floor(Number(saved?.balrogDefeatedCount) || 0)),
+    mapPattern: pattern,
+    map: buildMap(pattern),
+    enemies,
+    balrogRespawnAt: Math.max(0, Math.floor(Number(saved?.balrogRespawnAt) || 0)),
+    nextEnemyId: Math.max(1000, Math.floor(Number(saved?.nextEnemyId) || 1000), ...enemies.map((enemy) => numericEnemyId(enemy.id) + 1)),
   };
 }
 
@@ -178,7 +190,9 @@ function resetDungeon() {
   room.map = buildMap(0);
   room.balrogRespawnAt = 0;
   room.enemies = baseSpawns(0).map((spawn, index) => makeEnemy(spawn, index, 1));
+  room.nextEnemyId = 1000;
   ensureMonsterPopulation();
+  saveRoom();
   io.to(ROOM_ID).emit("dungeon:update", publicDungeon());
   io.to(ROOM_ID).emit("dungeon:notice", { text: "테스트 성채 초기화 - 1단계" });
 }
@@ -409,6 +423,7 @@ function applyEnemyDamage(socket, player, enemy, damage) {
   if (enemy.hp > 0) return;
   enemy.dead = true;
   enemy.respawnAt = Date.now() + respawnDelay(enemy);
+  saveRoom();
   player.kills += 1;
   grantXp(player, enemy.xp);
   persistCharacter(player);
@@ -421,6 +436,7 @@ function onBalrogDefeated() {
   room.balrogDefeatedCount += 1;
   room.dungeonTier += 1;
   room.balrogRespawnAt = Date.now() + BALROG_RESPAWN_MS;
+  saveRoom();
   io.to(ROOM_ID).emit("dungeon:notice", { text: `발록 처치 - 성채 ${room.dungeonTier}단계 준비` });
 }
 
@@ -436,6 +452,7 @@ function respawnEnemy(enemy) {
     io.to(ROOM_ID).emit("dungeon:notice", { text: `발록 재등장 - 성채 ${room.dungeonTier}단계` });
   }
   Object.assign(enemy, makeEnemy({ type: enemy.type, x: enemy.spawnX, y: enemy.spawnY }, enemy.id, room.dungeonTier));
+  saveRoom();
 }
 
 function ensureMonsterPopulation() {
@@ -450,6 +467,7 @@ function ensureMonsterPopulation() {
     enemy.extra = true;
     room.enemies.push(enemy);
   }
+  saveRoom();
 }
 
 function nearestPlayer(enemy) {
@@ -627,8 +645,96 @@ function loadUsers() {
 }
 
 function saveUsers() {
+  writeJsonAtomic(USERS_FILE, users);
+}
+
+function loadRoom() {
+  try {
+    return JSON.parse(fs.readFileSync(ROOM_FILE, "utf8"));
+  } catch (_) {
+    return null;
+  }
+}
+
+function saveRoom() {
+  writeJsonAtomic(ROOM_FILE, serializeRoom());
+}
+
+function writeJsonAtomic(file, data) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+  const tmp = `${file}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
+  fs.renameSync(tmp, file);
+}
+
+function serializeRoom() {
+  return {
+    roomId: ROOM_ID,
+    dungeonTier: room.dungeonTier,
+    balrogDefeatedCount: room.balrogDefeatedCount,
+    mapPattern: room.mapPattern,
+    balrogRespawnAt: room.balrogRespawnAt,
+    nextEnemyId: room.nextEnemyId,
+    savedAt: Date.now(),
+    enemies: room.enemies.map(serializeEnemy),
+  };
+}
+
+function serializeEnemy(enemy) {
+  return {
+    id: enemy.id,
+    type: enemy.type,
+    x: round2(enemy.x),
+    y: round2(enemy.y),
+    spawnX: round2(enemy.spawnX),
+    spawnY: round2(enemy.spawnY),
+    hp: Math.max(0, Math.ceil(enemy.hp || 0)),
+    dead: Boolean(enemy.dead),
+    respawnAt: Math.max(0, Math.floor(enemy.respawnAt || 0)),
+    extra: Boolean(enemy.extra),
+  };
+}
+
+function restoreEnemies(savedEnemies, baseEnemies, tier) {
+  const restored = [];
+  const baseById = new Map(baseEnemies.map((enemy) => [enemy.id, enemy]));
+  const seen = new Set();
+  for (const saved of savedEnemies) {
+    if (!saved?.type || !saved?.id) continue;
+    const base = baseById.get(saved.id);
+    const spawn = {
+      type: saved.type,
+      x: finite(saved.spawnX ?? saved.x, base?.spawnX ?? 4.5),
+      y: finite(saved.spawnY ?? saved.y, base?.spawnY ?? 4.5),
+    };
+    const enemy = makeEnemy(spawn, saved.id, tier);
+    enemy.x = finite(saved.x, enemy.spawnX);
+    enemy.y = finite(saved.y, enemy.spawnY);
+    enemy.hp = Math.max(0, Math.min(enemy.maxHp, Math.ceil(Number(saved.hp) || 0)));
+    enemy.dead = Boolean(saved.dead);
+    enemy.respawnAt = Math.max(0, Math.floor(Number(saved.respawnAt) || 0));
+    enemy.extra = Boolean(saved.extra);
+    restored.push(enemy);
+    seen.add(enemy.id);
+  }
+  for (const enemy of baseEnemies) {
+    if (!seen.has(enemy.id)) restored.push(enemy);
+  }
+  return restored;
+}
+
+function numericEnemyId(id) {
+  const match = String(id || "").match(/(\d+)$/);
+  return match ? Number(match[1]) : 0;
+}
+
+function clampPattern(value) {
+  const pattern = Math.floor(Number(value) || 0);
+  return ((pattern % 4) + 4) % 4;
+}
+
+function round2(value) {
+  return Math.round(Number(value || 0) * 100) / 100;
 }
 
 function respawnDelay(enemy) {
@@ -742,6 +848,15 @@ function finite(value, fallback) {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
 }
+
+function flushDataAndExit(signal) {
+  saveUsers();
+  saveRoom();
+  process.exit(signal === "SIGINT" ? 0 : 143);
+}
+
+process.once("SIGTERM", () => flushDataAndExit("SIGTERM"));
+process.once("SIGINT", () => flushDataAndExit("SIGINT"));
 
 server.listen(PORT, () => {
   console.log(`Paper Citadel multiplayer server listening on ${PORT}`);
