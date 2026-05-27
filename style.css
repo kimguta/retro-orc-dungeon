@@ -14,7 +14,9 @@ body {
 }
 
 body {
-  background: #050403;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(116, 82, 52, 0.18), transparent 42%),
+    linear-gradient(135deg, #15100c, #070504 70%);
 }
 
 .shell {
@@ -52,11 +54,11 @@ canvas {
 }
 
 .help span {
-  padding: 4px 9px;
-  border: 1px solid rgba(255, 198, 98, 0.82);
+  padding: 5px 10px;
+  border: 2px solid rgba(82, 47, 27, 0.92);
   border-radius: 6px;
-  background: rgba(255, 235, 189, 0.88);
-  box-shadow: 0 2px 0 rgba(32, 16, 10, 0.72), inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+  background: #f4dca5;
+  box-shadow: 0 3px 0 rgba(32, 16, 10, 0.72), inset 0 2px 0 rgba(255, 255, 255, 0.34);
   text-shadow: none;
 }
 
@@ -67,7 +69,9 @@ canvas {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgba(4, 3, 2, 0.44);
+  background:
+    radial-gradient(circle at 50% 32%, rgba(250, 210, 128, 0.16), transparent 34%),
+    rgba(4, 3, 2, 0.58);
 }
 
 .name-screen.is-hidden {
@@ -76,11 +80,16 @@ canvas {
 
 .name-panel {
   width: min(430px, 100%);
-  padding: 26px;
-  border: 1px solid rgba(238, 198, 118, 0.72);
+  padding: 28px;
+  border: 3px solid #4a2b19;
   border-radius: 8px;
-  background: rgba(23, 13, 10, 0.95);
-  box-shadow: inset 0 0 0 2px rgba(255, 234, 181, 0.16), 0 18px 54px rgba(0, 0, 0, 0.42);
+  background:
+    linear-gradient(180deg, rgba(255, 247, 207, 0.1), transparent 36%),
+    #24140d;
+  box-shadow:
+    0 8px 0 #120905,
+    inset 0 0 0 3px rgba(255, 226, 158, 0.2),
+    0 22px 64px rgba(0, 0, 0, 0.48);
 }
 
 .eyebrow,
@@ -89,21 +98,23 @@ canvas {
 }
 
 .eyebrow {
-  color: #d8bd76;
+  color: #83dcff;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 .name-panel h1 {
   margin: 7px 0 10px;
-  color: #f3c46e;
+  color: #ffd46b;
   font-size: 38px;
   letter-spacing: 0;
+  text-shadow: 0 3px 0 #5a2716;
 }
 
 .name-panel .entry-copy {
   margin: 0 0 20px;
-  color: #e5d4a9;
+  color: #f2dfb2;
   font-size: 14px;
   line-height: 1.5;
 }
@@ -125,8 +136,8 @@ canvas {
 .name-row input,
 .name-row button {
   min-height: 44px;
-  border: 1px solid rgba(238, 198, 118, 0.6);
-  border-radius: 4px;
+  border: 2px solid #5b341d;
+  border-radius: 6px;
   font: inherit;
 }
 
@@ -134,18 +145,20 @@ canvas {
   width: 100%;
   padding: 0 12px;
   color: #fff1bd;
-  background: rgba(28, 19, 13, 0.9);
+  background: #160d09;
   outline: none;
 }
 
 .name-row input:focus {
-  border-color: #76e6ff;
+  border-color: #69ddff;
+  box-shadow: 0 0 0 3px rgba(105, 221, 255, 0.16);
 }
 
 .name-row button {
-  color: #120b07;
-  font-weight: 700;
-  background: #f3c46e;
+  color: #1b0f09;
+  font-weight: 900;
+  background: #ffd46b;
+  box-shadow: 0 3px 0 #7d4422;
   cursor: pointer;
 }
 

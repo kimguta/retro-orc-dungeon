@@ -1641,17 +1641,18 @@ function drawWorld() {
 
 function drawCeilingDetails(townView) {
   ctx.save();
-  ctx.globalAlpha = townView ? 0.16 : 0.2;
-  ctx.strokeStyle = townView ? "rgba(255, 225, 177, 0.2)" : "rgba(255, 201, 133, 0.16)";
-  ctx.lineWidth = 2;
-  for (let i = -2; i <= 2; i += 1) {
-    ctx.beginPath();
-    ctx.moveTo(W * (0.08 + i * 0.03), HALF_H * 0.98);
-    ctx.quadraticCurveTo(W * 0.5, HALF_H * (0.34 + Math.abs(i) * 0.05), W * (0.92 - i * 0.03), HALF_H * 0.98);
-    ctx.stroke();
+  ctx.globalAlpha = townView ? 0.16 : 0.18;
+  ctx.fillStyle = townView ? "rgba(255, 230, 171, 0.08)" : "rgba(255, 211, 142, 0.055)";
+  ctx.fillRect(0, 0, W, HALF_H);
+  ctx.globalAlpha = townView ? 0.12 : 0.1;
+  ctx.fillStyle = "rgba(255, 243, 203, 0.18)";
+  for (let i = 0; i < 24; i += 1) {
+    const x = (i * 211 + 37) % W;
+    const y = (i * 83 + 19) % Math.max(1, HALF_H - 20);
+    ctx.fillRect(x, y, 2, 1);
   }
-  ctx.globalAlpha *= 0.7;
-  ctx.fillStyle = "rgba(10, 7, 8, 0.28)";
+  ctx.globalAlpha = 0.72;
+  ctx.fillStyle = "rgba(10, 7, 8, 0.2)";
   ctx.fillRect(0, 0, W, Math.max(10, H * 0.028));
   ctx.restore();
 }
@@ -1906,18 +1907,36 @@ function drawRemoteSword(x, y, px, palette, attack) {
   const tipX = x + (attack ? 24 : 23) * px;
   const tipY = y + (attack ? 7 : 6) * px;
   ctx.save();
-  ctx.strokeStyle = palette.shadow;
-  ctx.lineWidth = Math.max(2, px * 2.2);
+  ctx.strokeStyle = "#20110a";
+  ctx.lineWidth = Math.max(3, px * 3.4);
   ctx.lineCap = "square";
   ctx.beginPath();
   ctx.moveTo(hiltX, hiltY);
   ctx.lineTo(tipX, tipY);
   ctx.stroke();
+  ctx.strokeStyle = palette.shadow;
+  ctx.lineWidth = Math.max(2, px * 2.25);
+  ctx.beginPath();
+  ctx.moveTo(hiltX, hiltY);
+  ctx.lineTo(tipX, tipY);
+  ctx.stroke();
   ctx.strokeStyle = palette.blade;
-  ctx.lineWidth = Math.max(1, px * 1.15);
+  ctx.lineWidth = Math.max(1, px * 1.28);
   ctx.beginPath();
   ctx.moveTo(hiltX + px * 0.3, hiltY - px * 0.2);
   ctx.lineTo(tipX, tipY);
+  ctx.stroke();
+  ctx.strokeStyle = palette.highlight;
+  ctx.lineWidth = Math.max(1, px * 0.45);
+  ctx.beginPath();
+  ctx.moveTo(hiltX + px * 0.45, hiltY - px * 0.3);
+  ctx.lineTo(tipX - px * 0.5, tipY + px * 0.25);
+  ctx.stroke();
+  ctx.strokeStyle = "#2a170d";
+  ctx.lineWidth = Math.max(3, px * 2.2);
+  ctx.beginPath();
+  ctx.moveTo(hiltX - px * 1.35, hiltY - px * 0.9);
+  ctx.lineTo(hiltX + px * 1.65, hiltY + px * 0.9);
   ctx.stroke();
   ctx.strokeStyle = palette.guard;
   ctx.lineWidth = Math.max(2, px * 1.35);
@@ -2004,26 +2023,21 @@ function propScale(type) {
 
 function drawTownNpc(npc, x, y, size, dist) {
   const px = Math.max(2, Math.floor(size / 18));
-
-  rect(x + 4 * px, y + 1 * px, 11 * px, 21 * px, "#160f0c");
-  rect(x + 14 * px, y + 3 * px, 1 * px, 18 * px, "rgba(255, 230, 178, 0.2)");
-  rect(x + 5 * px, y + 2 * px, 8 * px, 7 * px, "#bd9a68");
-  rect(x + 4 * px, y + 1 * px, 10 * px, 3 * px, "#59402f");
-  rect(x + 5 * px, y + 0 * px, 8 * px, 1 * px, "#c18d49");
-  rect(x + 3 * px, y + 8 * px, 12 * px, 9 * px, "#3f5d70");
-  rect(x + 4 * px, y + 10 * px, 10 * px, 5 * px, "#4f7690");
-  rect(x + 6 * px, y + 9 * px, 6 * px, 1 * px, "#91b1c3");
-  rect(x + 2 * px, y + 9 * px, 3 * px, 7 * px, "#2d3f4c");
-  rect(x + 14 * px, y + 9 * px, 3 * px, 7 * px, "#2d3f4c");
-  rect(x + 6 * px, y + 17 * px, 3 * px, 4 * px, "#2a241d");
-  rect(x + 11 * px, y + 17 * px, 3 * px, 4 * px, "#2a241d");
-  rect(x + 7 * px, y + 5 * px, 2 * px, 1 * px, "#1a130e");
-  rect(x + 11 * px, y + 5 * px, 2 * px, 1 * px, "#1a130e");
-  rect(x + 8 * px, y + 7 * px, 4 * px, 1 * px, "#704020");
-  rect(x + 6 * px, y + 12 * px, 8 * px, 1 * px, "#d6b06d");
-  rect(x + 1 * px, y + 8 * px, 1 * px, 13 * px, "#7a4e27");
-  rect(x + 0 * px, y + 7 * px, 3 * px, 2 * px, "#d6b06d");
-
+  const edge = "#25150e";
+  paperRect(x + 5 * px, y + 2 * px, 8 * px, 7 * px, "#bd9a68", edge, 0.25);
+  paperRect(x + 4 * px, y + 1 * px, 10 * px, 3 * px, "#59402f", edge, 0.18);
+  paperRect(x + 3 * px, y + 8 * px, 12 * px, 9 * px, "#456b82", edge, 0.2);
+  paperRect(x + 4 * px, y + 10 * px, 10 * px, 5 * px, "#5a83a0", edge, 0.24);
+  paperRect(x + 2 * px, y + 9 * px, 3 * px, 7 * px, "#314756", edge, 0.15);
+  paperRect(x + 14 * px, y + 9 * px, 3 * px, 7 * px, "#314756", edge, 0.15);
+  paperRect(x + 6 * px, y + 17 * px, 3 * px, 4 * px, "#2a241d", edge, 0.1);
+  paperRect(x + 11 * px, y + 17 * px, 3 * px, 4 * px, "#2a241d", edge, 0.1);
+  paperRect(x + 7 * px, y + 5 * px, 2 * px, 1 * px, "#1a130e", edge, 0.08);
+  paperRect(x + 11 * px, y + 5 * px, 2 * px, 1 * px, "#1a130e", edge, 0.08);
+  paperRect(x + 8 * px, y + 7 * px, 4 * px, 1 * px, "#704020", edge, 0.1);
+  paperRect(x + 6 * px, y + 12 * px, 8 * px, 1 * px, "#d6b06d", "#5b341d", 0.2);
+  paperRect(x + 1 * px, y + 8 * px, 1.4 * px, 13 * px, "#7a4e27", "#2d190d", 0.1);
+  paperRect(x + 0 * px, y + 7 * px, 3 * px, 2 * px, "#d6b06d", "#5b341d", 0.2);
 }
 
 function drawNameplate(cx, y, width, name, pct, fill) {
@@ -2304,6 +2318,29 @@ function drawItems() {
 
 function drawItemSprite(item, x, y, size) {
   const px = Math.max(2, Math.floor(size / 10));
+  const itemPaper = {
+    health: ["#c9332b", "#fff0bf", "#2b1010"],
+    rage: ["#d66a21", "#ffcf62", "#3a102b"],
+    xp: ["#45a8ff", "#bfe8ff", "#102642"],
+    scroll: ["#f2d58a", "#9d5a22", "#3d2b12"],
+    bossScroll: ["#ffd56f", "#fff4c2", "#52250c"],
+    armorScroll: ["#76e6ff", "#e6fcff", "#112a35"],
+    bossArmorScroll: ["#bff6ff", "#ffffff", "#113440"],
+    legendScroll: ["#ff4a24", "#ffd25a", "#3d0f0a"],
+  }[item.type];
+  if (itemPaper) {
+    const [main, light, edge] = itemPaper;
+    paperRect(x + 2 * px, y + 1 * px, 6 * px, 8 * px, main, edge, 0.24);
+    paperRect(x + 3 * px, y + 2 * px, 4 * px, 2 * px, light, edge, 0.26);
+    if (item.type.includes("Scroll")) paperRect(x + 4 * px, y + 4 * px, 2 * px, 3 * px, light, edge, 0.18);
+    else if (item.type === "health") {
+      paperRect(x + 4 * px, y + 3 * px, 2 * px, 4 * px, light, edge, 0.18);
+      paperRect(x + 3 * px, y + 4 * px, 4 * px, 2 * px, light, edge, 0.18);
+    } else {
+      paperTri(x + 5 * px, y + 1 * px, x + 2 * px, y + 6 * px, x + 8 * px, y + 6 * px, light, edge);
+    }
+    return;
+  }
   if (item.type === "health") {
     rect(x + 2 * px, y + 1 * px, 6 * px, 8 * px, "#2b1010");
     rect(x + 3 * px, y + 2 * px, 4 * px, 6 * px, "#c9332b");
@@ -2413,6 +2450,77 @@ function drawPaperOrcSprite(e, x, y, px, skin, skinLight, shadow, deepShadow, ar
   paperRect(x + (10 + legA) * px, y + 21 * px, 3 * px, 4 * px, "#191818", "#090909", 0.1);
 }
 
+function drawPaperSkeletonBossSprite(e, x, y, px, bone, shade, eye, walk, hurt, deathKnight) {
+  const edge = deathKnight ? "#10141d" : "#30291e";
+  const crown = deathKnight ? "#aeb6c2" : "#ffd467";
+  paperRect(x + 3 * px, y + 2 * px, 12 * px, 10 * px, bone, edge, 0.24);
+  paperRect(x + 4 * px, y + 1 * px, 10 * px, 2 * px, crown, "#5b3a15", 0.28);
+  paperRect(x + 5 * px, y + (hurt ? 6 : 7) * px, 3 * px, hurt ? 1 * px : 2 * px, eye, "#24140f", 0.12);
+  paperRect(x + 10 * px, y + (hurt ? 6 : 7) * px, 3 * px, hurt ? 1 * px : 2 * px, eye, "#24140f", 0.12);
+  paperRect(x + 6 * px, y + 11 * px, 6 * px, hurt ? 1.2 * px : 2 * px, "#20140f", edge, 0.1);
+  paperRect(x + 4 * px, y + 14 * px, 11 * px, 8 * px, deathKnight ? "#202838" : "#34354b", edge, 0.18);
+  paperRect(x + 5 * px, y + 14 * px, 9 * px, 2 * px, deathKnight ? "#7d8796" : "#737aa6", edge, 0.22);
+  paperRect(x + 2 * px, y + 13 * px, 4 * px, 9 * px, bone, edge, 0.16);
+  paperRect(x + 13 * px, y + 13 * px, 4 * px, 9 * px, bone, edge, 0.16);
+  paperRect(x + 14 * px, y + 10 * px, 2 * px, 15 * px, deathKnight ? "#cfd6df" : "#ccb98a", "#4b3517", 0.18);
+  paperRect(x + (5 - Math.max(0, walk)) * px, y + 22 * px, 3 * px, 6 * px, bone, edge, 0.14);
+  paperRect(x + (11 + Math.max(0, walk)) * px, y + 22 * px, 3 * px, 6 * px, bone, edge, 0.14);
+}
+
+function drawPaperWarlockSprite(e, x, y, px, lord, flash, hurt) {
+  const edge = lord ? "#100416" : "#190b21";
+  const robe = flash ? "#a982d8" : lord ? "#271032" : "#312044";
+  const hood = flash ? "#d7b6ff" : lord ? "#572069" : "#53356c";
+  paperTri(x + 1 * px, y + 24 * px, x + 8.5 * px, y + 4 * px, x + 17 * px, y + 24 * px, robe, edge);
+  paperRect(x + 3 * px, y + 7 * px, 12 * px, 17 * px, robe, edge, 0.18);
+  paperRect(x + 4 * px, y + 2 * px, 10 * px, 8 * px, hood, edge, 0.22);
+  if (lord) {
+    paperRect(x + 4 * px, y + 0 * px, 10 * px, 3 * px, "#e2a84a", "#5d3510", 0.25);
+  }
+  const eye = lord ? "#ff7cff" : "#d86aff";
+  paperRect(x + 6 * px, y + (hurt ? 7 : 6) * px, hurt ? 3 * px : 2 * px, 1.4 * px, eye, "#120616", 0.14);
+  paperRect(x + 10 * px, y + (hurt ? 7 : 6) * px, hurt ? 3 * px : 2 * px, 1.4 * px, eye, "#120616", 0.14);
+  paperRect(x + 6 * px, y + 11 * px, 7 * px, hurt ? 1 * px : 2 * px, "#120c14", edge, 0.1);
+  paperRect(x + 2 * px, y + 13 * px, 4 * px, 9 * px, "#3c2454", edge, 0.16);
+  paperRect(x + 12 * px, y + (e.attackPose > 0 ? 15 : 13) * px, 4 * px, 9 * px, "#3c2454", edge, 0.16);
+  paperRect(x + 1 * px, y + 8 * px, 1.4 * px, 17 * px, "#5f3b21", "#261509", 0.12);
+  paperRect(x + 0 * px, y + 6 * px, 3.5 * px, 3.5 * px, lord ? "#ff7cff" : "#b75cff", "#271036", 0.22);
+  if (e.attackWindup > 0) {
+    paperRect(x + 13 * px, y + 15 * px, 5 * px, 5 * px, "#efc9ff", "#6d2eb2", 0.3);
+  }
+  paperRect(x + 6 * px, y + 23 * px, 3 * px, 3 * px, "#120b18", edge, 0.08);
+  paperRect(x + 10 * px, y + 23 * px, 3 * px, 3 * px, "#120b18", edge, 0.08);
+}
+
+function drawPaperBalrogSprite(e, x, y, px, flash, walk, attack, winding) {
+  const edge = "#170404";
+  const body = flash ? "#ffbd85" : "#3a0b09";
+  const bodyLight = flash ? "#ffd7a8" : "#7d1b16";
+  paperTri(x + 4 * px, y + 15 * px, x - 4 * px, y + 5 * px, x + 0 * px, y + 30 * px, "#210707", edge);
+  paperTri(x + 14 * px, y + 15 * px, x + 22 * px, y + 5 * px, x + 18 * px, y + 30 * px, "#210707", edge);
+  paperTri(x + 4 * px, y + 17 * px, x - 1 * px, y + 10 * px, x + 1 * px, y + 24 * px, "#8e2518", edge);
+  paperTri(x + 14 * px, y + 17 * px, x + 19 * px, y + 10 * px, x + 17 * px, y + 24 * px, "#8e2518", edge);
+  paperTri(x + 4 * px, y + 5 * px, x + 1 * px, y - 1 * px, x + 7 * px, y + 4 * px, "#e0be74", "#583615");
+  paperTri(x + 14 * px, y + 5 * px, x + 17 * px, y - 1 * px, x + 11 * px, y + 4 * px, "#e0be74", "#583615");
+  paperRect(x + 2 * px, y + 7 * px, 14 * px, 12 * px, body, edge, 0.16);
+  paperRect(x + 4 * px, y + 5 * px, 10 * px, 9 * px, bodyLight, edge, 0.18);
+  paperRect(x + 5 * px, y + 9 * px, 3 * px, 2 * px, "#ff3b1f", "#4a0804", 0.2);
+  paperRect(x + 10 * px, y + 9 * px, 3 * px, 2 * px, "#ff3b1f", "#4a0804", 0.2);
+  paperRect(x + 6 * px, y + 13 * px, 6 * px, flash ? 1 * px : 2 * px, "#100303", edge, 0.08);
+  paperRect(x + 6 * px, y + 14 * px, 2 * px, 3 * px, "#f4dfc0", "#6d533b", 0.18);
+  paperRect(x + 11 * px, y + 14 * px, 2 * px, 3 * px, "#f4dfc0", "#6d533b", 0.18);
+  paperRect(x + 3 * px, y + 18 * px, 12 * px, 12 * px, "#191010", edge, 0.12);
+  paperRect(x + 4 * px, y + 18 * px, 10 * px, 2 * px, "#9e2a1b", edge, 0.18);
+  paperRect(x + 5 * px, y + 22 * px, 8 * px, 2 * px, "#d63a1d", "#541008", 0.18);
+  paperRect(x + 1 * px, y + (winding ? 19 : 20) * px, 5 * px, 8 * px, "#260909", edge, 0.12);
+  paperRect(x + 12 * px, y + (attack > 0 ? 18 : 20) * px, 5 * px, 8 * px, "#260909", edge, 0.12);
+  if (winding || attack > 0) {
+    paperRect(x + 15 * px, y + 17 * px, 3 * px, 12 * px, "#ff5b22", "#5a1008", 0.22);
+  }
+  paperRect(x + (5 - Math.max(0, walk)) * px, y + 30 * px, 4 * px, 7 * px, "#160706", edge, 0.08);
+  paperRect(x + (10 + Math.max(0, walk)) * px, y + 30 * px, 4 * px, 7 * px, "#160706", edge, 0.08);
+}
+
 function drawSkeleton(e, x, y, size, dist) {
   const px = Math.max(2, Math.floor(size / 16));
   const deathKnight = e.type === "deathKnight";
@@ -2433,6 +2541,9 @@ function drawSkeleton(e, x, y, size, dist) {
     ctx.globalAlpha = 1;
     return;
   }
+  drawPaperSkeletonBossSprite(e, x, y, px, bone, shade, eye, walk, hurt, deathKnight);
+  ctx.globalAlpha = 1;
+  return;
   if (king) {
     rect(x + 4 * px, y + 1 * px, 8 * px, 2 * px, "#d6b14d");
     rect(x + 5 * px, y - 1 * px, 2 * px, 3 * px, "#ffe28a");
@@ -2488,6 +2599,9 @@ function drawWarlock(e, x, y, size, dist) {
   y += bob + idle * px * 0.7 - e.attackPose * 2 * px + (hurt ? Math.sin(performance.now() * 0.1) * px : 0);
   x += walk * px * 0.34 + idle * px * 0.1;
   ctx.globalAlpha = 1;
+  drawPaperWarlockSprite(e, x, y, px, lord, flash, hurt);
+  ctx.globalAlpha = 1;
+  return;
   tri(x + 2 * px, y + 6 * px, x + 8 * px, y - 2 * px, x + 15 * px, y + 6 * px, lord ? "#0d0417" : "#160b24");
   tri(x + 1 * px, y + 23 * px, x + 8.5 * px, y + 6 * px, x + 17 * px, y + 23 * px, lord ? "#0e0619" : "#190d28");
   rect(x + 2 * px, y + 5 * px, 13 * px, 19 * px, flash ? "#a982d8" : lord ? "#170824" : "#241334");
@@ -2535,6 +2649,9 @@ function drawBalrog(e, x, y, size, dist) {
   y += bob + idle * px * 0.34 - attack * 4 * px + (winding ? 2 * px : 0);
   x += walk * px * 0.28;
   ctx.globalAlpha = 1;
+  drawPaperBalrogSprite(e, x, y, px, flash, walk, attack, winding);
+  ctx.globalAlpha = 1;
+  return;
 
   tri(x + 4 * px, y + 15 * px, x - 3 * px, y + 6 * px, x + 1 * px, y + 29 * px, "#150404");
   tri(x + 14 * px, y + 15 * px, x + 21 * px, y + 6 * px, x + 17 * px, y + 29 * px, "#150404");
@@ -2610,6 +2727,16 @@ function drawOrc(e, x, y, size, dist) {
     ctx.globalAlpha = 1;
     return;
   }
+  drawPaperOrcSprite(e, x, y, px, skin, skinLight, shadow, deepShadow, armor, armorLight, eye, walk, attack, winding, hurt);
+  if (ogre || dark) {
+    paperTri(x + 4 * px, y + 4 * px, x + 2 * px, y - 1 * px, x + 7 * px, y + 3 * px, "#d8c99b", deepShadow);
+    paperTri(x + 14 * px, y + 4 * px, x + 16 * px, y - 1 * px, x + 11 * px, y + 3 * px, "#d8c99b", deepShadow);
+    if (e.boss || ogreLord) {
+      paperRect(x + 3 * px, y + 13 * px, 12 * px, 2 * px, ogreLord ? "#d0aa48" : "#8f2b22", "#23130c", 0.22);
+    }
+  }
+  ctx.globalAlpha = 1;
+  return;
 
   rect(x + 2 * px, y + 4 * px, 13 * px, 21 * px, deepShadow);
   rect(x + 14 * px, y + 6 * px, 1 * px, 17 * px, "rgba(240, 230, 170, 0.18)");
@@ -2859,6 +2986,14 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showT
     [nearX - nx * nearW + 4, nearY - ny * nearW + 4],
     [farX - nx * farW + 4, farY - ny * farW + 4],
     [farX + nx * farW + 4, farY + ny * farW + 4],
+  ]);
+  ctx.fillStyle = "#1d1009";
+  drawPolyRaw([
+    [nearX + nx * (midW + 6), nearY + ny * (midW + 6)],
+    [nearX - nx * (midW + 6), nearY - ny * (midW + 6)],
+    [farX - nx * (farW + 6), farY - ny * (farW + 6)],
+    [farX + dx / len * (tipLen + 6), farY + dy / len * (tipLen + 6)],
+    [farX + nx * (farW + 6), farY + ny * (farW + 6)],
   ]);
   paperPoly([
     [nearX + nx * midW, nearY + ny * midW],
@@ -3139,17 +3274,20 @@ function drawHudLegacyPanel() {
 }
 
 function drawHudPanel(x, y, w, h) {
-  ctx.fillStyle = "rgba(8, 7, 8, 0.94)";
+  ctx.fillStyle = "#1b110c";
   ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = "rgba(255, 236, 197, 0.045)";
+  ctx.fillStyle = "rgba(255, 238, 184, 0.08)";
   ctx.fillRect(x + 1, y + 1, w - 2, Math.min(24, h - 2));
-  ctx.fillStyle = "rgba(0, 0, 0, 0.44)";
-  ctx.fillRect(x + 7, y + h - 7, w - 14, 3);
-  ctx.strokeStyle = "rgba(153, 194, 208, 0.52)";
-  ctx.lineWidth = 1;
+  ctx.fillStyle = "rgba(9, 5, 3, 0.55)";
+  ctx.fillRect(x + 5, y + h - 7, w - 10, 3);
+  ctx.strokeStyle = "#5b341d";
+  ctx.lineWidth = 2;
   ctx.strokeRect(x, y, w, h);
-  ctx.strokeStyle = "rgba(255, 220, 148, 0.18)";
-  ctx.strokeRect(x + 3, y + 3, w - 6, h - 6);
+  ctx.strokeStyle = "rgba(255, 221, 142, 0.26)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 4, y + 4, w - 8, h - 8);
+  ctx.fillStyle = "rgba(255, 218, 117, 0.24)";
+  ctx.fillRect(x + 10, y + 7, Math.min(46, w - 20), 2);
 }
 
 function drawHud() {
@@ -3173,10 +3311,12 @@ function drawHud() {
   const hudH = 122;
   const panelY = H - hudH;
   const barW = Math.min(500, Math.max(360, W * 0.3));
-  ctx.fillStyle = "rgba(4, 4, 5, 0.9)";
+  ctx.fillStyle = "rgba(19, 12, 8, 0.94)";
   ctx.fillRect(0, panelY, W, hudH);
-  ctx.fillStyle = "rgba(127, 165, 181, 0.18)";
-  ctx.fillRect(0, panelY, W, 2);
+  ctx.fillStyle = "#5b341d";
+  ctx.fillRect(0, panelY, W, 3);
+  ctx.fillStyle = "rgba(255, 222, 144, 0.16)";
+  ctx.fillRect(0, panelY + 3, W, 2);
   ctx.fillStyle = "rgba(0, 0, 0, 0.42)";
   ctx.fillRect(0, panelY - 6, W, 6);
 
@@ -3488,9 +3628,9 @@ function drawBar(x, y, w, h, pct, fill, bg, label = "") {
 }
 
 function drawText(text, x, y, size, color) {
-  ctx.font = `600 ${size}px Trebuchet MS, Noto Sans KR, Malgun Gothic, Apple SD Gothic Neo, sans-serif`;
-  ctx.lineWidth = Math.max(2, Math.floor(size / 5));
-  ctx.strokeStyle = "rgba(3, 2, 1, 0.86)";
+  ctx.font = `700 ${size}px Trebuchet MS, Noto Sans KR, Malgun Gothic, Apple SD Gothic Neo, sans-serif`;
+  ctx.lineWidth = Math.max(2, Math.floor(size / 6));
+  ctx.strokeStyle = "rgba(18, 9, 4, 0.82)";
   ctx.strokeText(text, x, y);
   ctx.fillStyle = color;
   ctx.fillText(text, x, y);
