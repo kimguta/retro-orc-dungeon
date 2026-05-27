@@ -1597,24 +1597,26 @@ function drawWorld() {
     const blockH = Math.max(54, wallH / 3.35);
     const row = Math.floor((hit.y + hit.x) * 2.1);
     const offsetU = row % 2 ? 0.14 : 0;
-    const joint = Math.max(1, Math.min(3, wallH / 118));
+    const joint = 1;
     const distanceFade = Math.max(0.2, 1 - fixedDist / 18);
-    const edgeAlpha = Math.min(0.24, 0.09 + distanceFade * 0.18);
-    ctx.fillStyle = `rgba(30, 18, 11, ${edgeAlpha})`;
-    ctx.fillRect(x, y, colW, Math.max(1, wallH / 58));
-    ctx.fillRect(x, y + wallH - Math.max(1, wallH / 62), colW, Math.max(1, wallH / 62));
+    const edgeAlpha = Math.min(0.44, 0.2 + distanceFade * 0.28);
+    ctx.fillStyle = `rgba(35, 22, 15, ${edgeAlpha})`;
+    ctx.fillRect(x, y, colW, 1);
+    ctx.fillRect(x, y + wallH - 1, colW, 1);
     for (let by = y + blockH * 0.28; by < y + wallH; by += blockH) {
-      ctx.fillStyle = `rgba(30, 18, 11, ${edgeAlpha * 0.62})`;
-      ctx.fillRect(x, by - joint * 0.5, colW, joint);
-      ctx.fillStyle = hitTown ? "rgba(255, 230, 178, 0.11)" : "rgba(255, 232, 178, 0.085)";
-      ctx.fillRect(x, by, colW, joint);
+      ctx.fillStyle = `rgba(35, 22, 15, ${edgeAlpha * 0.7})`;
+      ctx.fillRect(x, Math.round(by), colW, joint);
+      ctx.fillStyle = hitTown ? "rgba(255, 236, 188, 0.16)" : "rgba(255, 232, 178, 0.12)";
+      ctx.fillRect(x, Math.round(by) + 1, colW, 1);
     }
     const u = (hit.wallU + offsetU) % 1;
-    if (fixedDist < 8 && (u < 0.018 || u > 0.982)) {
-      ctx.fillStyle = `rgba(22, 12, 8, ${edgeAlpha * 0.62})`;
+    if (fixedDist < 8 && (u < 0.012 || u > 0.988)) {
+      ctx.fillStyle = `rgba(35, 22, 15, ${edgeAlpha * 0.82})`;
       ctx.fillRect(x, y + wallH * 0.08, colW, wallH * 0.74);
-    } else if (fixedDist < 4.8 && Math.abs(u - 0.5) < 0.009) {
-      ctx.fillStyle = `rgba(22, 12, 8, ${edgeAlpha * 0.34})`;
+      ctx.fillStyle = "rgba(255, 238, 190, 0.12)";
+      ctx.fillRect(x, y + wallH * 0.08, colW, wallH * 0.18);
+    } else if (fixedDist < 4.8 && Math.abs(u - 0.5) < 0.006) {
+      ctx.fillStyle = `rgba(35, 22, 15, ${edgeAlpha * 0.45})`;
       ctx.fillRect(x, y + wallH * 0.12, colW, wallH * 0.62);
     }
     if (u > 0.08 && u < 0.2) {
@@ -1630,15 +1632,10 @@ function drawWorld() {
       ctx.fillStyle = "rgba(255, 246, 211, 0.04)";
       ctx.fillRect(x, y + wallH * 0.12, colW, wallH * 0.18);
     }
-    if (fixedDist < 6 && wallH > 64 && (u < 0.02 || u > 0.98)) {
-      ctx.fillStyle = "rgba(21, 12, 9, 0.08)";
-      ctx.fillRect(x, y + wallH * 0.08, colW, wallH * 0.74);
-    }
-
-    ctx.fillStyle = "rgba(18, 10, 7, 0.2)";
-    ctx.fillRect(x, y, colW, Math.max(1, wallH / 52));
-    ctx.fillStyle = "rgba(255, 238, 188, 0.065)";
-    ctx.fillRect(x, y + wallH * 0.06, colW, Math.max(1, wallH / 58));
+    ctx.fillStyle = "rgba(18, 10, 7, 0.12)";
+    ctx.fillRect(x, y, colW, 1);
+    ctx.fillStyle = "rgba(255, 238, 188, 0.08)";
+    ctx.fillRect(x, y + wallH * 0.06, colW, 1);
     ctx.fillStyle = "rgba(255, 241, 199, 0.035)";
     ctx.fillRect(x, y + wallH * 0.1, colW, wallH * 0.38);
 
