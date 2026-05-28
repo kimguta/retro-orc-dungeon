@@ -21,11 +21,20 @@ const users = loadUsers();
 const players = new Map();
 const room = createRoom(loadRoom());
 let lastUsersSaveAt = 0;
+let lastStorageError = "";
 
 const app = express();
 app.use(cors({ origin: CLIENT_ORIGINS }));
 app.get("/health", (_, res) => {
-  res.json({ ok: true, rooms: 1, players: players.size, tier: room.dungeonTier, balrogRespawnAt: room.balrogRespawnAt });
+  res.json({
+    ok: true,
+    rooms: 1,
+    players: players.size,
+    tier: room.dungeonTier,
+    balrogRespawnAt: room.balrogRespawnAt,
+    storage: lastStorageError ? "degraded" : "ok",
+    lastStorageError,
+  });
 });
 
 const server = http.createServer(app);
@@ -170,8 +179,7 @@ function newCharacter(name) {
 function createRoom(saved = null) {
   const pattern = clampPattern(saved?.mapPattern);
   const tier = Math.max(1, Math.floor(Number(saved?.dungeonTier) || 1));
-  const baseEnemies = baseSpawns(pattern).map((spawn, index) => makeEnemy(spawn, index, tier));
-  const enemies = Array.isArray(saved?.enemies) ? restoreEnemies(saved.enemies, baseEnemies, tier) : baseEnemies;
+  const enemies = baseSpawns(pattern).map((spawn, index) => makeEnemy(spawn, index, tier));
   return {
     id: ROOM_ID,
     dungeonTier: tier,
@@ -675,7 +683,7 @@ function loadUsers() {
 }
 
 function saveUsers() {
-  writeJsonAtomic(USERS_FILE, users);
+  return writeJsonAtomic(USERS_FILE, users);
 }
 
 function loadRoom() {
@@ -687,14 +695,22 @@ function loadRoom() {
 }
 
 function saveRoom() {
-  writeJsonAtomic(ROOM_FILE, serializeRoom());
+  return writeJsonAtomic(ROOM_FILE, serializeRoom());
 }
 
 function writeJsonAtomic(file, data) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  const tmp = `${file}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
-  fs.renameSync(tmp, file);
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    const tmp = `${file}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(data));
+    fs.renameSync(tmp, file);
+    lastStorageError = "";
+    return true;
+  } catch (error) {
+    lastStorageError = `${error.code || "WRITE_FAILED"}:${path.basename(file)}`;
+    console.error(`Storage write failed for ${file}:`, error.message);
+    return false;
+  }
 }
 
 function serializeRoom() {
@@ -706,7 +722,6 @@ function serializeRoom() {
     balrogRespawnAt: room.balrogRespawnAt,
     nextEnemyId: room.nextEnemyId,
     savedAt: Date.now(),
-    enemies: room.enemies.map(serializeEnemy),
   };
 }
 

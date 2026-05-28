@@ -90,6 +90,7 @@ let deathTimer = 0;
 let hurtDirection = 0;
 let hurtDirectionTimer = 0;
 let characterName = "";
+let lastCharacterBackupAt = 0;
 let multiplayerSocket = null;
 let multiplayerRoomId = "";
 let networkTimer = 0;
@@ -334,7 +335,7 @@ function zoneSpawnType(original) {
 }
 
 function saveProgress() {
-  saveCharacterBackup();
+  saveCharacterBackup(true);
   if (SOCKET_SERVER_URL) return;
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
@@ -375,10 +376,13 @@ function characterSnapshot() {
   };
 }
 
-function saveCharacterBackup() {
+function saveCharacterBackup(force = false) {
   if (!characterName) return;
+  const now = Date.now();
+  if (!force && now - lastCharacterBackupAt < 1000) return;
   try {
     localStorage.setItem(`${CHARACTER_BACKUP_PREFIX}${characterName.toLowerCase()}`, JSON.stringify(characterSnapshot()));
+    lastCharacterBackupAt = now;
   } catch (_) {
     // Storage can be unavailable in private or restricted browser contexts.
   }
@@ -418,6 +422,19 @@ function applyCharacterBackup(backup) {
   player.weaponScrolls = Math.max(player.weaponScrolls, Math.floor(Number(backup.weaponScrolls) || 0));
   player.armorScrolls = Math.max(player.armorScrolls, Math.floor(Number(backup.armorScrolls) || 0));
   kills = Math.max(kills, Math.floor(Number(backup.kills) || 0));
+}
+
+function restoreCharacterBackupIfAhead(showNotice = false) {
+  const backup = loadCharacterBackup(characterName);
+  if (!backupLooksAhead(backup, characterSnapshot())) return false;
+  applyCharacterBackup(backup);
+  saveCharacterBackup(true);
+  if (showNotice) {
+    setNameStatus("저장된 캐릭터 기록을 불러왔습니다.");
+    notice = "캐릭터 기록 복구";
+    noticeTimer = 3.2;
+  }
+  return true;
 }
 
 function loadProgress() {
@@ -748,6 +765,7 @@ function beginNamedRun(name) {
   } catch (_) {}
   if (nameScreen) nameScreen.classList.add("is-hidden");
   startGame();
+  restoreCharacterBackupIfAhead(true);
   if (isTestCharacter()) {
     notice = "테스트 계정: 1 무적 토글 / 2 성채 초기화 / 3 전체 캐릭터 초기화";
     noticeTimer = 3.2;
@@ -835,8 +853,9 @@ function connectMultiplayer() {
     remotePlayers.clear();
     for (const remote of players) upsertRemotePlayer(remote);
     if (character) applyServerCharacter(character, false);
+    const restoredBackup = restoreCharacterBackupIfAhead(false);
     const backup = loadCharacterBackup(characterName);
-    if (backupLooksAhead(backup, character)) {
+    if (!restoredBackup && backupLooksAhead(backup, character)) {
       applyCharacterBackup(backup);
       saveCharacterBackup();
       notice = "브라우저 백업으로 캐릭터 복구";
@@ -844,8 +863,8 @@ function connectMultiplayer() {
     }
     if (dungeon) applyServerDungeon(dungeon);
     const loaded = resumed ? "저장 캐릭터를 이어서 불러왔습니다." : "새 캐릭터가 서버에 저장됩니다.";
-    setNameStatus(loaded);
-    notice = resumed ? `${character.displayName} 이어하기` : `${roomId} 입장`;
+    setNameStatus(restoredBackup ? "저장된 캐릭터 기록을 서버에 다시 동기화했습니다." : loaded);
+    notice = restoredBackup ? "캐릭터 기록 복구" : resumed ? `${character.displayName} 이어하기` : `${roomId} 입장`;
     noticeTimer = 2.6;
   });
   multiplayerSocket.on("players:update", (players = []) => {
@@ -918,6 +937,7 @@ function emitPlayerState(dt) {
   networkTimer -= dt;
   if (networkTimer > 0) return;
   networkTimer = 0.08;
+  saveCharacterBackup();
   multiplayerSocket.emit("player:update", {
     x: player.x,
     y: player.y,
@@ -957,7 +977,7 @@ function applyServerCharacter(character, updateBackup = true) {
   player.armorScrolls = character.armorScrolls || 0;
   if (character.level < 9999) testBoosted = false;
   kills = character.kills || 0;
-  if (updateBackup) saveCharacterBackup();
+  if (updateBackup) saveCharacterBackup(true);
 }
 
 function applyServerDungeon(dungeon) {
