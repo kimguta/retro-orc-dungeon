@@ -29,6 +29,20 @@ const SOCKET_SERVER_URL =
     ? "http://localhost:3000"
     : (window.PAPER_CITADEL_SOCKET_URL || "https://paper-citadel-server.onrender.com");
 
+const paperAtlas = new Image();
+paperAtlas.decoding = "async";
+paperAtlas.src = "assets/paper-atlas.svg?v=20260605-ink-1";
+const paperKnight = new Image();
+paperKnight.decoding = "async";
+paperKnight.crossOrigin = "anonymous";
+paperKnight.src =
+  location.hostname === "localhost" || location.hostname === "127.0.0.1"
+    ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
+    : "assets/paper-knight.png?v=20260605-ink-1";
+const PAPER_ATLAS_CELL_W = 500;
+const PAPER_ATLAS_CELL_H = 600;
+const PAPER_ATLAS_INDEX = { knight: 0, skeleton: 1, orc: 2, warlock: 3, balrog: 4 };
+
 const MAP_W = 64;
 const MAP_H = 36;
 const BASE_MAP = buildBaseMap();
@@ -1933,6 +1947,11 @@ function drawRemoteWarrior(remote, x, y, size, view = "front") {
     drawRemoteWarriorSide(remote, x, y, px, palette, armor, attack, stride, view === "side-left");
     return;
   }
+  if (drawPaperKnightSprite(remote, x - px * 1.8, y - px * 3.2, px)) {
+    drawRemoteSword(x + px * 0.7, y + px * 0.9, px, palette, attack);
+    if (remote.berserk) drawSpriteAura(x + 12 * px, y + 14 * px, 11 * px, 15 * px, "#ff542a");
+    return;
+  }
   const edge = "#231812";
   const skin = "#e5b77e";
   const leg = Math.abs(stride) * 1.2;
@@ -1963,6 +1982,59 @@ function drawRemoteWarrior(remote, x, y, size, view = "front") {
     ctx.fill();
     ctx.restore();
   }
+}
+
+function drawSpriteAura(cx, cy, rx, ry, color) {
+  ctx.save();
+  ctx.globalAlpha = 0.26;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawPaperKnightSprite(entity, x, y, px) {
+  if (!paperKnight.complete || !paperKnight.naturalWidth) return false;
+  const width = 28 * px;
+  const height = 35 * px;
+  const attack = Math.max(0, entity.attackPose || 0);
+  ctx.save();
+  ctx.translate(x + width / 2, y + height / 2);
+  ctx.rotate(attack * 0.035);
+  ctx.scale(1 + attack * 0.025, 1 - attack * 0.018);
+  ctx.drawImage(paperKnight, -width / 2, -height / 2, width, height);
+  ctx.restore();
+  return true;
+}
+
+function drawPaperAtlasSprite(kind, entity, x, y, px, options = {}) {
+  const cell = PAPER_ATLAS_INDEX[kind];
+  if (cell === undefined || !paperAtlas.complete || !paperAtlas.naturalWidth) return false;
+  const width = (options.width || 24) * px;
+  const height = (options.height || 30) * px;
+  const attack = Math.max(0, entity.attackPose || 0);
+  const hurt = Math.max(0, entity.hitFlash || 0);
+  const windup = Math.max(0, entity.attackWindup || 0);
+  const squash = Math.min(0.08, attack * 0.04);
+  ctx.save();
+  ctx.translate(x + width / 2, y + height / 2);
+  ctx.rotate(windup * -0.025 + attack * 0.035);
+  ctx.scale(1 + squash, 1 - squash * 0.45);
+  if (hurt > 0) ctx.filter = `brightness(${1 + Math.min(0.65, hurt * 1.8)}) saturate(1.15)`;
+  ctx.drawImage(
+    paperAtlas,
+    cell * PAPER_ATLAS_CELL_W,
+    0,
+    PAPER_ATLAS_CELL_W,
+    PAPER_ATLAS_CELL_H,
+    -width / 2,
+    -height / 2,
+    width,
+    height,
+  );
+  ctx.restore();
+  return true;
 }
 
 function drawRemoteWarriorBack(remote, x, y, px, palette, armor, attack, step) {
@@ -2650,54 +2722,92 @@ function drawPaperSkeletonSprite(e, x, y, px, bone, shade, eye, walk, hurt) {
 }
 
 function drawPaperOrcSprite(e, x, y, px, skin, skinLight, shadow, deepShadow, armor, armorLight, eye, walk, attack, winding, hurt) {
-  const edge = deepShadow === "#07130b" ? "#17351e" : deepShadow;
-  const step = Math.abs(walk) * 1.15;
-  const eyeY = hurt ? 7.6 : attack > 0 ? 6.7 : 7.1;
-  const eyeH = hurt ? 1.15 : attack > 0 ? 2.1 : 1.65;
+  const edge = "#20170f";
+  const step = Math.abs(walk) * 1.1;
+  const heavy = e.boss || e.type === "ogre" || e.type === "ogreLord";
+  const cx = x + 9 * px;
+  const headY = y + (heavy ? 7.5 : 7) * px;
+  const headW = (heavy ? 8.6 : 7.2) * px;
+  const headH = (heavy ? 7.2 : 6.2) * px;
 
-  paperPoly([
-    [x + 3.2 * px, y + 6.2 * px],
-    [x - 1.2 * px, y + 4.2 * px],
-    [x + 0.2 * px, y + 8.2 * px],
-    [x + 4.2 * px, y + 10 * px],
-  ], skinLight, edge, 0.12);
-  paperPoly([
-    [x + 14.8 * px, y + 6.2 * px],
-    [x + 19.2 * px, y + 4.2 * px],
-    [x + 17.8 * px, y + 8.2 * px],
-    [x + 13.8 * px, y + 10 * px],
-  ], skinLight, edge, 0.12);
-  paperRoundedRect(x + 2.2 * px, y + 1.5 * px, 13.6 * px, 14.8 * px, 3.2 * px, skin, edge, 0.22);
-  paperRoundedRect(x + 5 * px, y + 2.2 * px, 8 * px, 3 * px, 1.4 * px, skinLight, edge, 0.28);
-  paperRoundedRect(x + 4.3 * px, y + eyeY * px, 3.4 * px, eyeH * px, 0.7 * px, eye, "#3c2b0a", 0.1);
-  paperRoundedRect(x + 10.3 * px, y + eyeY * px, 3.4 * px, eyeH * px, 0.7 * px, eye, "#3c2b0a", 0.1);
-  if (winding) {
-    paperPoly([[x + 4 * px, y + 6.3 * px], [x + 7.8 * px, y + 6.8 * px], [x + 7.5 * px, y + 7.6 * px], [x + 4.2 * px, y + 7.1 * px]], deepShadow, edge, 0.04);
-    paperPoly([[x + 10.2 * px, y + 6.8 * px], [x + 14 * px, y + 6.3 * px], [x + 13.8 * px, y + 7.1 * px], [x + 10.5 * px, y + 7.6 * px]], deepShadow, edge, 0.04);
+  inkShape(() => {
+    ctx.beginPath();
+    ctx.moveTo(cx - headW * 0.72, headY - px);
+    ctx.lineTo(cx - headW - px * 2.8, headY - px * 2.5);
+    ctx.lineTo(cx - headW * 0.88, headY + px * 1.7);
+    ctx.lineTo(cx - headW * 0.65, headY + px * 2.3);
+    ctx.closePath();
+  }, skinLight, edge, Math.max(1.7, px * 0.7));
+  inkShape(() => {
+    ctx.beginPath();
+    ctx.moveTo(cx + headW * 0.72, headY - px);
+    ctx.lineTo(cx + headW + px * 2.8, headY - px * 2.5);
+    ctx.lineTo(cx + headW * 0.88, headY + px * 1.7);
+    ctx.lineTo(cx + headW * 0.65, headY + px * 2.3);
+    ctx.closePath();
+  }, skinLight, edge, Math.max(1.7, px * 0.7));
+  inkEllipse(cx, headY, headW, headH, skin, edge, Math.max(2, px * 0.85));
+
+  if (heavy) {
+    paperTri(cx - 5.5 * px, headY - 4.5 * px, cx - 3.4 * px, headY - 9 * px, cx - 1.2 * px, headY - 4 * px, "#d7c7a2", edge);
+    paperTri(cx + 1.2 * px, headY - 4 * px, cx + 3.4 * px, headY - 9 * px, cx + 5.5 * px, headY - 4.5 * px, "#d7c7a2", edge);
   }
-  paperRoundedRect(x + 8 * px, y + 9.2 * px, 2 * px, 2.2 * px, 0.8 * px, deepShadow, edge, 0.06);
-  paperRoundedRect(x + 5.1 * px, y + 11.2 * px, 7.8 * px, hurt ? 1.2 * px : 2.1 * px, 0.8 * px, "#35150f", edge, 0.06);
-  paperTri(x + 5.5 * px, y + 12 * px, x + 7.2 * px, y + 15.5 * px, x + 8 * px, y + 12 * px, "#fff2d4", "#695844");
-  paperTri(x + 10 * px, y + 12 * px, x + 10.8 * px, y + 15.5 * px, x + 12.5 * px, y + 12 * px, "#fff2d4", "#695844");
-  paperRoundedRect(x + 3 * px, y + 15 * px, 12 * px, 8.3 * px, 2 * px, armor, "#211a15", 0.15);
-  paperRoundedRect(x + 4 * px, y + 15.1 * px, 10 * px, 2.3 * px, 0.9 * px, armorLight, "#2a211a", 0.2);
-  paperPoly([[x + 0.5 * px, y + 14 * px], [x + 5 * px, y + 14 * px], [x + 6 * px, y + 18 * px], [x + 1 * px, y + 19 * px]], armorLight, "#2a211a", 0.18);
-  paperPoly([[x + 13 * px, y + 14 * px], [x + 17.5 * px, y + 14 * px], [x + 17 * px, y + 19 * px], [x + 12 * px, y + 18 * px]], armorLight, "#2a211a", 0.18);
-  drawPaperShield(x - 0.3 * px, y + 14.2 * px, px * 0.9, "#6e705f", "#c6b26b");
-  paperRect(x + 5 * px, y + 18 * px, 8 * px, 1.4 * px, "#b5944e", "#3c2c19", 0.16);
-  const armSwing = walk > 0 ? 1 : -1;
-  const leftArmY = y + (winding ? 12 * px : attack > 0 ? 16 * px : (14 + armSwing) * px);
-  const rightArmY = y + (winding ? 17 * px : attack > 0 ? 13 * px : (14 - armSwing) * px);
-  paperRect(x + 1 * px, leftArmY, 4 * px, 8 * px, shadow, edge, 0.2);
-  paperRect(x + 13 * px, rightArmY, 4 * px, 8 * px, shadow, edge, 0.2);
+
+  const eyeY = headY - px * 1.2;
+  inkLine([[cx - 5 * px, eyeY - (winding ? px : 0)], [cx - 1.5 * px, eyeY]], edge, Math.max(1.3, px * 0.55));
+  inkLine([[cx + 1.5 * px, eyeY], [cx + 5 * px, eyeY - (winding ? px : 0)]], edge, Math.max(1.3, px * 0.55));
+  inkEllipse(cx - 3.1 * px, eyeY + px * 0.9, px * 1.15, hurt ? px * 0.35 : px * 0.75, eye, "#4a2d0d", Math.max(1, px * 0.4));
+  inkEllipse(cx + 3.1 * px, eyeY + px * 0.9, px * 1.15, hurt ? px * 0.35 : px * 0.75, eye, "#4a2d0d", Math.max(1, px * 0.4));
+  inkEllipse(cx, headY + px * 1.2, px * 1.2, px * 0.9, deepShadow, edge, Math.max(1, px * 0.38));
+
+  inkShape(() => {
+    ctx.beginPath();
+    ctx.moveTo(cx - px * 4.6, headY + px * 2.3);
+    ctx.quadraticCurveTo(cx, headY + px * 5.4, cx + px * 4.6, headY + px * 2.3);
+    ctx.quadraticCurveTo(cx + px * 3.8, headY + px * 5.5, cx, headY + px * 6.2);
+    ctx.quadraticCurveTo(cx - px * 3.8, headY + px * 5.5, cx - px * 4.6, headY + px * 2.3);
+    ctx.closePath();
+  }, shadow, edge, Math.max(1.6, px * 0.65));
+  paperTri(cx - 3.8 * px, headY + 3 * px, cx - 2.2 * px, headY + 7 * px, cx - 1.2 * px, headY + 3.7 * px, "#f2e1bc", edge);
+  paperTri(cx + 1.2 * px, headY + 3.7 * px, cx + 2.2 * px, headY + 7 * px, cx + 3.8 * px, headY + 3 * px, "#f2e1bc", edge);
+
+  const bodyTop = headY + px * 6;
+  inkShape(() => {
+    ctx.beginPath();
+    ctx.moveTo(cx - (heavy ? 9 : 7) * px, bodyTop + px * 1.5);
+    ctx.quadraticCurveTo(cx - 7 * px, bodyTop - px, cx, bodyTop);
+    ctx.quadraticCurveTo(cx + 7 * px, bodyTop - px, cx + (heavy ? 9 : 7) * px, bodyTop + px * 1.5);
+    ctx.lineTo(cx + (heavy ? 7 : 5.8) * px, bodyTop + px * 10);
+    ctx.lineTo(cx - (heavy ? 7 : 5.8) * px, bodyTop + px * 10);
+    ctx.closePath();
+  }, armor, edge, Math.max(2, px * 0.82));
+  inkLine([[cx - 5 * px, bodyTop + px * 2], [cx + 5 * px, bodyTop + px * 2]], armorLight, Math.max(1.2, px * 0.65));
+  inkLine([[cx - 4 * px, bodyTop + px * 6], [cx + 4 * px, bodyTop + px * 6]], "#a98242", Math.max(1.4, px * 0.7));
+  inkLine([[cx, bodyTop + px * 2], [cx, bodyTop + px * 9]], "#15110d", Math.max(1.1, px * 0.48));
+
+  inkShape(() => {
+    ctx.beginPath();
+    ctx.ellipse(cx - (heavy ? 8 : 6.5) * px, bodyTop + px * 5, px * 2.7, px * 5.2, -0.18, 0, Math.PI * 2);
+  }, skin, edge, Math.max(1.8, px * 0.7));
+  inkShape(() => {
+    ctx.beginPath();
+    ctx.ellipse(cx + (heavy ? 8 : 6.5) * px, bodyTop + px * 5, px * 2.7, px * 5.2, 0.18, 0, Math.PI * 2);
+  }, skin, edge, Math.max(1.8, px * 0.7));
+  drawPaperShield(cx - 10.5 * px, bodyTop + px * 2.4, px * 1.2, "#666653", "#c4ab5a");
+
   if (winding || attack > 0) {
-    paperRect(x + 15 * px, rightArmY + 2 * px, 5 * px, 2 * px, "#b6975d", "#4a2a16", 0.2);
-    paperRect(x + 18 * px, rightArmY - 2 * px, 2 * px, 8 * px, "#5a351b", "#2b170b", 0.16);
+    inkLine([[cx + 7 * px, bodyTop + px * 4], [cx + 12 * px, bodyTop], [cx + 14 * px, bodyTop - px * 6]], "#49301b", Math.max(3, px * 1.8));
+    inkLine([[cx + 14 * px, bodyTop - px * 6], [cx + 12 * px, bodyTop - px * 9]], "#24170f", Math.max(4, px * 2.2));
   }
-  paperRect(x + (4.5 - step) * px, y + 22 * px, 4 * px, 4.5 * px, "#22201e", "#090909", 0.08);
-  paperRect(x + (10 + step) * px, y + 22 * px, 4 * px, 4.5 * px, "#22201e", "#090909", 0.08);
-  paperRect(x + (3.8 - step) * px, y + 25.5 * px, 5.2 * px, 1.8 * px, "#0e0d0c", "#050505", 0.04);
-  paperRect(x + (9.8 + step) * px, y + 25.5 * px, 5.2 * px, 1.8 * px, "#0e0d0c", "#050505", 0.04);
+
+  inkShape(() => {
+    ctx.beginPath();
+    ctx.ellipse(cx - (3.4 + step) * px, bodyTop + px * 12, px * 2.5, px * 4.2, 0.08, 0, Math.PI * 2);
+  }, "#29251f", edge, Math.max(1.7, px * 0.68));
+  inkShape(() => {
+    ctx.beginPath();
+    ctx.ellipse(cx + (3.4 + step) * px, bodyTop + px * 12, px * 2.5, px * 4.2, -0.08, 0, Math.PI * 2);
+  }, "#29251f", edge, Math.max(1.7, px * 0.68));
 }
 
 function drawPaperSkeletonBossSprite(e, x, y, px, bone, shade, eye, walk, hurt, deathKnight) {
@@ -2748,36 +2858,77 @@ function drawPaperWarlockSprite(e, x, y, px, lord, flash, hurt) {
 }
 
 function drawPaperBalrogSprite(e, x, y, px, flash, walk, attack, winding) {
-  const edge = "#2a0705";
-  const body = flash ? "#ffbd85" : "#3a0b09";
-  const bodyLight = flash ? "#ffd7a8" : "#7d1b16";
-  paperTri(x + 4 * px, y + 15 * px, x - 4 * px, y + 5 * px, x + 0 * px, y + 30 * px, "#210707", edge);
-  paperTri(x + 14 * px, y + 15 * px, x + 22 * px, y + 5 * px, x + 18 * px, y + 30 * px, "#210707", edge);
-  paperTri(x + 4 * px, y + 17 * px, x - 1 * px, y + 10 * px, x + 1 * px, y + 24 * px, "#8e2518", edge);
-  paperTri(x + 14 * px, y + 17 * px, x + 19 * px, y + 10 * px, x + 17 * px, y + 24 * px, "#8e2518", edge);
-  paperTri(x + 4 * px, y + 5 * px, x + 1 * px, y - 1 * px, x + 7 * px, y + 4 * px, "#e0be74", "#583615");
-  paperTri(x + 14 * px, y + 5 * px, x + 17 * px, y - 1 * px, x + 11 * px, y + 4 * px, "#e0be74", "#583615");
-  paperRect(x + 1.5 * px, y + 7 * px, 15 * px, 12.5 * px, body, edge, 0.16);
-  paperRect(x + 3.5 * px, y + 5 * px, 11 * px, 9.5 * px, bodyLight, edge, 0.18);
-  paperRect(x + 4.8 * px, y + 9 * px, 3.5 * px, 2.5 * px, "#ff3b1f", "#4a0804", 0.22);
-  paperRect(x + 9.8 * px, y + 9 * px, 3.5 * px, 2.5 * px, "#ff3b1f", "#4a0804", 0.22);
-  paperRect(x + 4.6 * px, y + 12 * px, 1.4 * px, 1 * px, "#b24a35", edge, 0.08);
-  paperRect(x + 12.5 * px, y + 12 * px, 1.4 * px, 1 * px, "#b24a35", edge, 0.08);
-  paperRect(x + 6 * px, y + 13 * px, 6 * px, flash ? 1 * px : 2 * px, "#100303", edge, 0.08);
-  paperRect(x + 6 * px, y + 14 * px, 2 * px, 3 * px, "#f4dfc0", "#6d533b", 0.18);
-  paperRect(x + 11 * px, y + 14 * px, 2 * px, 3 * px, "#f4dfc0", "#6d533b", 0.18);
-  paperRect(x + 3 * px, y + 18 * px, 12 * px, 12 * px, "#191010", edge, 0.12);
-  paperRect(x + 4 * px, y + 18 * px, 10 * px, 2 * px, "#9e2a1b", edge, 0.18);
-  paperRect(x + 5 * px, y + 22 * px, 8 * px, 2 * px, "#d63a1d", "#541008", 0.18);
-  paperTri(x + 6 * px, y + 20 * px, x + 8 * px, y + 16 * px, x + 10 * px, y + 20 * px, "#ff6a22", "#5a1008");
-  paperTri(x + 9 * px, y + 21 * px, x + 11 * px, y + 17 * px, x + 13 * px, y + 21 * px, "#ffd25a", "#8d3c0c");
-  paperRect(x + 1 * px, y + (winding ? 19 : 20) * px, 5 * px, 8 * px, "#260909", edge, 0.12);
-  paperRect(x + 12 * px, y + (attack > 0 ? 18 : 20) * px, 5 * px, 8 * px, "#260909", edge, 0.12);
-  if (winding || attack > 0) {
-    paperRect(x + 15 * px, y + 17 * px, 3 * px, 12 * px, "#ff5b22", "#5a1008", 0.22);
+  const edge = "#160806";
+  const body = flash ? "#ce6a3d" : "#28100d";
+  const ember = flash ? "#ffd18b" : "#b52c16";
+  const cx = x + 9 * px;
+  const wingY = y + 15 * px;
+
+  inkShape(() => {
+    ctx.beginPath();
+    ctx.moveTo(cx - 3 * px, wingY);
+    ctx.quadraticCurveTo(cx - 15 * px, y - 2 * px, cx - 19 * px, y + 6 * px);
+    ctx.quadraticCurveTo(cx - 22 * px, y + 15 * px, cx - 15 * px, y + 29 * px);
+    ctx.lineTo(cx - 10 * px, y + 20 * px);
+    ctx.lineTo(cx - 5 * px, y + 25 * px);
+    ctx.closePath();
+  }, "#2a0c09", edge, Math.max(2.5, px * 1.1));
+  inkShape(() => {
+    ctx.beginPath();
+    ctx.moveTo(cx + 3 * px, wingY);
+    ctx.quadraticCurveTo(cx + 15 * px, y - 2 * px, cx + 19 * px, y + 6 * px);
+    ctx.quadraticCurveTo(cx + 22 * px, y + 15 * px, cx + 15 * px, y + 29 * px);
+    ctx.lineTo(cx + 10 * px, y + 20 * px);
+    ctx.lineTo(cx + 5 * px, y + 25 * px);
+    ctx.closePath();
+  }, "#2a0c09", edge, Math.max(2.5, px * 1.1));
+  inkLine([[cx - 5 * px, wingY + px], [cx - 15 * px, y + 6 * px], [cx - 12 * px, y + 22 * px]], "#7a2317", Math.max(1.5, px * 0.8));
+  inkLine([[cx + 5 * px, wingY + px], [cx + 15 * px, y + 6 * px], [cx + 12 * px, y + 22 * px]], "#7a2317", Math.max(1.5, px * 0.8));
+
+  paperTri(cx - 5 * px, y + 7 * px, cx - 9 * px, y - 3 * px, cx - 1 * px, y + 5 * px, "#5a3821", edge);
+  paperTri(cx + 1 * px, y + 5 * px, cx + 9 * px, y - 3 * px, cx + 5 * px, y + 7 * px, "#5a3821", edge);
+  inkEllipse(cx, y + 10 * px, 8 * px, 8 * px, body, edge, Math.max(2.4, px));
+  inkLine([[cx - 6 * px, y + 7 * px], [cx - 1.5 * px, y + 8.5 * px]], ember, Math.max(1.6, px * 0.75));
+  inkLine([[cx + 6 * px, y + 7 * px], [cx + 1.5 * px, y + 8.5 * px]], ember, Math.max(1.6, px * 0.75));
+  inkEllipse(cx - 3 * px, y + 10 * px, px * 1.4, px * 0.9, "#ff4b20", edge, Math.max(1, px * 0.45));
+  inkEllipse(cx + 3 * px, y + 10 * px, px * 1.4, px * 0.9, "#ff4b20", edge, Math.max(1, px * 0.45));
+  inkShape(() => {
+    ctx.beginPath();
+    ctx.moveTo(cx - 4 * px, y + 14 * px);
+    ctx.quadraticCurveTo(cx, y + 17 * px, cx + 4 * px, y + 14 * px);
+    ctx.quadraticCurveTo(cx, y + 19 * px, cx - 4 * px, y + 14 * px);
+    ctx.closePath();
+  }, "#090302", edge, Math.max(1.5, px * 0.65));
+  paperTri(cx - 3.5 * px, y + 14.5 * px, cx - 2 * px, y + 18 * px, cx - 1 * px, y + 15 * px, "#e7d4ab", edge);
+  paperTri(cx + 1 * px, y + 15 * px, cx + 2 * px, y + 18 * px, cx + 3.5 * px, y + 14.5 * px, "#e7d4ab", edge);
+
+  inkShape(() => {
+    ctx.beginPath();
+    ctx.moveTo(cx - 9 * px, y + 19 * px);
+    ctx.quadraticCurveTo(cx - 7 * px, y + 16 * px, cx, y + 18 * px);
+    ctx.quadraticCurveTo(cx + 7 * px, y + 16 * px, cx + 9 * px, y + 19 * px);
+    ctx.lineTo(cx + 7 * px, y + 34 * px);
+    ctx.lineTo(cx - 7 * px, y + 34 * px);
+    ctx.closePath();
+  }, "#17100e", edge, Math.max(2.7, px * 1.1));
+  for (let i = -2; i <= 2; i += 1) {
+    inkLine([[cx + i * 2.2 * px, y + 20 * px], [cx + i * 1.5 * px, y + 32 * px]], i % 2 ? "#5b1a12" : ember, Math.max(1, px * 0.5));
   }
-  paperRect(x + (5 - Math.max(0, walk)) * px, y + 30 * px, 4 * px, 7 * px, "#160706", edge, 0.08);
-  paperRect(x + (10 + Math.max(0, walk)) * px, y + 30 * px, 4 * px, 7 * px, "#160706", edge, 0.08);
+  inkShape(() => {
+    ctx.beginPath();
+    ctx.ellipse(cx - 9 * px, y + 26 * px, px * 3.4, px * 7, -0.28, 0, Math.PI * 2);
+  }, body, edge, Math.max(2.2, px * 0.9));
+  inkShape(() => {
+    ctx.beginPath();
+    ctx.ellipse(cx + 9 * px, y + 26 * px, px * 3.4, px * 7, 0.28, 0, Math.PI * 2);
+  }, body, edge, Math.max(2.2, px * 0.9));
+  inkEllipse(cx - (4 + Math.abs(walk)) * px, y + 37 * px, px * 3.4, px * 6, "#120806", edge, Math.max(2, px * 0.85));
+  inkEllipse(cx + (4 + Math.abs(walk)) * px, y + 37 * px, px * 3.4, px * 6, "#120806", edge, Math.max(2, px * 0.85));
+
+  if (winding || attack > 0) {
+    inkLine([[cx + 10 * px, y + 23 * px], [cx + 15 * px, y + 15 * px], [cx + 17 * px, y + 3 * px]], "#ff5a1f", Math.max(3, px * 1.7));
+    inkLine([[cx + 17 * px, y + 3 * px], [cx + 18 * px, y - 3 * px]], "#ffd05a", Math.max(1.5, px * 0.75));
+  }
 }
 
 function drawSkeleton(e, x, y, size, dist) {
@@ -2796,10 +2947,12 @@ function drawSkeleton(e, x, y, size, dist) {
   x += walk * px * 0.42 + idle * px * 0.12;
   ctx.globalAlpha = 1;
   if (!king) {
+    if (drawPaperAtlasSprite("skeleton", e, x - 4 * px, y - 2 * px, px, { width: 25, height: 30 })) return;
     drawPaperSkeletonSprite(e, x, y, px, bone, shade, eye, walk, hurt);
     ctx.globalAlpha = 1;
     return;
   }
+  if (drawPaperAtlasSprite("skeleton", e, x - 5.5 * px, y - 4 * px, px, { width: 29, height: 34 })) return;
   drawPaperSkeletonBossSprite(e, x, y, px, bone, shade, eye, walk, hurt, deathKnight);
   ctx.globalAlpha = 1;
   return;
@@ -2858,6 +3011,7 @@ function drawWarlock(e, x, y, size, dist) {
   y += bob + idle * px * 0.7 - e.attackPose * 2 * px + (hurt ? Math.sin(performance.now() * 0.1) * px : 0);
   x += walk * px * 0.34 + idle * px * 0.1;
   ctx.globalAlpha = 1;
+  if (drawPaperAtlasSprite("warlock", e, x - 4 * px, y - 3 * px, px, { width: lord ? 29 : 26, height: lord ? 34 : 31 })) return;
   drawPaperWarlockSprite(e, x, y, px, lord, flash, hurt);
   ctx.globalAlpha = 1;
   return;
@@ -2908,6 +3062,7 @@ function drawBalrog(e, x, y, size, dist) {
   y += bob + idle * px * 0.34 - attack * 4 * px + (winding ? 2 * px : 0);
   x += walk * px * 0.28;
   ctx.globalAlpha = 1;
+  if (drawPaperAtlasSprite("balrog", e, x - 10 * px, y - 5 * px, px, { width: 40, height: 44 })) return;
   drawPaperBalrogSprite(e, x, y, px, flash, walk, attack, winding);
   ctx.globalAlpha = 1;
   return;
@@ -2981,6 +3136,11 @@ function drawOrc(e, x, y, size, dist) {
   const eye = dark ? "#e12621" : "#f0d447";
 
   ctx.globalAlpha = 1;
+  const atlasScale = ogreLord ? 1.32 : ogre ? 1.2 : dark ? 1.12 : 1;
+  if (drawPaperAtlasSprite("orc", e, x - (4 + (atlasScale - 1) * 8) * px, y - (3 + (atlasScale - 1) * 8) * px, px, {
+    width: 27 * atlasScale,
+    height: 32 * atlasScale,
+  })) return;
   if (!dark && !ogre) {
     drawPaperOrcSprite(e, x, y, px, skin, skinLight, shadow, deepShadow, armor, armorLight, eye, walk, attack, winding, hurt);
     ctx.globalAlpha = 1;
@@ -3147,6 +3307,55 @@ function roundedRectPath(x, y, w, h, r) {
   ctx.lineTo(x, y + r);
   ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.closePath();
+}
+
+function inkShape(drawPath, fill, edge = "#201710", width = 2.4, highlight = null) {
+  ctx.save();
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  drawPath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.strokeStyle = edge;
+  ctx.lineWidth = width;
+  ctx.stroke();
+  ctx.globalAlpha = 0.42;
+  ctx.translate(0.7, -0.4);
+  drawPath();
+  ctx.strokeStyle = edge;
+  ctx.lineWidth = Math.max(0.8, width * 0.42);
+  ctx.stroke();
+  if (highlight) {
+    ctx.globalAlpha = 0.45;
+    ctx.strokeStyle = highlight;
+    ctx.lineWidth = Math.max(0.8, width * 0.32);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function inkEllipse(cx, cy, rx, ry, fill, edge = "#201710", width = 2.4) {
+  inkShape(() => {
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, Math.max(1, rx), Math.max(1, ry), 0, 0, Math.PI * 2);
+  }, fill, edge, width);
+}
+
+function inkLine(points, color = "#201710", width = 2) {
+  if (points.length < 2) return;
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(points[0][0], points[0][1]);
+  for (let i = 1; i < points.length; i += 1) ctx.lineTo(points[i][0], points[i][1]);
+  ctx.stroke();
+  ctx.globalAlpha = 0.34;
+  ctx.translate(0.7, -0.4);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function paperRect(x, y, w, h, fill, edge = "#2a1911", shine = 0.22) {
