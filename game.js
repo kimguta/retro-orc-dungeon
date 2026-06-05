@@ -187,24 +187,8 @@ const SPAWN_POINTS = [
   { type: "balrog", x: 58.5, y: 31.5 },
 ];
 
-const TOWN_NPCS = [
-  {
-    name: "안전지대 관리인",
-    x: 2.2,
-    y: 2.25,
-    hp: 30,
-    maxHp: 30,
-    line: "안녕하세요. 체력을 회복해드릴게요.",
-  },
-];
-
-const TOWN_PROPS = [
-  { type: "lantern", x: 4.1, y: 3.15 },
-  { type: "sign", x: 5.9, y: 3.05 },
-  { type: "banner", x: 1.55, y: 3.65 },
-  { type: "crate", x: 3.35, y: 4.85 },
-  { type: "well", x: 5.05, y: 2.65 },
-];
+const TOWN_NPCS = [];
+const TOWN_PROPS = [];
 const ZONE_PROPS = [
   { type: "grave", x: 6.5, y: 17.5 },
   { type: "grave", x: 17.5, y: 21.5 },
@@ -2627,22 +2611,35 @@ function drawPaperSkeletonSprite(e, x, y, px, bone, shade, eye, walk, hurt) {
 function drawPaperOrcSprite(e, x, y, px, skin, skinLight, shadow, deepShadow, armor, armorLight, eye, walk, attack, winding, hurt) {
   const edge = deepShadow === "#07130b" ? "#17351e" : deepShadow;
   const step = Math.abs(walk) * 1.15;
-  paperTri(x + 2 * px, y + 7 * px, x - 2.5 * px, y + 2.5 * px, x + 5 * px, y + 9 * px, skinLight, edge);
-  paperTri(x + 16 * px, y + 7 * px, x + 20.5 * px, y + 2.5 * px, x + 13 * px, y + 9 * px, skinLight, edge);
-  paperPoly([[x + 2 * px, y + 4 * px], [x + 5 * px, y + 1.5 * px], [x + 13 * px, y + 1.5 * px], [x + 16 * px, y + 4 * px], [x + 16 * px, y + 13 * px], [x + 13 * px, y + 16 * px], [x + 5 * px, y + 16 * px], [x + 2 * px, y + 13 * px]], skin, edge, 0.24);
-  paperRect(x + 5 * px, y + 2 * px, 8 * px, 3 * px, skinLight, edge, 0.3);
-  paperPoly([[x + 4 * px, y + 6 * px], [x + 8 * px, y + 6.5 * px], [x + 7.5 * px, y + (hurt ? 8 : 9.5) * px], [x + 4.5 * px, y + (hurt ? 8 : 9) * px]], eye, "#3c2b0a", 0.12);
-  paperPoly([[x + 10 * px, y + 6.5 * px], [x + 14 * px, y + 6 * px], [x + 13.5 * px, y + (hurt ? 8 : 9) * px], [x + 10.5 * px, y + (hurt ? 8 : 9.5) * px]], eye, "#3c2b0a", 0.12);
+  const eyeY = hurt ? 7.6 : attack > 0 ? 6.7 : 7.1;
+  const eyeH = hurt ? 1.15 : attack > 0 ? 2.1 : 1.65;
+
+  paperPoly([
+    [x + 3.2 * px, y + 6.2 * px],
+    [x - 1.2 * px, y + 4.2 * px],
+    [x + 0.2 * px, y + 8.2 * px],
+    [x + 4.2 * px, y + 10 * px],
+  ], skinLight, edge, 0.12);
+  paperPoly([
+    [x + 14.8 * px, y + 6.2 * px],
+    [x + 19.2 * px, y + 4.2 * px],
+    [x + 17.8 * px, y + 8.2 * px],
+    [x + 13.8 * px, y + 10 * px],
+  ], skinLight, edge, 0.12);
+  paperRoundedRect(x + 2.2 * px, y + 1.5 * px, 13.6 * px, 14.8 * px, 3.2 * px, skin, edge, 0.22);
+  paperRoundedRect(x + 5 * px, y + 2.2 * px, 8 * px, 3 * px, 1.4 * px, skinLight, edge, 0.28);
+  paperRoundedRect(x + 4.3 * px, y + eyeY * px, 3.4 * px, eyeH * px, 0.7 * px, eye, "#3c2b0a", 0.1);
+  paperRoundedRect(x + 10.3 * px, y + eyeY * px, 3.4 * px, eyeH * px, 0.7 * px, eye, "#3c2b0a", 0.1);
   if (winding) {
-    paperRect(x + 4 * px, y + 6 * px, 4 * px, 1.2 * px, deepShadow, edge, 0.06);
-    paperRect(x + 10 * px, y + 6 * px, 4 * px, 1.2 * px, deepShadow, edge, 0.06);
+    paperPoly([[x + 4 * px, y + 6.3 * px], [x + 7.8 * px, y + 6.8 * px], [x + 7.5 * px, y + 7.6 * px], [x + 4.2 * px, y + 7.1 * px]], deepShadow, edge, 0.04);
+    paperPoly([[x + 10.2 * px, y + 6.8 * px], [x + 14 * px, y + 6.3 * px], [x + 13.8 * px, y + 7.1 * px], [x + 10.5 * px, y + 7.6 * px]], deepShadow, edge, 0.04);
   }
-  paperRect(x + 8 * px, y + 9 * px, 2 * px, 2 * px, deepShadow, edge, 0.08);
-  paperRect(x + 5 * px, y + 11 * px, 8 * px, hurt ? 1.2 * px : 2 * px, "#35150f", edge, 0.08);
+  paperRoundedRect(x + 8 * px, y + 9.2 * px, 2 * px, 2.2 * px, 0.8 * px, deepShadow, edge, 0.06);
+  paperRoundedRect(x + 5.1 * px, y + 11.2 * px, 7.8 * px, hurt ? 1.2 * px : 2.1 * px, 0.8 * px, "#35150f", edge, 0.06);
   paperTri(x + 5.5 * px, y + 12 * px, x + 7.2 * px, y + 15.5 * px, x + 8 * px, y + 12 * px, "#fff2d4", "#695844");
   paperTri(x + 10 * px, y + 12 * px, x + 10.8 * px, y + 15.5 * px, x + 12.5 * px, y + 12 * px, "#fff2d4", "#695844");
-  paperPoly([[x + 2.5 * px, y + 15 * px], [x + 15.5 * px, y + 15 * px], [x + 14 * px, y + 23 * px], [x + 4 * px, y + 23 * px]], armor, "#211a15", 0.16);
-  paperRect(x + 4 * px, y + 15 * px, 10 * px, 2.2 * px, armorLight, "#2a211a", 0.22);
+  paperRoundedRect(x + 3 * px, y + 15 * px, 12 * px, 8.3 * px, 2 * px, armor, "#211a15", 0.15);
+  paperRoundedRect(x + 4 * px, y + 15.1 * px, 10 * px, 2.3 * px, 0.9 * px, armorLight, "#2a211a", 0.2);
   paperPoly([[x + 0.5 * px, y + 14 * px], [x + 5 * px, y + 14 * px], [x + 6 * px, y + 18 * px], [x + 1 * px, y + 19 * px]], armorLight, "#2a211a", 0.18);
   paperPoly([[x + 13 * px, y + 14 * px], [x + 17.5 * px, y + 14 * px], [x + 17 * px, y + 19 * px], [x + 12 * px, y + 18 * px]], armorLight, "#2a211a", 0.18);
   paperRect(x + 5 * px, y + 18 * px, 8 * px, 1.4 * px, "#b5944e", "#3c2c19", 0.16);
@@ -3067,6 +3064,45 @@ function tri(x1, y1, x2, y2, x3, y3, color) {
   ctx.lineTo(Math.round(x3), Math.round(y3));
   ctx.closePath();
   ctx.fill();
+}
+
+function paperRoundedRect(x, y, w, h, radius, fill, edge = "#2a1911", shine = 0.2) {
+  const rx = Math.round(x);
+  const ry = Math.round(y);
+  const rw = Math.max(2, Math.round(w));
+  const rh = Math.max(2, Math.round(h));
+  const rr = Math.max(1, Math.min(Math.round(radius), Math.floor(rw / 2), Math.floor(rh / 2)));
+  ctx.save();
+  ctx.fillStyle = "rgba(10, 6, 4, 0.24)";
+  roundedRectPath(rx + 1, ry + 1, rw, rh, rr);
+  ctx.fill();
+  ctx.fillStyle = edge;
+  roundedRectPath(rx - 1, ry - 1, rw + 2, rh + 2, rr + 1);
+  ctx.fill();
+  ctx.fillStyle = fill;
+  roundedRectPath(rx, ry, rw, rh, rr);
+  ctx.fill();
+  if (shine > 0 && rw > 4 && rh > 4) {
+    ctx.globalAlpha = shine;
+    ctx.fillStyle = "#fff8d3";
+    roundedRectPath(rx + 1, ry + 1, Math.max(2, Math.floor(rw * 0.48)), Math.max(1, Math.floor(rh * 0.2)), Math.max(1, rr - 1));
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function roundedRectPath(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
 }
 
 function paperRect(x, y, w, h, fill, edge = "#2a1911", shine = 0.22) {
