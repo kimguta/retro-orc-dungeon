@@ -596,3 +596,120 @@ canvas {
     bottom: 66vh;
   }
 }
+
+/* Illustrated start screen override */
+.name-screen {
+  place-items: stretch;
+  padding: 0;
+  background:
+    linear-gradient(90deg, rgba(8, 5, 3, 0.04), rgba(8, 5, 3, 0.06)),
+    url("assets/start-screen-board.png?v=20260608-startart-1") center / cover no-repeat;
+}
+
+.name-screen::before,
+.start-table,
+.box-lid {
+  display: none;
+}
+
+.game-box {
+  position: absolute;
+  top: 10.5%;
+  right: 5.3%;
+  display: block;
+  width: min(31.5vw, 470px);
+  min-width: 340px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.game-box .name-panel {
+  width: 100%;
+  margin-top: min(19vh, 190px);
+  padding: 28px 30px 24px;
+  border: 3px solid rgba(48, 29, 16, 0.9);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 247, 218, 0.78), rgba(224, 184, 108, 0.22)),
+    rgba(231, 202, 147, 0.78);
+  box-shadow:
+    4px 6px 0 rgba(36, 18, 8, 0.55),
+    inset 0 0 0 2px rgba(255, 245, 215, 0.32);
+  backdrop-filter: blur(0.5px);
+}
+
+.game-box .name-panel::before,
+.game-box .name-panel::after {
+  width: 24px;
+  height: 24px;
+  top: 13px;
+}
+
+.game-box .eyebrow {
+  margin-bottom: 18px;
+  color: #7d2a1d;
+  font-size: 17px;
+  text-align: center;
+}
+
+.game-box .name-panel label {
+  margin-bottom: 10px;
+  color: #26170e;
+  font-size: 16px;
+}
+
+.game-box .name-row {
+  grid-template-columns: minmax(0, 1fr) 92px;
+  gap: 10px;
+}
+
+.game-box .name-row input,
+.game-box .name-row button {
+  min-height: 50px;
+  border: 3px solid #2b1a10;
+  border-radius: 8px;
+}
+
+.game-box .name-row input {
+  background: rgba(255, 240, 197, 0.92);
+}
+
+.game-box .name-row button {
+  background: linear-gradient(180deg, #efbd63, #b85c2e);
+  box-shadow: 3px 4px 0 #642e18, inset 0 1px 0 rgba(255, 238, 184, 0.52);
+}
+
+.game-box #name-status {
+  min-height: 36px;
+  margin-top: 16px;
+  color: #51321c;
+  line-height: 1.35;
+}
+
+.game-box .box-tokens {
+  margin-top: 14px;
+}
+
+@media (max-width: 900px) {
+  .name-screen {
+    background-position: 40% center;
+  }
+
+  .game-box {
+    left: 50%;
+    right: auto;
+    top: auto;
+    bottom: 5%;
+    width: min(90vw, 440px);
+    min-width: 0;
+    transform: translateX(-50%);
+  }
+
+  .game-box .name-panel {
+    margin-top: 0;
+    background: rgba(235, 208, 158, 0.9);
+  }
+}
