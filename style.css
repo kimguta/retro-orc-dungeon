@@ -17,8 +17,8 @@ body {
 
 body {
   background:
-    radial-gradient(circle at 50% 35%, rgba(246, 219, 156, 0.24), transparent 42%),
-    linear-gradient(135deg, #3a2b1d, #120d09 74%);
+    radial-gradient(circle at 50% 34%, rgba(246, 219, 156, 0.28), transparent 42%),
+    linear-gradient(135deg, #4b3621, #160e08 76%);
 }
 
 .shell {
@@ -47,7 +47,7 @@ canvas {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 5px;
+  gap: 6px;
   font-size: clamp(11px, 1.4vw, 13px);
   font-weight: 800;
   color: #24150d;
@@ -56,13 +56,13 @@ canvas {
 }
 
 .help span {
-  padding: 5px 11px;
+  padding: 6px 11px;
   border: 2px solid #26170e;
-  border-radius: 2px;
+  border-radius: 5px;
   background:
-    linear-gradient(180deg, rgba(255, 250, 224, 0.68), rgba(229, 194, 126, 0.36)),
-    #e9d2a1;
-  box-shadow: 2px 3px 0 rgba(25, 12, 7, 0.68), inset 0 0 0 1px rgba(117, 76, 36, 0.24);
+    linear-gradient(180deg, rgba(255, 248, 218, 0.86), rgba(218, 176, 101, 0.42)),
+    #e9d0a0;
+  box-shadow: 2px 3px 0 rgba(25, 12, 7, 0.64), inset 0 0 0 1px rgba(117, 76, 36, 0.25);
   text-shadow: none;
 }
 
@@ -74,8 +74,8 @@ canvas {
   place-items: center;
   padding: 24px;
   background:
-    radial-gradient(circle at 50% 32%, rgba(250, 210, 128, 0.26), transparent 34%),
-    linear-gradient(135deg, rgba(33, 24, 17, 0.82), rgba(8, 6, 5, 0.76));
+    radial-gradient(circle at 50% 38%, rgba(255, 216, 134, 0.22), transparent 34%),
+    linear-gradient(135deg, rgba(58, 39, 22, 0.88), rgba(11, 7, 4, 0.82));
 }
 
 .name-screen.is-hidden {
@@ -83,19 +83,42 @@ canvas {
 }
 
 .name-panel {
-  width: min(430px, 100%);
-  padding: 28px;
+  position: relative;
+  width: min(470px, 100%);
+  padding: 30px 30px 26px;
   border: 3px solid #2b1a10;
-  border-radius: 3px;
+  border-radius: 8px;
   background:
-    linear-gradient(105deg, rgba(255, 250, 222, 0.6), transparent 42%),
+    linear-gradient(180deg, rgba(255, 249, 220, 0.72), rgba(210, 166, 90, 0.18)),
     radial-gradient(circle at 10% 0%, rgba(112, 69, 34, 0.12), transparent 32%),
-    #ead5a5;
+    #ebd3a1;
   box-shadow:
-    4px 6px 0 #130905,
+    0 0 0 7px rgba(105, 67, 33, 0.34),
+    5px 7px 0 #130905,
     inset 0 0 0 1px rgba(84, 52, 27, 0.34),
-    inset 0 0 36px rgba(92, 56, 25, 0.12),
+    inset 0 -16px 36px rgba(92, 56, 25, 0.13),
     0 22px 64px rgba(0, 0, 0, 0.46);
+}
+
+.name-panel::before,
+.name-panel::after {
+  content: "";
+  position: absolute;
+  top: 13px;
+  width: 34px;
+  height: 34px;
+  border: 3px solid #26170e;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #f4c96c, #a84a26 62%, #4b1c12);
+  box-shadow: inset 0 0 0 3px rgba(255, 238, 184, 0.18);
+}
+
+.name-panel::before {
+  left: 14px;
+}
+
+.name-panel::after {
+  right: 14px;
 }
 
 .eyebrow,
@@ -104,26 +127,38 @@ canvas {
 }
 
 .eyebrow {
-  color: #65401f;
+  color: #6b3a1c;
   font-size: 13px;
   font-weight: 900;
   text-transform: uppercase;
+  text-align: center;
 }
 
 .name-panel h1 {
-  margin: 7px 0 10px;
+  margin: 8px 0 12px;
   color: #25160e;
-  font-size: 38px;
+  font-size: clamp(34px, 7vw, 44px);
   font-weight: 900;
   letter-spacing: 0;
   text-shadow: 1px 1px 0 rgba(255, 244, 205, 0.72);
+  text-align: center;
+}
+
+.name-panel h1 span {
+  display: block;
+  margin-bottom: 2px;
+  color: #8f2f22;
+  font-size: 18px;
+  font-weight: 900;
 }
 
 .name-panel .entry-copy {
-  margin: 0 0 20px;
+  margin: 0 auto 20px;
+  max-width: 330px;
   color: #4a3322;
   font-size: 15px;
   line-height: 1.5;
+  text-align: center;
 }
 
 .name-panel label {
@@ -136,15 +171,15 @@ canvas {
 
 .name-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 86px;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 92px;
+  gap: 10px;
 }
 
 .name-row input,
 .name-row button {
   min-height: 44px;
   border: 2px solid #3b281b;
-  border-radius: 2px;
+  border-radius: 6px;
   font: inherit;
 }
 
@@ -154,6 +189,7 @@ canvas {
   color: #2a1b12;
   font-weight: 700;
   background: #fff4d1;
+  box-shadow: inset 0 2px 0 rgba(78, 45, 20, 0.1);
   outline: none;
 }
 
@@ -165,8 +201,8 @@ canvas {
 .name-row button {
   color: #28180f;
   font-weight: 900;
-  background: linear-gradient(180deg, #e2ad5d, #c97834);
-  box-shadow: 2px 3px 0 #71401f;
+  background: linear-gradient(180deg, #efbb63, #c97834);
+  box-shadow: 2px 3px 0 #71401f, inset 0 1px 0 rgba(255, 238, 184, 0.42);
   cursor: pointer;
 }
 
@@ -176,4 +212,69 @@ canvas {
   color: #5b3c25;
   font-size: 13px;
   font-weight: 700;
+  text-align: center;
+}
+
+.toy-castle {
+  position: absolute;
+  left: 50%;
+  top: calc(50% - 248px);
+  z-index: -1;
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  transform: translateX(-50%);
+  opacity: 0.92;
+}
+
+.toy-castle span {
+  display: block;
+  width: 46px;
+  height: 78px;
+  border: 3px solid #1f130c;
+  border-radius: 6px 6px 2px 2px;
+  background:
+    linear-gradient(90deg, rgba(255, 244, 207, 0.18), transparent 36%),
+    repeating-linear-gradient(0deg, transparent 0 16px, rgba(36, 21, 13, 0.18) 16px 18px),
+    #8a7355;
+  box-shadow: 3px 4px 0 rgba(12, 7, 4, 0.62);
+}
+
+.toy-castle span:nth-child(2),
+.toy-castle span:nth-child(3) {
+  height: 108px;
+}
+
+.toy-castle span::before {
+  content: "";
+  display: block;
+  height: 14px;
+  margin: -14px -3px 0;
+  border: 3px solid #1f130c;
+  border-bottom: 0;
+  background: repeating-linear-gradient(90deg, #776043 0 9px, #1f130c 9px 12px);
+}
+
+.box-tokens {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.box-tokens i {
+  width: 28px;
+  height: 28px;
+  border: 2px solid #25170f;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff0b4, #c9833b 58%, #5c2b18);
+  box-shadow: 2px 3px 0 rgba(38, 20, 10, 0.52);
+}
+
+.box-tokens i:nth-child(2) {
+  background: radial-gradient(circle at 35% 30%, #e1f3d5, #5d9b4d 58%, #1e4325);
+}
+
+.box-tokens i:nth-child(3) {
+  background: radial-gradient(circle at 35% 30%, #e4f0ff, #5b94b6 58%, #1d3d53);
 }

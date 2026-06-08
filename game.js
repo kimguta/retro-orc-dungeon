@@ -4069,6 +4069,202 @@ function trimRosterName(name) {
   return text.length > 10 ? `${text.slice(0, 9)}.` : text;
 }
 
+function drawHudPanel(x, y, w, h) {
+  drawBoardCard(x, y, w, h, { tab: false });
+}
+
+function drawBoardCard(x, y, w, h, options = {}) {
+  ctx.save();
+  ctx.fillStyle = "rgba(17, 9, 4, 0.32)";
+  ctx.fillRect(Math.round(x + 5), Math.round(y + 6), Math.round(w), Math.round(h));
+  ctx.fillStyle = options.dark ? "rgba(70, 42, 24, 0.94)" : "rgba(239, 216, 168, 0.96)";
+  ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+  ctx.fillStyle = options.dark ? "rgba(255, 205, 126, 0.08)" : "rgba(255, 250, 224, 0.38)";
+  ctx.fillRect(Math.round(x + 4), Math.round(y + 4), Math.round(w - 8), Math.min(18, Math.round(h - 8)));
+  ctx.strokeStyle = "#24150d";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+  ctx.strokeStyle = options.dark ? "rgba(255, 213, 138, 0.24)" : "rgba(255, 246, 214, 0.56)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(Math.round(x + 4), Math.round(y + 4), Math.round(w - 8), Math.round(h - 8));
+  if (options.tab) {
+    ctx.fillStyle = "#2a1810";
+    ctx.fillRect(Math.round(x + 12), Math.round(y + 9), Math.min(50, Math.round(w - 24)), 3);
+  }
+  ctx.restore();
+}
+
+function drawToken(cx, cy, r, fill, label = "") {
+  ctx.save();
+  ctx.fillStyle = "rgba(20, 9, 4, 0.32)";
+  ctx.beginPath();
+  ctx.arc(cx + 2, cy + 3, r, 0, Math.PI * 2);
+  ctx.fill();
+  const g = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.35, r * 0.1, cx, cy, r);
+  g.addColorStop(0, "#fff0b8");
+  g.addColorStop(0.45, fill);
+  g.addColorStop(1, "#4a2114");
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#24150d";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  if (label) {
+    ctx.textAlign = "center";
+    drawText(label, cx, cy + 5, 13, "#fff3cf", { outline: true, weight: 900 });
+    ctx.textAlign = "left";
+  }
+  ctx.restore();
+}
+
+function drawBoardBar(x, y, w, h, pct, fill, bg, label = "") {
+  const clamped = Math.max(0, Math.min(1, pct || 0));
+  ctx.save();
+  ctx.fillStyle = "#24150d";
+  ctx.fillRect(Math.round(x - 3), Math.round(y - 3), Math.round(w + 6), Math.round(h + 6));
+  ctx.fillStyle = "#b88448";
+  ctx.fillRect(Math.round(x - 1), Math.round(y - 1), Math.round(w + 2), Math.round(h + 2));
+  ctx.fillStyle = bg;
+  ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+  ctx.fillStyle = fill;
+  ctx.fillRect(Math.round(x + 3), Math.round(y + 3), Math.round((w - 6) * clamped), Math.max(2, Math.round(h - 6)));
+  ctx.fillStyle = "rgba(255, 248, 220, 0.34)";
+  ctx.fillRect(Math.round(x + 3), Math.round(y + 3), Math.round((w - 6) * clamped), Math.max(2, Math.round((h - 6) * 0.36)));
+  if (label) {
+    ctx.textAlign = "center";
+    drawText(label, x + w / 2, y + h - 5, Math.max(12, Math.min(14, h - 2)), "#fff9df", { outline: true, weight: 900 });
+    ctx.textAlign = "left";
+  }
+  ctx.restore();
+}
+
+function drawHud() {
+  drawMiniMap();
+  drawCrosshair();
+  if (berserk) {
+    const pulse = 0.42 + Math.sin(performance.now() * 0.006) * 0.08;
+    ctx.fillStyle = `rgba(188, 18, 10, ${0.2 + pulse * 0.13})`;
+    ctx.fillRect(0, 0, W, H);
+    const furyGlow = ctx.createRadialGradient(W / 2, H / 2, W * 0.16, W / 2, H / 2, W * 0.62);
+    furyGlow.addColorStop(0, `rgba(255, 130, 42, ${0.07 * pulse})`);
+    furyGlow.addColorStop(0.7, `rgba(190, 38, 18, ${0.2 * pulse})`);
+    furyGlow.addColorStop(1, `rgba(90, 8, 5, ${0.42 * pulse})`);
+    ctx.fillStyle = furyGlow;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  const hudH = 124;
+  const panelY = H - hudH;
+  ctx.fillStyle = "rgba(37, 22, 12, 0.48)";
+  ctx.fillRect(0, panelY - 5, W, hudH + 5);
+
+  const gap = 12;
+  const leftW = Math.min(520, Math.max(380, W * 0.34));
+  const statW = 250;
+  const equipW = 330;
+  const x1 = 18;
+  const x2 = x1 + leftW + gap;
+  const x3 = Math.min(x2 + statW + gap, W - equipW - 18);
+
+  drawBoardCard(x1, panelY + 14, leftW, 92, { tab: true });
+  drawToken(x1 + 27, panelY + 42, 15, "#b94135", "HP");
+  drawBoardBar(x1 + 58, panelY + 28, leftW - 76, 24, player.hp / player.maxHp, "#d83d36", "#2b0d0a", `${player.hp}/${player.maxHp}`);
+  drawToken(x1 + 27, panelY + 78, 15, berserk ? "#c94124" : "#d58a2f", "분");
+  drawBoardBar(x1 + 58, panelY + 64, leftW - 76, 22, player.rage / player.maxRage, berserk ? "#f05a25" : "#d88428", "#2a1408", `${Math.floor(player.rage)}/${player.maxRage}`);
+
+  drawBoardCard(x2, panelY + 14, statW, 92, { tab: true });
+  drawText(`Lv. ${player.level}`, x2 + 18, panelY + 43, 18, "#22140c", { weight: 900 });
+  drawText(`처치 ${kills}`, x2 + 138, panelY + 43, 14, "#4d2b16", { weight: 900 });
+  drawText("경험치", x2 + 18, panelY + 79, 13, "#17394a", { weight: 900 });
+  drawBoardBar(x2 + 70, panelY + 64, statW - 94, 18, player.xp / player.nextXp, "#5ea9d3", "#101a20", `${compactNumber(player.xp)}/${compactNumber(player.nextXp)}`);
+
+  drawBoardCard(x3, panelY + 14, equipW, 92, { tab: true });
+  drawText(swordName(), x3 + 18, panelY + 43, 16, "#22140c", { weight: 900 });
+  drawText(armorName(), x3 + 180, panelY + 43, 16, "#17394a", { weight: 900 });
+  const actionText = berserk
+    ? "광폭화: 특수공격 무제한"
+    : player.rage >= SPECIAL_RAGE_COST
+      ? "우클릭 특수공격 준비"
+      : `특수공격 분노 ${SPECIAL_RAGE_COST}`;
+  drawText(actionText, x3 + 18, panelY + 78, 13, berserk ? "#8f2418" : "#5f3419", { weight: 900 });
+
+  drawObjectivePanel();
+  drawParticipantRoster(W - 252, 216, 214);
+
+  const boss = balrogEnemy() || enemies.find((e) => e.boss && !e.dead);
+  if (boss && (Math.hypot(player.x - boss.x, player.y - boss.y) < 8 || boss.hp < boss.maxHp)) {
+    drawBoardCard(W / 2 - 180, 22, 360, 44, { dark: true });
+    drawText(enemyLabel(boss), W / 2 - 158, 50, 15, "#ffe6a6", { outline: true, weight: 900 });
+    drawBoardBar(W / 2 - 36, 34, 182, 16, boss.hp / boss.maxHp, "#b92520", "#260907");
+  }
+
+  if (player.hurt > 0) {
+    ctx.fillStyle = `rgba(255, 245, 220, ${player.hurt * 0.13})`;
+    ctx.fillRect(0, 0, W, H);
+    const hurtVignette = ctx.createRadialGradient(W / 2, H / 2, W * 0.2, W / 2, H / 2, W * 0.68);
+    hurtVignette.addColorStop(0, "rgba(0,0,0,0)");
+    hurtVignette.addColorStop(0.7, `rgba(90, 0, 0, ${player.hurt * 0.1})`);
+    hurtVignette.addColorStop(1, `rgba(120, 0, 0, ${player.hurt * 0.42})`);
+    ctx.fillStyle = hurtVignette;
+    ctx.fillRect(0, 0, W, H);
+  }
+  drawHitDirection();
+  drawInteractionHud();
+  drawDialogue();
+
+  if (noticeTimer > 0) {
+    ctx.textAlign = "center";
+    drawBoardCard(W / 2 - 230, 92, 460, 44, { dark: true });
+    drawText(notice, W / 2, 122, 22, "#ffe8a6", { outline: true, weight: 900 });
+    ctx.textAlign = "left";
+  }
+}
+
+function drawObjectivePanel() {
+  const x = W - 252;
+  const y = 58;
+  const w = 214;
+  const balrog = balrogEnemy();
+  const respawn = balrogRespawnSeconds();
+  drawBoardCard(x, y, w, 132, { tab: true });
+  drawToken(x + 24, y + 32, 15, "#9b2e22", "B");
+  drawText(`성채 단계 ${roomState.dungeonTier}`, x + 48, y + 36, 15, "#22140c", { weight: 900 });
+  drawText(`발록 처치 ${roomState.balrogDefeatedCount}회`, x + 18, y + 65, 13, "#4d2b16", { weight: 900 });
+  drawText(balrog ? "발록 활성" : `발록 리스폰 ${formatClock(respawn)}`, x + 18, y + 91, 13, balrog ? "#8f2418" : "#17394a", { weight: 900 });
+  drawText(balrog ? `목표: ${directionTo(balrog.x, balrog.y)}쪽 발록` : "목표: 사냥하며 재정비", x + 18, y + 116, 12, "#5f3419", { weight: 900 });
+}
+
+function drawParticipantRoster(x, y, w) {
+  const members = [
+    {
+      displayName: displayCharacterName(characterName) || "나",
+      level: player.level,
+      hp: player.hp,
+      maxHp: player.maxHp,
+      self: true,
+    },
+    ...remotePlayers.values(),
+  ];
+  const shown = members.slice(0, 10);
+  const rowH = 28;
+  const h = 42 + shown.length * rowH + (members.length > shown.length ? 18 : 0);
+  drawBoardCard(x, y, w, h, { tab: true });
+  drawText(`참가자 ${Math.max(serverPlayerCount, members.length)}명`, x + 16, y + 25, 14, "#17394a", { weight: 900 });
+  shown.forEach((member, index) => {
+    const rowY = y + 39 + index * rowH;
+    const name = trimRosterName(member.displayName || member.name || "기사");
+    const hpPct = Math.max(0, Math.min(1, (member.hp || 0) / Math.max(1, member.maxHp || 1)));
+    drawToken(x + 18, rowY + 8, 8, member.self ? "#c77a30" : "#5b94b6");
+    drawText(`${member.self ? "나 " : ""}Lv.${member.level || 1} ${name}`, x + 32, rowY + 12, 12, member.self ? "#6c2f14" : "#25170f", { weight: 900 });
+    drawRosterHpBar(x + 32, rowY + 17, w - 46, hpPct, member.self ? "#d53b35" : "#65b987");
+  });
+  if (members.length > shown.length) {
+    drawText(`+${members.length - shown.length}명 더 참가 중`, x + 14, y + h - 11, 12, "#4a3322", { weight: 800 });
+  }
+}
+
 function drawHitDirection() {
   if (hurtDirectionTimer <= 0) return;
   const a = Math.max(0, hurtDirectionTimer / 0.62);
