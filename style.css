@@ -1250,7 +1250,7 @@ canvas {
 .start-board .game-box {
   position: absolute;
   left: 63.2%;
-  top: 25.8%;
+  top: 30.8%;
   right: auto;
   z-index: 2;
   display: block;
@@ -1357,7 +1357,7 @@ canvas {
 
   .start-board .game-box {
     left: 63.2%;
-    top: 25%;
+    top: 30%;
     width: 20.6%;
   }
 }
