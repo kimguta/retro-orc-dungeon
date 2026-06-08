@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Paper Citadel - 종이성채</title>
-    <link rel="stylesheet" href="style.css?v=20260608-startart-2">
+    <link rel="stylesheet" href="style.css?v=20260608-startsplit-2">
   </head>
   <body>
     <main class="shell">
@@ -16,42 +16,21 @@
         <span>우클릭 특수공격</span>
       </div>
       <form id="name-screen" class="name-screen" autocomplete="off">
-        <div class="start-table" aria-hidden="true">
-          <div class="board-path">
-            <span></span><span></span><span></span><span></span><span></span>
-          </div>
-          <div class="toy-castle">
-            <span></span><span></span><span></span><span></span><span></span>
-          </div>
-          <div class="start-token token-knight"></div>
-          <div class="start-token token-orc"></div>
-          <div class="start-token token-boss"></div>
-        </div>
+        <div class="start-table" aria-hidden="true"></div>
         <div class="game-box">
-          <div class="box-lid">
-            <div class="box-badge">BOARD GAME RAID</div>
-            <div class="box-title">
-              <strong>Paper Citadel</strong>
-              <span>종이성채</span>
-            </div>
-            <p>장난감 성채 보드 위에서 캐릭터 말을 꺼내 발록에게 도전합니다.</p>
-          </div>
           <div class="name-panel">
-            <p class="eyebrow">캐릭터 말 선택</p>
+            <p class="eyebrow">캐릭터 선택</p>
             <label for="character-name">캐릭터명</label>
             <div class="name-row">
               <input id="character-name" maxlength="18" placeholder="이름 입력" required>
               <button type="submit">입장</button>
             </div>
             <p id="name-status">같은 이름으로 다시 접속하면 저장된 캐릭터를 이어서 사용합니다.</p>
-            <div class="box-tokens" aria-hidden="true">
-              <i></i><i></i><i></i>
-            </div>
           </div>
         </div>
       </form>
     </main>
     <script src="https://cdn.socket.io/4.8.3/socket.io.min.js"></script>
-    <script src="game.js?v=20260608-startart-1"></script>
+    <script src="game.js?v=20260608-startsplit-2"></script>
   </body>
 </html>
