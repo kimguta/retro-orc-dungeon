@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260608-comic-1";
+const COMIC_SPRITE_VERSION = "20260608-transparent-1";
 const comicSprites = {
   knight: loadComicSprite(`assets/sprite-knight-comic.png?v=${COMIC_SPRITE_VERSION}`, 4),
   skeleton: loadComicSprite(`assets/sprite-skeleton-comic.png?v=${COMIC_SPRITE_VERSION}`, 4),
