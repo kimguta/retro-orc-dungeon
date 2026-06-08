@@ -1249,12 +1249,12 @@ canvas {
 
 .start-board .game-box {
   position: absolute;
-  left: 62.5%;
-  top: 30.8%;
+  left: 61.2%;
+  top: 25.6%;
   right: auto;
   z-index: 2;
   display: block;
-  width: 19.8%;
+  width: 24.4%;
   min-width: 0;
   height: 42%;
   padding: 0;
@@ -1268,13 +1268,13 @@ canvas {
 .start-board .name-panel {
   position: relative;
   width: 100%;
-  aspect-ratio: 620 / 250;
+  aspect-ratio: 900 / 340;
   margin: 0;
   padding: 0;
   border: 0;
   border-radius: 0;
   color: #25170e;
-  background: url("assets/start-login-panel.png?v=20260608-startpanel-1") left top / 100% 100% no-repeat;
+  background: url("assets/start-login-panel.png?v=20260608-startpanel-2") left top / 100% 100% no-repeat;
   box-shadow: none;
   backdrop-filter: none;
 }
@@ -1300,13 +1300,13 @@ canvas {
 
 .start-board .name-row {
   position: absolute;
-  left: 0;
-  top: 23.2%;
+  left: 1.1%;
+  top: 45.3%;
   display: grid;
-  grid-template-columns: 72.2% 24.4%;
+  grid-template-columns: 75.3% 21.3%;
   gap: 3.4%;
-  width: 98.8%;
-  height: 31.2%;
+  width: 93%;
+  height: 27.6%;
 }
 
 .start-board .name-row input,
