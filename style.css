@@ -1287,7 +1287,7 @@ canvas {
   border: 0;
   border-radius: 0;
   color: transparent;
-  background: url("assets/start-ui-label.png?v=20260608-startui-1") center / 100% 100% no-repeat;
+  background: url("assets/start-ui-label.png?v=20260608-startui-2") center / 100% 100% no-repeat;
   overflow: hidden;
   text-indent: -999px;
 }
@@ -1318,7 +1318,7 @@ canvas {
   min-width: 0;
   padding: 0 clamp(11px, 1.05vw, 16px);
   color: #25170e;
-  background: url("assets/start-ui-input.png?v=20260608-startui-1") center / 100% 100% no-repeat;
+  background: url("assets/start-ui-input.png?v=20260608-startui-2") center / 100% 100% no-repeat;
   box-shadow: none;
   font-size: clamp(13px, 1.08vw, 16px);
   font-weight: 900;
@@ -1330,7 +1330,7 @@ canvas {
 
 .start-board .name-row button {
   color: transparent;
-  background: url("assets/start-ui-button.png?v=20260608-startui-1") center / 100% 100% no-repeat;
+  background: url("assets/start-ui-button.png?v=20260608-startui-2") center / 100% 100% no-repeat;
   box-shadow: none;
   overflow: hidden;
   text-indent: -999px;
@@ -1343,9 +1343,10 @@ canvas {
   border: 0;
   color: #4b2e18;
   background: transparent;
-  font-size: clamp(11px, 0.88vw, 13px);
+  font-size: clamp(11px, 0.9vw, 13px);
   font-weight: 800;
   line-height: 1.42;
+  white-space: nowrap;
   text-align: left;
 }
 
