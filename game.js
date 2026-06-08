@@ -40,11 +40,18 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260608-clean-1";
+const COMIC_SPRITE_VERSION = "20260608-mobs-1";
 const comicSprites = {
   knight: loadComicSprite(`assets/sprite-knight-comic.png?v=${COMIC_SPRITE_VERSION}`, 4),
   skeleton: loadComicSprite(`assets/sprite-skeleton-comic.png?v=${COMIC_SPRITE_VERSION}`, 4),
+  skeletonKing: loadComicSprite(`assets/sprite-skeleton-king-comic.svg?v=${COMIC_SPRITE_VERSION}`, 4),
+  deathKnight: loadComicSprite(`assets/sprite-death-knight-comic.svg?v=${COMIC_SPRITE_VERSION}`, 4),
   orc: loadComicSprite(`assets/sprite-orc-comic.png?v=${COMIC_SPRITE_VERSION}`, 4),
+  orcBoss: loadComicSprite(`assets/sprite-orc-boss-comic.svg?v=${COMIC_SPRITE_VERSION}`, 4),
+  ogre: loadComicSprite(`assets/sprite-ogre-comic.svg?v=${COMIC_SPRITE_VERSION}`, 4),
+  ogreLord: loadComicSprite(`assets/sprite-ogre-lord-comic.svg?v=${COMIC_SPRITE_VERSION}`, 4),
+  warlock: loadComicSprite(`assets/sprite-warlock-comic.svg?v=${COMIC_SPRITE_VERSION}`, 4),
+  warlockLord: loadComicSprite(`assets/sprite-warlock-lord-comic.svg?v=${COMIC_SPRITE_VERSION}`, 4),
   balrog: loadComicSprite(`assets/sprite-balrog-comic.png?v=${COMIC_SPRITE_VERSION}`, 3),
 };
 const PAPER_ATLAS_CELL_W = 500;
@@ -3066,6 +3073,9 @@ function drawSkeleton(e, x, y, size, dist) {
     ctx.globalAlpha = 1;
     return;
   }
+  if (deathKnight) {
+    if (drawComicSprite("deathKnight", e, x - 8.5 * px, y - 6.2 * px, px, { width: 35, height: 42 })) return;
+  } else if (drawComicSprite("skeletonKing", e, x - 8.2 * px, y - 6.2 * px, px, { width: 35, height: 42 })) return;
   drawPaperSkeletonBossSprite(e, x, y, px, bone, shade, eye, walk, hurt, deathKnight);
   ctx.globalAlpha = 1;
   return;
@@ -3124,6 +3134,9 @@ function drawWarlock(e, x, y, size, dist) {
   y += bob + idle * px * 0.7 - e.attackPose * 2 * px + (hurt ? Math.sin(performance.now() * 0.1) * px : 0);
   x += walk * px * 0.34 + idle * px * 0.1;
   ctx.globalAlpha = 1;
+  if (lord) {
+    if (drawComicSprite("warlockLord", e, x - 8.8 * px, y - 6.8 * px, px, { width: 36, height: 42 })) return;
+  } else if (drawComicSprite("warlock", e, x - 8.4 * px, y - 6.4 * px, px, { width: 34, height: 40 })) return;
   if (drawPaperAtlasSprite("warlock", e, x - 4 * px, y - 3 * px, px, { width: lord ? 29 : 26, height: lord ? 34 : 31 })) return;
   drawPaperWarlockSprite(e, x, y, px, lord, flash, hurt);
   ctx.globalAlpha = 1;
@@ -3255,6 +3268,11 @@ function drawOrc(e, x, y, size, dist) {
     ctx.globalAlpha = 1;
     return;
   }
+  if (ogreLord) {
+    if (drawComicSprite("ogreLord", e, x - 13.8 * px, y - 9.8 * px, px, { width: 47, height: 52 })) return;
+  } else if (ogre) {
+    if (drawComicSprite("ogre", e, x - 12.8 * px, y - 9.2 * px, px, { width: 45, height: 50 })) return;
+  } else if (drawComicSprite("orcBoss", e, x - 8.8 * px, y - 7.2 * px, px, { width: 36, height: 43 })) return;
   drawPaperOrcSprite(e, x, y, px, skin, skinLight, shadow, deepShadow, armor, armorLight, eye, walk, attack, winding, hurt);
   if (ogre || dark) {
     paperTri(x + 4 * px, y + 4 * px, x + 2 * px, y - 1 * px, x + 7 * px, y + 3 * px, "#d8c99b", deepShadow);
