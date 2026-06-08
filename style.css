@@ -17,8 +17,8 @@ body {
 
 body {
   background:
-    radial-gradient(circle at 50% 35%, rgba(177, 139, 79, 0.22), transparent 42%),
-    linear-gradient(135deg, #2b2118, #100c09 70%);
+    radial-gradient(circle at 50% 35%, rgba(246, 219, 156, 0.24), transparent 42%),
+    linear-gradient(135deg, #3a2b1d, #120d09 74%);
 }
 
 .shell {
@@ -50,17 +50,19 @@ canvas {
   gap: 5px;
   font-size: clamp(11px, 1.4vw, 13px);
   font-weight: 800;
-  color: #1e120b;
+  color: #24150d;
   pointer-events: none;
-  opacity: 0.92;
+  opacity: 0.95;
 }
 
 .help span {
-  padding: 5px 10px;
-  border: 2px solid #1d130d;
+  padding: 5px 11px;
+  border: 2px solid #26170e;
   border-radius: 2px;
-  background: #f0ddb0;
-  box-shadow: 2px 3px 0 rgba(25, 12, 7, 0.72), inset 0 1px 0 rgba(255, 250, 220, 0.64);
+  background:
+    linear-gradient(180deg, rgba(255, 250, 224, 0.68), rgba(229, 194, 126, 0.36)),
+    #e9d2a1;
+  box-shadow: 2px 3px 0 rgba(25, 12, 7, 0.68), inset 0 0 0 1px rgba(117, 76, 36, 0.24);
   text-shadow: none;
 }
 
@@ -72,8 +74,8 @@ canvas {
   place-items: center;
   padding: 24px;
   background:
-    radial-gradient(circle at 50% 32%, rgba(250, 210, 128, 0.2), transparent 34%),
-    rgba(20, 14, 10, 0.72);
+    radial-gradient(circle at 50% 32%, rgba(250, 210, 128, 0.26), transparent 34%),
+    linear-gradient(135deg, rgba(33, 24, 17, 0.82), rgba(8, 6, 5, 0.76));
 }
 
 .name-screen.is-hidden {
@@ -83,15 +85,17 @@ canvas {
 .name-panel {
   width: min(430px, 100%);
   padding: 28px;
-  border: 4px solid #3a281b;
+  border: 3px solid #2b1a10;
   border-radius: 3px;
   background:
-    linear-gradient(105deg, rgba(255, 247, 207, 0.34), transparent 38%),
-    #e0c894;
+    linear-gradient(105deg, rgba(255, 250, 222, 0.6), transparent 42%),
+    radial-gradient(circle at 10% 0%, rgba(112, 69, 34, 0.12), transparent 32%),
+    #ead5a5;
   box-shadow:
-    5px 7px 0 #120905,
-    inset 0 0 0 2px rgba(84, 52, 27, 0.36),
-    0 22px 64px rgba(0, 0, 0, 0.48);
+    4px 6px 0 #130905,
+    inset 0 0 0 1px rgba(84, 52, 27, 0.34),
+    inset 0 0 36px rgba(92, 56, 25, 0.12),
+    0 22px 64px rgba(0, 0, 0, 0.46);
 }
 
 .eyebrow,
@@ -108,11 +112,11 @@ canvas {
 
 .name-panel h1 {
   margin: 7px 0 10px;
-  color: #302016;
+  color: #25160e;
   font-size: 38px;
   font-weight: 900;
   letter-spacing: 0;
-  text-shadow: 1px 2px 0 rgba(255, 244, 205, 0.45);
+  text-shadow: 1px 1px 0 rgba(255, 244, 205, 0.72);
 }
 
 .name-panel .entry-copy {
@@ -149,7 +153,7 @@ canvas {
   padding: 0 12px;
   color: #2a1b12;
   font-weight: 700;
-  background: #fff0c6;
+  background: #fff4d1;
   outline: none;
 }
 
@@ -161,7 +165,7 @@ canvas {
 .name-row button {
   color: #28180f;
   font-weight: 900;
-  background: #d99b4e;
+  background: linear-gradient(180deg, #e2ad5d, #c97834);
   box-shadow: 2px 3px 0 #71401f;
   cursor: pointer;
 }

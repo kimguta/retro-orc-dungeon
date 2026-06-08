@@ -1680,15 +1680,17 @@ function drawWorld() {
   const zone = zoneAt();
   const townView = isTown();
   const sky = ctx.createLinearGradient(0, -72, 0, HALF_H);
-  sky.addColorStop(0, zone.sky[0]);
-  sky.addColorStop(1, zone.sky[1]);
+  sky.addColorStop(0, townView ? "#8b7156" : zone.sky[0]);
+  sky.addColorStop(0.62, townView ? "#b69a72" : zone.sky[1]);
+  sky.addColorStop(1, townView ? "#d7bd88" : "#7a6044");
   ctx.fillStyle = sky;
   ctx.fillRect(0, -72, W, HALF_H + 72);
   drawCeilingDetails(townView);
 
   const floor = ctx.createLinearGradient(0, HALF_H, 0, H + 96);
-  floor.addColorStop(0, zone.floor[0]);
-  floor.addColorStop(1, zone.floor[1]);
+  floor.addColorStop(0, townView ? "#b89b66" : zone.floor[0]);
+  floor.addColorStop(0.58, townView ? "#8d7147" : "#6d573c");
+  floor.addColorStop(1, townView ? "#4d3621" : zone.floor[1]);
   ctx.fillStyle = floor;
   ctx.fillRect(0, HALF_H, W, HALF_H + 96);
   drawFloorDetails(townView);
@@ -1702,82 +1704,71 @@ function drawWorld() {
     const x = (r / RAYS) * W;
     const colW = W / RAYS + 1;
     const y = HALF_H - wallH / 2;
-    const light = Math.max(78, 238 - fixedDist * 11);
-    const mortar = 1;
+    const light = Math.max(92, 246 - fixedDist * 10);
     const hitZone = zoneAt(hit.x, hit.y);
     const hitTown = isTown(hit.x, hit.y);
     const faceShade = hit.side === "x" ? 1 : 0.84;
     const [wallR, wallG, wallB] = hitZone.wall;
-    ctx.fillStyle = `rgb(${Math.floor(light * wallR * mortar)}, ${Math.floor(light * wallG * mortar)}, ${Math.floor(light * wallB * mortar)})`;
+    ctx.fillStyle = `rgb(${Math.floor(light * wallR)}, ${Math.floor(light * wallG)}, ${Math.floor(light * wallB)})`;
     ctx.fillRect(x, y, colW, wallH);
 
-    ctx.fillStyle = `rgba(0, 0, 0, ${1 - faceShade})`;
+    ctx.fillStyle = `rgba(35, 20, 12, ${1 - faceShade})`;
     ctx.fillRect(x, y, colW, wallH);
 
-    const outlineAlpha = Math.min(0.96, 0.58 + Math.max(0, 1 - fixedDist / 11) * 0.36);
-    const outlineDark = `rgba(22, 13, 8, ${outlineAlpha})`;
-    const outlineLight = `rgba(255, 234, 180, ${Math.min(0.26, outlineAlpha * 0.22)})`;
+    const outlineAlpha = Math.min(0.86, 0.42 + Math.max(0, 1 - fixedDist / 12) * 0.32);
+    const outlineDark = `rgba(32, 19, 12, ${outlineAlpha})`;
+    const outlineLight = `rgba(255, 238, 190, ${Math.min(0.32, outlineAlpha * 0.3)})`;
     ctx.fillStyle = outlineDark;
     ctx.fillRect(x, Math.round(y), colW, 1);
     ctx.fillRect(x, Math.round(y + wallH - 1), colW, 1);
     ctx.fillStyle = outlineLight;
     ctx.fillRect(x, Math.round(y + 1), colW, 1);
 
-    const blockH = Math.max(54, wallH / 3.35);
-    const row = Math.floor((hit.y + hit.x) * 2.1);
-    const offsetU = row % 2 ? 0.14 : 0;
+    const distanceFade = Math.max(0.18, 1 - fixedDist / 20);
+    const edgeAlpha = Math.min(0.5, 0.18 + distanceFade * 0.32);
+    const blockH = Math.max(64, wallH / 2.75);
+    const row = Math.floor((hit.y + hit.x) * 1.55);
+    const u = (hit.wallU + (row % 2 ? 0.2 : 0)) % 1;
     const joint = 1;
-    const distanceFade = Math.max(0.2, 1 - fixedDist / 18);
-    const edgeAlpha = Math.min(0.58, 0.28 + distanceFade * 0.34);
-    ctx.fillStyle = `rgba(24, 14, 9, ${edgeAlpha})`;
-    ctx.fillRect(x, y, colW, 1);
-    ctx.fillRect(x, y + wallH - 1, colW, 1);
-    for (let by = y + blockH * 0.28; by < y + wallH; by += blockH) {
-      ctx.fillStyle = `rgba(24, 14, 9, ${edgeAlpha * 0.82})`;
+    for (let by = y + blockH * 0.42; by < y + wallH; by += blockH) {
+      ctx.fillStyle = `rgba(31, 18, 11, ${edgeAlpha * 0.9})`;
       ctx.fillRect(x, Math.round(by), colW, joint);
-      ctx.fillStyle = hitTown ? "rgba(255, 236, 188, 0.16)" : "rgba(255, 232, 178, 0.12)";
+      ctx.fillStyle = hitTown ? "rgba(255, 242, 202, 0.18)" : "rgba(255, 232, 178, 0.12)";
       ctx.fillRect(x, Math.round(by) + 1, colW, 1);
     }
-    const u = (hit.wallU + offsetU) % 1;
-    if (fixedDist < 8 && (u < 0.012 || u > 0.988)) {
-      ctx.fillStyle = `rgba(22, 13, 8, ${Math.min(0.92, edgeAlpha * 1.45)})`;
-      ctx.fillRect(x, y + wallH * 0.08, colW, wallH * 0.74);
-      ctx.fillStyle = "rgba(255, 238, 190, 0.12)";
-      ctx.fillRect(x, y + wallH * 0.08, colW, wallH * 0.18);
-    } else if (fixedDist < 4.8 && Math.abs(u - 0.5) < 0.006) {
-      ctx.fillStyle = `rgba(22, 13, 8, ${Math.min(0.64, edgeAlpha * 0.92)})`;
-      ctx.fillRect(x, y + wallH * 0.12, colW, wallH * 0.62);
+    if (fixedDist < 8.5 && (u < 0.018 || u > 0.982)) {
+      ctx.fillStyle = `rgba(28, 16, 10, ${Math.min(0.74, edgeAlpha * 1.28)})`;
+      ctx.fillRect(x, y + wallH * 0.1, colW, wallH * 0.72);
+      ctx.fillStyle = "rgba(255, 241, 199, 0.14)";
+      ctx.fillRect(x, y + wallH * 0.1, colW, wallH * 0.16);
     }
-    if (u > 0.08 && u < 0.2) {
-      ctx.fillStyle = "rgba(255, 238, 188, 0.055)";
-      ctx.fillRect(x, y + wallH * 0.08, colW, wallH * 0.78);
+    if (u > 0.12 && u < 0.26) {
+      ctx.fillStyle = "rgba(255, 241, 199, 0.07)";
+      ctx.fillRect(x, y + wallH * 0.12, colW, wallH * 0.7);
     }
-    if ((r + Math.floor(hit.x * 13 + hit.y * 17)) % 31 === 0) {
+    if (fixedDist < 12 && (r + Math.floor(hit.x * 13 + hit.y * 17)) % 43 === 0) {
       const nickY = y + (0.22 + ((Math.floor(hit.x * 7 + hit.y * 9) % 5) * 0.12)) * wallH;
-      ctx.fillStyle = "rgba(255, 243, 197, 0.075)";
+      ctx.fillStyle = "rgba(255, 244, 204, 0.09)";
       ctx.fillRect(x, nickY, colW, Math.max(1, wallH / 110));
     }
-    if (wallH > 90 && u > 0.18 && u < 0.82 && (r + Math.floor(hit.x * 3 + hit.y * 5)) % 9 === 0) {
-      ctx.fillStyle = "rgba(255, 246, 211, 0.04)";
-      ctx.fillRect(x, y + wallH * 0.12, colW, wallH * 0.18);
-    }
-    ctx.fillStyle = "rgba(18, 10, 7, 0.12)";
+    ctx.fillStyle = "rgba(31, 18, 11, 0.08)";
     ctx.fillRect(x, y, colW, 1);
-    ctx.fillStyle = "rgba(255, 238, 188, 0.08)";
+    ctx.fillStyle = "rgba(255, 241, 199, 0.1)";
     ctx.fillRect(x, y + wallH * 0.06, colW, 1);
     ctx.fillStyle = "rgba(255, 241, 199, 0.035)";
     ctx.fillRect(x, y + wallH * 0.1, colW, wallH * 0.38);
 
-    ctx.fillStyle = `rgba(18, 16, 14, ${Math.min(townView ? 0.16 : 0.27, fixedDist / 22)})`;
+    ctx.fillStyle = `rgba(28, 22, 17, ${Math.min(townView ? 0.08 : 0.2, fixedDist / 24)})`;
     ctx.fillRect(x, y, colW, wallH);
   }
 
-  ctx.fillStyle = "rgba(255, 196, 94, 0.08)";
+  ctx.fillStyle = "rgba(255, 220, 144, 0.08)";
   for (let i = 0; i < 9; i += 1) {
     const tx = ((i * 137 + 53) % W);
     const ty = HALF_H + ((i * 71 + 41) % (H - HALF_H));
     ctx.fillRect(tx, ty, 2, 2);
   }
+  drawPaperWorldOverlay();
 }
 
 function drawCeilingDetails(townView) {
@@ -1795,6 +1786,26 @@ function drawCeilingDetails(townView) {
   ctx.globalAlpha = 0.72;
   ctx.fillStyle = "rgba(10, 7, 8, 0.2)";
   ctx.fillRect(0, 0, W, Math.max(10, H * 0.028));
+  ctx.restore();
+}
+
+function drawPaperWorldOverlay() {
+  ctx.save();
+  ctx.globalCompositeOperation = "multiply";
+  ctx.globalAlpha = 0.12;
+  ctx.fillStyle = "#efd8a5";
+  for (let i = 0; i < 90; i += 1) {
+    const x = (i * 149 + 41) % W;
+    const y = (i * 67 + 23) % H;
+    ctx.fillRect(x, y, 1 + (i % 3), 1);
+  }
+  ctx.globalCompositeOperation = "source-over";
+  const edge = ctx.createRadialGradient(W / 2, H / 2, W * 0.22, W / 2, H / 2, W * 0.72);
+  edge.addColorStop(0, "rgba(255, 247, 220, 0)");
+  edge.addColorStop(0.72, "rgba(72, 38, 18, 0.08)");
+  edge.addColorStop(1, "rgba(22, 12, 7, 0.2)");
+  ctx.fillStyle = edge;
+  ctx.fillRect(0, 0, W, H);
   ctx.restore();
 }
 
@@ -3858,20 +3869,24 @@ function drawHudLegacyPanel() {
 }
 
 function drawHudPanel(x, y, w, h) {
-  ctx.fillStyle = "rgba(232, 208, 158, 0.97)";
+  ctx.fillStyle = "rgba(19, 10, 5, 0.34)";
+  ctx.fillRect(x + 4, y + 5, w, h);
+  ctx.fillStyle = "rgba(238, 215, 167, 0.96)";
   ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = "rgba(255, 248, 220, 0.44)";
-  ctx.fillRect(x + 4, y + 4, w - 8, Math.min(22, h - 8));
-  ctx.fillStyle = "rgba(93, 63, 36, 0.08)";
-  ctx.fillRect(x + 8, y + h - 16, w - 16, 1);
-  ctx.strokeStyle = "#21140d";
-  ctx.lineWidth = 3;
+  ctx.fillStyle = "rgba(255, 250, 224, 0.34)";
+  ctx.fillRect(x + 3, y + 3, w - 6, Math.min(20, h - 6));
+  ctx.fillStyle = "rgba(118, 76, 39, 0.06)";
+  for (let i = 0; i < 5; i += 1) {
+    ctx.fillRect(x + 10 + i * 37, y + h - 12 - (i % 2), Math.max(18, w * 0.11), 1);
+  }
+  ctx.strokeStyle = "#24150d";
+  ctx.lineWidth = 2;
   ctx.strokeRect(x, y, w, h);
-  ctx.strokeStyle = "rgba(255, 244, 210, 0.46)";
+  ctx.strokeStyle = "rgba(255, 246, 214, 0.5)";
   ctx.lineWidth = 1;
-  ctx.strokeRect(x + 4, y + 4, w - 8, h - 8);
-  ctx.fillStyle = "#1f130c";
-  ctx.fillRect(x + 10, y + 8, Math.min(42, w - 20), 3);
+  ctx.strokeRect(x + 3, y + 3, w - 6, h - 6);
+  ctx.fillStyle = "#2b1a10";
+  ctx.fillRect(x + 10, y + 8, Math.min(38, w - 20), 2);
 }
 
 function drawHud() {
@@ -3895,14 +3910,12 @@ function drawHud() {
   const hudH = 126;
   const panelY = H - hudH;
   const barW = Math.min(500, Math.max(360, W * 0.3));
-  ctx.fillStyle = "rgba(37, 25, 17, 0.95)";
+  ctx.fillStyle = "rgba(44, 28, 17, 0.78)";
   ctx.fillRect(0, panelY, W, hudH);
-  ctx.fillStyle = "#19100a";
-  ctx.fillRect(0, panelY, W, 3);
-  ctx.fillStyle = "rgba(255, 229, 158, 0.2)";
-  ctx.fillRect(0, panelY + 3, W, 1);
-  ctx.fillStyle = "rgba(0, 0, 0, 0.42)";
-  ctx.fillRect(0, panelY - 6, W, 6);
+  ctx.fillStyle = "rgba(238, 211, 158, 0.2)";
+  ctx.fillRect(0, panelY, W, 1);
+  ctx.fillStyle = "rgba(12, 7, 4, 0.34)";
+  ctx.fillRect(0, panelY - 4, W, 4);
 
   drawHudPanel(18, panelY + 14, barW + 116, 92);
   drawText("HP", 40, panelY + 45, 16, "#20130c", { weight: 900 });
@@ -4088,14 +4101,14 @@ function drawMiniMap() {
   const mw = map[0].length * cell;
   const mh = map.length * cell;
   const pulse = Math.sin(performance.now() * 0.008) > 0;
-  ctx.fillStyle = "rgba(5, 4, 3, 0.62)";
+  ctx.fillStyle = "rgba(238, 215, 167, 0.9)";
   ctx.fillRect(x0 - pad, y0 - pad, mw + pad * 2, mh + pad * 2);
-  ctx.strokeStyle = "#d8bd76";
+  ctx.strokeStyle = "#24150d";
   ctx.strokeRect(x0 - pad, y0 - pad, mw + pad * 2, mh + pad * 2);
 
   for (let y = 0; y < map.length; y += 1) {
     for (let x = 0; x < map[y].length; x += 1) {
-      ctx.fillStyle = map[y][x] === "#" ? "#6a4427" : "#181410";
+      ctx.fillStyle = map[y][x] === "#" ? "#7d6243" : "#2a2118";
       ctx.fillRect(x0 + x * cell, y0 + y * cell, cell - 1, cell - 1);
     }
   }
@@ -4191,9 +4204,9 @@ function drawCrosshair() {
 
 function drawBar(x, y, w, h, pct, fill, bg, label = "") {
   const clamped = Math.max(0, Math.min(1, pct));
-  ctx.fillStyle = "#120905";
+  ctx.fillStyle = "#20130c";
   ctx.fillRect(x - 4, y - 4, w + 8, h + 8);
-  ctx.fillStyle = "#6b4a2b";
+  ctx.fillStyle = "#9d7140";
   ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
   ctx.fillStyle = bg;
   ctx.fillRect(x, y, w, h);
@@ -4203,7 +4216,7 @@ function drawBar(x, y, w, h, pct, fill, bg, label = "") {
   ctx.fillRect(x + 3, y + 3, Math.max(0, (w - 6) * clamped), h - 6);
   ctx.fillStyle = "rgba(255, 246, 208, 0.35)";
   ctx.fillRect(x + 3, y + 3, Math.max(0, (w - 6) * clamped), Math.max(2, Math.floor((h - 6) / 3)));
-  ctx.strokeStyle = "rgba(255, 234, 171, 0.92)";
+  ctx.strokeStyle = "rgba(255, 246, 214, 0.94)";
   ctx.lineWidth = 1;
   ctx.strokeRect(x, y, w, h);
   ctx.lineWidth = 1;
@@ -4216,7 +4229,7 @@ function drawBar(x, y, w, h, pct, fill, bg, label = "") {
 
 function drawText(text, x, y, size, color, options = {}) {
   const weight = options.weight || 700;
-  ctx.font = `${weight} ${size}px Malgun Gothic, Apple SD Gothic Neo, Noto Sans KR, system-ui, sans-serif`;
+  ctx.font = `${weight} ${size}px Trebuchet MS, Malgun Gothic, Apple SD Gothic Neo, Noto Sans KR, system-ui, sans-serif`;
   ctx.textBaseline = "alphabetic";
   const outline = options.outline ?? !isDarkTextColor(color);
   if (outline) {
