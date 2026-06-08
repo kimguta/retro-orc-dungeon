@@ -136,6 +136,7 @@ function joinPlayer(socket, rawName) {
     normalSnapshot: null,
     ...character,
   };
+  if (player.hp <= 0) player.hp = player.maxHp;
   players.set(socket.id, player);
   users[name] = serializeCharacter(player);
   saveUsers();

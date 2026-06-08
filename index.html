@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Paper Citadel - 종이성채</title>
-    <link rel="stylesheet" href="style.css?v=20260605-ink-2">
+    <link rel="stylesheet" href="style.css?v=20260608-ui-1">
   </head>
   <body>
     <main class="shell">
@@ -19,17 +19,17 @@
         <div class="name-panel">
           <p class="eyebrow">Paper Citadel</p>
           <h1>종이성채</h1>
-          <p class="entry-copy">이름 하나로 바로 입장해서 성채를 달리고, 친구들과 발록을 반복 트라이합니다.</p>
+          <p class="entry-copy">캐릭터명 하나로 저장 데이터를 불러와 성채에 입장합니다.</p>
           <label for="character-name">캐릭터명</label>
           <div class="name-row">
             <input id="character-name" maxlength="18" placeholder="이름 입력" required>
             <button type="submit">입장</button>
           </div>
-          <p id="name-status">캐릭터명으로 저장 데이터를 불러옵니다.</p>
+          <p id="name-status">같은 이름으로 다시 접속하면 저장된 캐릭터를 이어서 사용합니다.</p>
         </div>
       </form>
     </main>
     <script src="https://cdn.socket.io/4.8.3/socket.io.min.js"></script>
-    <script src="game.js?v=20260605-ink-2"></script>
+    <script src="game.js?v=20260608-ui-1"></script>
   </body>
 </html>

@@ -10,7 +10,9 @@ body {
   overflow: hidden;
   background: #0b0a09;
   color: #e8d7a4;
-  font-family: "Trebuchet MS", "Noto Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
 }
 
 body {
@@ -47,20 +49,18 @@ canvas {
   justify-content: center;
   gap: 5px;
   font-size: clamp(11px, 1.4vw, 13px);
-  font-weight: 600;
-  color: #2b170f;
+  font-weight: 800;
+  color: #1e120b;
   pointer-events: none;
   opacity: 0.92;
 }
 
 .help span {
   padding: 5px 10px;
-  border: 2px solid #3b291c;
+  border: 2px solid #1d130d;
   border-radius: 2px;
-  background:
-    repeating-linear-gradient(0deg, transparent 0 8px, rgba(93, 64, 37, 0.06) 8px 9px),
-    #dfc99a;
-  box-shadow: 2px 3px 0 rgba(32, 16, 10, 0.62), inset 0 1px 0 rgba(255, 250, 220, 0.48);
+  background: #f0ddb0;
+  box-shadow: 2px 3px 0 rgba(25, 12, 7, 0.72), inset 0 1px 0 rgba(255, 250, 220, 0.64);
   text-shadow: none;
 }
 
@@ -86,9 +86,8 @@ canvas {
   border: 4px solid #3a281b;
   border-radius: 3px;
   background:
-    repeating-linear-gradient(0deg, transparent 0 17px, rgba(84, 56, 31, 0.055) 17px 18px),
-    linear-gradient(105deg, rgba(255, 247, 207, 0.28), transparent 38%),
-    #d5bc87;
+    linear-gradient(105deg, rgba(255, 247, 207, 0.34), transparent 38%),
+    #e0c894;
   box-shadow:
     5px 7px 0 #120905,
     inset 0 0 0 2px rgba(84, 52, 27, 0.36),
@@ -103,7 +102,7 @@ canvas {
 .eyebrow {
   color: #65401f;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 900;
   text-transform: uppercase;
 }
 
@@ -111,6 +110,7 @@ canvas {
   margin: 7px 0 10px;
   color: #302016;
   font-size: 38px;
+  font-weight: 900;
   letter-spacing: 0;
   text-shadow: 1px 2px 0 rgba(255, 244, 205, 0.45);
 }
@@ -118,7 +118,7 @@ canvas {
 .name-panel .entry-copy {
   margin: 0 0 20px;
   color: #4a3322;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.5;
 }
 
@@ -126,8 +126,8 @@ canvas {
   display: block;
   margin-bottom: 8px;
   color: #352319;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 900;
 }
 
 .name-row {
@@ -148,7 +148,8 @@ canvas {
   width: 100%;
   padding: 0 12px;
   color: #2a1b12;
-  background: #efe0b7;
+  font-weight: 700;
+  background: #fff0c6;
   outline: none;
 }
 
@@ -160,7 +161,7 @@ canvas {
 .name-row button {
   color: #28180f;
   font-weight: 900;
-  background: #c98a42;
+  background: #d99b4e;
   box-shadow: 2px 3px 0 #71401f;
   cursor: pointer;
 }
@@ -170,4 +171,5 @@ canvas {
   min-height: 20px;
   color: #5b3c25;
   font-size: 13px;
+  font-weight: 700;
 }
