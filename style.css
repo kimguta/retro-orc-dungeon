@@ -1249,7 +1249,7 @@ canvas {
 
 .start-board .game-box {
   position: absolute;
-  left: 61.2%;
+  left: 59.8%;
   top: 25.6%;
   right: auto;
   z-index: 2;
@@ -1274,7 +1274,7 @@ canvas {
   border: 0;
   border-radius: 0;
   color: #25170e;
-  background: url("assets/start-login-panel.png?v=20260608-startpanel-2") left top / 100% 100% no-repeat;
+  background: url("assets/start-login-panel.png?v=20260608-startpanel-3") left top / 100% 100% no-repeat;
   box-shadow: none;
   backdrop-filter: none;
 }
