@@ -713,3 +713,143 @@ canvas {
     background: rgba(235, 208, 158, 0.9);
   }
 }
+
+/* Start art pass 2: keep the full illustration visible and blend the form into the parchment. */
+.name-screen {
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(84, 49, 23, 0.1), rgba(12, 7, 4, 0.5)),
+    url("assets/start-screen-board.png?v=20260608-startart-2") center / contain no-repeat,
+    linear-gradient(135deg, #2a1a0e, #0b0704);
+}
+
+.game-box {
+  top: 9%;
+  right: 6.4%;
+  width: min(29vw, 430px);
+  min-width: 330px;
+}
+
+.game-box .name-panel {
+  margin-top: min(23vh, 226px);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.game-box .name-panel::before,
+.game-box .name-panel::after,
+.game-box .box-tokens {
+  display: none;
+}
+
+.game-box .eyebrow {
+  display: inline-block;
+  margin: 0 0 18px;
+  padding: 7px 14px 6px;
+  border: 2px solid #2b1a10;
+  border-radius: 4px;
+  color: #f4dfaa;
+  background:
+    linear-gradient(180deg, rgba(255, 237, 176, 0.14), transparent),
+    #2b1a10;
+  box-shadow: 2px 3px 0 rgba(42, 22, 10, 0.34);
+  font-size: 14px;
+  letter-spacing: 0;
+  text-align: left;
+}
+
+.game-box .name-panel label {
+  display: block;
+  margin: 0 0 8px 4px;
+  color: #2a190e;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.game-box .name-row {
+  grid-template-columns: minmax(0, 1fr) 86px;
+  gap: 9px;
+}
+
+.game-box .name-row input {
+  min-height: 48px;
+  padding: 0 14px;
+  border: 3px solid #2a190e;
+  border-radius: 4px;
+  color: #2a190e;
+  background:
+    linear-gradient(180deg, rgba(255, 248, 221, 0.62), rgba(211, 164, 89, 0.12)),
+    rgba(255, 239, 196, 0.72);
+  box-shadow:
+    inset 2px 3px 0 rgba(68, 38, 17, 0.1),
+    2px 3px 0 rgba(65, 35, 14, 0.24);
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.game-box .name-row input::placeholder {
+  color: rgba(68, 42, 22, 0.62);
+}
+
+.game-box .name-row input:focus {
+  border-color: #8f2f22;
+  box-shadow:
+    inset 2px 3px 0 rgba(68, 38, 17, 0.1),
+    0 0 0 3px rgba(143, 47, 34, 0.18),
+    2px 3px 0 rgba(65, 35, 14, 0.24);
+}
+
+.game-box .name-row button {
+  min-height: 48px;
+  border: 3px solid #2a190e;
+  border-radius: 999px;
+  color: #fff0bd;
+  background:
+    radial-gradient(circle at 35% 28%, #f3c36a, #a63a25 56%, #4d1b13);
+  box-shadow:
+    3px 4px 0 rgba(64, 30, 13, 0.48),
+    inset 0 0 0 4px rgba(255, 231, 162, 0.16);
+  text-shadow: 1px 2px 0 rgba(37, 14, 8, 0.82);
+}
+
+.game-box #name-status {
+  min-height: 42px;
+  margin: 16px 4px 0;
+  padding: 10px 12px;
+  border-left: 4px solid rgba(48, 29, 16, 0.76);
+  color: #3e2716;
+  background: rgba(255, 241, 200, 0.18);
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.35;
+  text-align: left;
+}
+
+@media (max-width: 900px) {
+  .name-screen {
+    background-size: cover;
+    background-position: 34% center;
+  }
+
+  .game-box {
+    left: 50%;
+    right: auto;
+    top: auto;
+    bottom: 4%;
+    width: min(88vw, 430px);
+    min-width: 0;
+    transform: translateX(-50%);
+  }
+
+  .game-box .name-panel {
+    margin-top: 0;
+    padding: 20px;
+    border: 3px solid #2a190e;
+    border-radius: 10px;
+    background: rgba(235, 208, 158, 0.86);
+    box-shadow: 4px 6px 0 rgba(36, 18, 8, 0.5);
+  }
+}
