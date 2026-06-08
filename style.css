@@ -1238,7 +1238,7 @@ canvas {
   display: block;
   width: max(100vw, 200vh);
   aspect-ratio: 2 / 1;
-  background: url("assets/start-screen-board-wide.png?v=20260608-startalign-1") center / 100% 100% no-repeat;
+  background: url("assets/start-screen-board-wide.png?v=20260608-startalign-3") center / 100% 100% no-repeat;
   filter: drop-shadow(0 18px 0 rgba(8, 5, 3, 0.34));
   transform: translate(-50%, -50%);
 }
@@ -1249,12 +1249,12 @@ canvas {
 
 .start-board .game-box {
   position: absolute;
-  left: 61.2%;
+  left: 63.2%;
   top: 25.8%;
   right: auto;
   z-index: 2;
   display: block;
-  width: 22%;
+  width: 19.8%;
   min-width: 0;
   height: 42%;
   padding: 0;
@@ -1358,8 +1358,8 @@ canvas {
   }
 
   .start-board .game-box {
-    left: 61.4%;
+    left: 63.2%;
     top: 25%;
-    width: 22.8%;
+    width: 20.6%;
   }
 }
