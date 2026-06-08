@@ -1042,3 +1042,169 @@ canvas {
     top: 29%;
   }
 }
+
+/* Start board reset: use the finished illustration as one coherent board. */
+.name-screen {
+  display: block;
+  overflow: hidden;
+  padding: 0;
+  background:
+    linear-gradient(180deg, rgba(24, 15, 9, 0.05), rgba(24, 15, 9, 0.16)),
+    url("assets/start-screen-board.png?v=20260608-startboard-1") center / cover no-repeat,
+    #caa975;
+}
+
+.name-screen::before,
+.start-table,
+.game-box .box-lid,
+.game-box .box-tokens,
+.game-box .name-panel::before,
+.game-box .name-panel::after {
+  display: none;
+}
+
+.game-box {
+  position: absolute;
+  left: 64.6%;
+  top: 10.4%;
+  right: auto;
+  z-index: 1;
+  display: block;
+  width: 31.2%;
+  min-width: 0;
+  height: 79.5%;
+  aspect-ratio: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.game-box .name-panel {
+  position: absolute;
+  left: 9%;
+  right: 9%;
+  top: 25%;
+  width: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: #25170e;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.game-box .eyebrow {
+  display: inline-block;
+  margin: 0 0 24px;
+  padding: 7px 16px 6px;
+  border: 0;
+  border-radius: 0;
+  color: #f0d9a2;
+  background: #25170e;
+  box-shadow: 3px 4px 0 rgba(63, 40, 19, 0.18);
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.game-box .name-panel label {
+  display: block;
+  margin: 0 0 9px 3px;
+  color: #2a190f;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.game-box .name-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 78px;
+  gap: 8px;
+}
+
+.game-box .name-row input,
+.game-box .name-row button {
+  min-height: 46px;
+  border: 2px solid #2a190f;
+  border-radius: 2px;
+  font: inherit;
+}
+
+.game-box .name-row input {
+  padding: 0 12px;
+  color: #25170e;
+  background: rgba(225, 190, 124, 0.28);
+  box-shadow:
+    inset 0 -2px 0 rgba(68, 39, 17, 0.12),
+    2px 3px 0 rgba(69, 43, 20, 0.14);
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.game-box .name-row input::placeholder {
+  color: rgba(70, 43, 21, 0.62);
+}
+
+.game-box .name-row input:focus {
+  border-color: #8b2d22;
+  box-shadow:
+    inset 0 -2px 0 rgba(68, 39, 17, 0.12),
+    0 0 0 3px rgba(139, 45, 34, 0.18);
+}
+
+.game-box .name-row button {
+  color: #f4dfaa;
+  background: #7e2c21;
+  box-shadow:
+    2px 3px 0 rgba(67, 36, 16, 0.26),
+    inset 0 0 0 2px rgba(255, 231, 165, 0.12);
+  font-size: 16px;
+  font-weight: 900;
+  text-shadow: 1px 2px 0 rgba(40, 16, 9, 0.7);
+}
+
+.game-box #name-status {
+  min-height: 0;
+  margin: 17px 3px 0;
+  padding: 0;
+  border: 0;
+  color: #4b2e18;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.42;
+  text-align: left;
+}
+
+@media (max-width: 980px) {
+  .name-screen {
+    background:
+      linear-gradient(180deg, rgba(24, 15, 9, 0.04), rgba(24, 15, 9, 0.16)),
+      url("assets/parchment-bg.png?v=20260608-startboard-1") center / cover no-repeat,
+      #d7bb84;
+  }
+
+  .game-box {
+    left: 50%;
+    top: 50%;
+    width: min(86vw, 420px);
+    height: auto;
+    min-height: 360px;
+    padding: 34px 28px;
+    border: 3px solid #2a190f;
+    border-radius: 8px;
+    background:
+      linear-gradient(180deg, rgba(255, 242, 204, 0.22), rgba(156, 97, 40, 0.08)),
+      rgba(225, 190, 124, 0.42);
+    box-shadow: 7px 9px 0 rgba(69, 43, 20, 0.18);
+    transform: translate(-50%, -50%);
+  }
+
+  .game-box .name-panel {
+    position: static;
+  }
+}
