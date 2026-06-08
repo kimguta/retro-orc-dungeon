@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260608-transparent-1";
+const COMIC_SPRITE_VERSION = "20260608-clean-1";
 const comicSprites = {
   knight: loadComicSprite(`assets/sprite-knight-comic.png?v=${COMIC_SPRITE_VERSION}`, 4),
   skeleton: loadComicSprite(`assets/sprite-skeleton-comic.png?v=${COMIC_SPRITE_VERSION}`, 4),
@@ -1947,7 +1947,7 @@ function drawRemotePlayers() {
     const hopLift = Math.min(size * 0.34, Math.max(0, entry.remote.hop || 0) * 118);
     const groundY = HALF_H + H / Math.max(1, entry.dist) * 0.27;
     const y = groundY - size * 0.94 - hopLift;
-    drawFloorContact(screenX, y + size * 0.94, size, "#71d4ff", 0.3);
+    drawFloorContact(screenX, groundY, size, "#1b100a", 0.18);
     drawRemoteWarrior(entry.remote, screenX - size / 2, y, size, remoteViewMode(entry.remote));
     drawNameplate(
       screenX,
@@ -1985,7 +1985,10 @@ function drawRemoteWarrior(remote, x, y, size, view = "front") {
     drawRemoteWarriorSide(remote, x, y, px, palette, armor, attack, stride, view === "side-left");
     return;
   }
-  if (drawComicSprite("knight", remote, x - px * 3.2, y - px * 5.6, px, { width: 32, height: 40 })) {
+  const comicPx = Math.max(1.7, size / 40);
+  const comicW = 32 * comicPx;
+  const comicH = 40 * comicPx;
+  if (drawComicSprite("knight", remote, x + size * 0.5 - comicW / 2, y + size * 0.95 - comicH, comicPx, { width: 32, height: 40 })) {
     if (remote.berserk) drawSpriteAura(x + 11.5 * px, y + 13 * px, 12 * px, 16 * px, "#ff542a");
     return;
   }
@@ -2278,15 +2281,14 @@ function drawEnemy(e, x, y, size, dist) {
 }
 
 function drawFloorContact(cx, baseY, size, color, alpha = 0.24) {
-  const w = Math.max(10, size * 0.34);
-  const h = Math.max(3, size * 0.055);
+  const w = Math.max(12, size * 0.3);
+  const h = Math.max(4, size * 0.052);
   ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.fillStyle = "#110a07";
-  ctx.fillRect(Math.round(cx - w * 0.58), Math.round(baseY), Math.ceil(w * 1.16), Math.ceil(h));
-  ctx.globalAlpha = alpha * 0.84;
   ctx.fillStyle = color;
-  ctx.fillRect(Math.round(cx - w * 0.42), Math.round(baseY + h * 0.18), Math.ceil(w * 0.84), Math.max(1, Math.ceil(h * 0.32)));
+  ctx.beginPath();
+  ctx.ellipse(cx, baseY + h * 0.35, w * 0.58, h, 0, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
 }
 
@@ -2615,32 +2617,54 @@ function drawDeathBursts() {
 function drawComicBurst(cx, cy, size, palette, huge = false) {
   const outer = size * 0.52;
   const inner = size * (huge ? 0.18 : 0.22);
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(Math.sin(performance.now() * 0.004 + size) * 0.08);
   ctx.fillStyle = palette[palette.length - 1] || "#20110d";
   ctx.beginPath();
-  for (let i = 0; i < 20; i += 1) {
-    const angle = (Math.PI * 2 * i) / 20;
-    const radius = i % 2 ? inner : outer;
-    const x = cx + Math.cos(angle) * radius;
-    const y = cy + Math.sin(angle) * radius;
+  for (let i = 0; i < 22; i += 1) {
+    const angle = (Math.PI * 2 * i) / 22;
+    const wobble = 0.82 + ((i * 37) % 9) * 0.035;
+    const radius = (i % 2 ? inner : outer) * wobble;
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(angle) * radius * 0.82;
     if (i === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   }
   ctx.closePath();
   ctx.fill();
+  ctx.strokeStyle = "#1b0c07";
+  ctx.lineWidth = Math.max(2, size * 0.018);
+  ctx.stroke();
   ctx.fillStyle = palette[0] || "#ff5a22";
   ctx.beginPath();
-  for (let i = 0; i < 16; i += 1) {
-    const angle = (Math.PI * 2 * i) / 16 + 0.12;
-    const radius = i % 2 ? inner * 0.72 : outer * 0.66;
-    const x = cx + Math.cos(angle) * radius;
-    const y = cy + Math.sin(angle) * radius;
+  for (let i = 0; i < 18; i += 1) {
+    const angle = (Math.PI * 2 * i) / 18 + 0.16;
+    const radius = i % 2 ? inner * 0.62 : outer * 0.56;
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(angle) * radius * 0.78;
     if (i === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   }
   ctx.closePath();
   ctx.fill();
-  ctx.fillStyle = palette[3] || "#fff0a8";
-  ctx.fillRect(Math.round(cx - size * 0.09), Math.round(cy - size * 0.035), Math.ceil(size * 0.18), Math.max(2, Math.ceil(size * 0.07)));
+  ctx.strokeStyle = "rgba(255, 238, 190, 0.72)";
+  ctx.lineWidth = Math.max(2, size * 0.012);
+  ctx.beginPath();
+  ctx.arc(0, 0, outer * 0.34, -0.4, Math.PI * 1.05);
+  ctx.stroke();
+  for (let i = 0; i < (huge ? 12 : 8); i += 1) {
+    const angle = (Math.PI * 2 * i) / (huge ? 12 : 8) + 0.28;
+    const d = outer * (0.72 + (i % 3) * 0.18);
+    const shard = size * (0.035 + (i % 2) * 0.018);
+    ctx.fillStyle = i % 2 ? (palette[2] || "#ffd36a") : "#f1d6a5";
+    paperPoly([
+      [Math.cos(angle) * d, Math.sin(angle) * d],
+      [Math.cos(angle + 0.08) * (d + shard * 1.8), Math.sin(angle + 0.08) * (d + shard * 1.8)],
+      [Math.cos(angle + 0.22) * (d + shard), Math.sin(angle + 0.22) * (d + shard)],
+    ], ctx.fillStyle, "#25140b", 0.08);
+  }
+  ctx.restore();
 }
 
 function drawParticleSpark(cx, cy, size, color) {
@@ -3565,10 +3589,10 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showT
   const ny = dx / len;
   const palette = swordPalette();
   const upgradeScale = Math.min(12, player.weaponLevel) * 1.25;
-  const nearW = 38 + upgradeScale + lunge * 13;
-  const midW = 32 + upgradeScale * 0.72 + lunge * 6;
-  const shoulderW = Math.max(15, 23 + upgradeScale * 0.35 - lunge * 7);
-  const tipLen = 10 + upgradeScale * 0.18 + lunge * 8;
+  const nearW = 36 + upgradeScale + lunge * 12;
+  const midW = 30 + upgradeScale * 0.72 + lunge * 5;
+  const shoulderW = Math.max(18, 25 + upgradeScale * 0.35 - lunge * 5);
+  const tipLen = 18 + upgradeScale * 0.22 + lunge * 8;
   const tipInset = 0.55;
   const hiltX = nearX - dx / len * 46;
   const hiltY = nearY - dy / len * 46;
@@ -3580,13 +3604,13 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showT
     [farX - nx * shoulderW + 4, farY - ny * shoulderW + 4],
     [farX + nx * shoulderW + 4, farY + ny * shoulderW + 4],
   ]);
-  ctx.fillStyle = "#1d1009";
+  ctx.fillStyle = "#1a0d07";
   drawPolyRaw([
-    [nearX + nx * (midW + 6), nearY + ny * (midW + 6)],
-    [nearX - nx * (midW + 6), nearY - ny * (midW + 6)],
-    [farX - nx * (shoulderW + 6), farY - ny * (shoulderW + 6)],
-    [farX + dx / len * (tipLen + 4), farY + dy / len * (tipLen + 4)],
-    [farX + nx * (shoulderW + 6), farY + ny * (shoulderW + 6)],
+    [nearX + nx * (midW + 8), nearY + ny * (midW + 8)],
+    [nearX - nx * (midW + 8), nearY - ny * (midW + 8)],
+    [farX - nx * (shoulderW + 7), farY - ny * (shoulderW + 7)],
+    [farX + dx / len * (tipLen + 8), farY + dy / len * (tipLen + 8)],
+    [farX + nx * (shoulderW + 7), farY + ny * (shoulderW + 7)],
   ]);
   paperPoly([
     [nearX + nx * midW, nearY + ny * midW],
@@ -3598,11 +3622,17 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showT
     [farX + nx * shoulderW, farY + ny * shoulderW],
   ], palette.blade, palette.shadow, 0.14);
 
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.42)";
-  ctx.lineWidth = 3;
+  ctx.strokeStyle = "rgba(255, 246, 214, 0.48)";
+  ctx.lineWidth = 4;
   ctx.beginPath();
   ctx.moveTo(nearX + nx * midW * 0.22, nearY + ny * midW * 0.22);
   ctx.lineTo(farX + dx / len * tipLen * 0.48 + nx * shoulderW * 0.05, farY + dy / len * tipLen * 0.48 + ny * shoulderW * 0.05);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(37, 20, 10, 0.34)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(nearX - nx * midW * 0.18, nearY - ny * midW * 0.18);
+  ctx.lineTo(farX + dx / len * tipLen * 0.34 - nx * shoulderW * 0.04, farY + dy / len * tipLen * 0.34 - ny * shoulderW * 0.04);
   ctx.stroke();
 
   paperPoly([
@@ -3610,21 +3640,21 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showT
     [nearX - nx * 66 + dx / len * 10, nearY - ny * 66 + dy / len * 10],
     [nearX - nx * 54 - dx / len * 16, nearY - ny * 54 - dy / len * 16],
     [nearX + nx * 54 - dx / len * 16, nearY + ny * 54 - dy / len * 16],
-  ], palette.guard, "#31200f", 0.2);
+  ], palette.guard, "#261409", 0.2);
 
   paperPoly([
     [nearX + nx * 22, nearY + ny * 22],
     [nearX - nx * 22, nearY - ny * 22],
     [hiltX - nx * 16, hiltY - ny * 16],
     [hiltX + nx * 16, hiltY + ny * 16],
-  ], "#70431f", "#2e190b", 0.16);
+  ], "#72431f", "#281308", 0.16);
 
   paperPoly([
     [hiltX + nx * 26 - dx / len * 4, hiltY + ny * 26 - dy / len * 4],
     [hiltX - nx * 26 - dx / len * 4, hiltY - ny * 26 - dy / len * 4],
     [hiltX - nx * 20 - dx / len * 28, hiltY - ny * 20 - dy / len * 28],
     [hiltX + nx * 20 - dx / len * 28, hiltY + ny * 20 - dy / len * 28],
-  ], "#b8773d", "#3c2111", 0.22);
+  ], "#bd7b3e", "#32190c", 0.22);
 
   if (showTrail && (lunge > 0.42 || special)) {
     ctx.strokeStyle = special ? palette.specialTrail : palette.trail;
