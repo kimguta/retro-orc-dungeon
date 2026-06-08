@@ -40,9 +40,23 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
+const COMIC_SPRITE_VERSION = "20260608-comic-1";
+const comicSprites = {
+  knight: loadComicSprite(`assets/sprite-knight-comic.png?v=${COMIC_SPRITE_VERSION}`, 4),
+  skeleton: loadComicSprite(`assets/sprite-skeleton-comic.png?v=${COMIC_SPRITE_VERSION}`, 4),
+  orc: loadComicSprite(`assets/sprite-orc-comic.png?v=${COMIC_SPRITE_VERSION}`, 4),
+  balrog: loadComicSprite(`assets/sprite-balrog-comic.png?v=${COMIC_SPRITE_VERSION}`, 3),
+};
 const PAPER_ATLAS_CELL_W = 500;
 const PAPER_ATLAS_CELL_H = 600;
 const PAPER_ATLAS_INDEX = { knight: 0, skeleton: 1, orc: 2, warlock: 3, balrog: 4 };
+
+function loadComicSprite(src, frames) {
+  const img = new Image();
+  img.decoding = "async";
+  img.src = src;
+  return { img, frames };
+}
 
 const MAP_W = 64;
 const MAP_H = 36;
@@ -203,6 +217,16 @@ const SPAWN_POINTS = [
 ];
 
 const TOWN_NPCS = [];
+const CODEX_KNIGHT = {
+  id: "codex-knight",
+  x: 6.4,
+  y: 3.6,
+  name: "Codex",
+  hp: 1,
+  maxHp: 1,
+  moving: false,
+  action: "idle",
+};
 const TOWN_PROPS = [];
 const ZONE_PROPS = [
   { type: "grave", x: 6.5, y: 17.5 },
@@ -1950,6 +1974,10 @@ function drawRemoteWarrior(remote, x, y, size, view = "front") {
     drawRemoteWarriorSide(remote, x, y, px, palette, armor, attack, stride, view === "side-left");
     return;
   }
+  if (drawComicSprite("knight", remote, x - px * 3.2, y - px * 5.6, px, { width: 32, height: 40 })) {
+    if (remote.berserk) drawSpriteAura(x + 11.5 * px, y + 13 * px, 12 * px, 16 * px, "#ff542a");
+    return;
+  }
   if (drawPaperKnightSprite(remote, x - px * 1.8, y - px * 3.2, px)) {
     drawRemoteSword(x + px * 0.7, y + px * 0.9, px, palette, attack);
     if (remote.berserk) drawSpriteAura(x + 12 * px, y + 14 * px, 11 * px, 15 * px, "#ff542a");
@@ -2009,6 +2037,43 @@ function drawPaperKnightSprite(entity, x, y, px) {
   ctx.drawImage(paperKnight, -width / 2, -height / 2, width, height);
   ctx.restore();
   return true;
+}
+
+function drawComicSprite(kind, entity, x, y, px, options = {}) {
+  const sprite = comicSprites[kind];
+  if (!sprite || !sprite.img.complete || !sprite.img.naturalWidth) return false;
+  const frame = comicFrame(kind, entity, sprite.frames);
+  const frameW = sprite.img.naturalWidth / sprite.frames;
+  const frameH = sprite.img.naturalHeight;
+  const width = (options.width || 28) * px;
+  const height = (options.height || 34) * px;
+  const attack = Math.max(0, entity.attackPose || 0);
+  const windup = Math.max(0, entity.attackWindup || 0);
+  const hurt = Math.max(0, entity.hitFlash || 0);
+  const hop = Math.max(0, entity.hop || 0);
+  ctx.save();
+  ctx.translate(x + width / 2, y + height / 2 - hop * px * 5);
+  ctx.rotate((windup * -0.03 + attack * 0.045) * (options.flip ? -1 : 1));
+  ctx.scale((options.flip ? -1 : 1) * (1 + attack * 0.03), 1 - attack * 0.015 + hop * 0.025);
+  if (hurt > 0) ctx.filter = `brightness(${1 + Math.min(0.55, hurt * 1.7)}) saturate(1.16)`;
+  ctx.drawImage(sprite.img, frame * frameW, 0, frameW, frameH, -width / 2, -height / 2, width, height);
+  ctx.restore();
+  return true;
+}
+
+function comicFrame(kind, entity, frames) {
+  const hurt = (entity.hitFlash || 0) > 0.08 || entity.action === "hurt";
+  const attack = (entity.attackPose || 0) > 0 || (entity.attackWindup || 0) > 0 || entity.action === "attack" || entity.action === "specialAttack";
+  const moving = Boolean(entity.moving) || Math.abs(Math.sin(entity.step || 0)) > 0.62;
+  if (kind === "balrog") {
+    if (hurt && frames > 2) return 2;
+    if (attack && frames > 1) return 1;
+    return 0;
+  }
+  if (hurt && frames > 3) return 3;
+  if (attack && frames > 2) return 2;
+  if (moving && frames > 1) return 1;
+  return 0;
 }
 
 function drawPaperAtlasSprite(kind, entity, x, y, px, options = {}) {
@@ -2217,6 +2282,7 @@ function drawFloorContact(cx, baseY, size, color, alpha = 0.24) {
 function drawTownSprites() {
   const sprites = [
     ...WORLD_PROPS.map((prop) => ({ kind: "prop", data: prop })),
+    { kind: "codex", data: CODEX_KNIGHT },
     ...TOWN_NPCS.map((npc) => ({ kind: "npc", data: npc })),
   ]
     .map((sprite) => {
@@ -2231,7 +2297,17 @@ function drawTownSprites() {
     const screenX = W / 2 + Math.tan(s.angle) * (W / FOV);
     const depthIndex = Math.floor((screenX / W) * RAYS);
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < s.dist - 0.2) continue;
-    if (s.kind === "npc") {
+    if (s.kind === "codex") {
+      const size = Math.min(190, (H / s.dist) * 0.42);
+      const groundY = HALF_H + H / Math.max(1, s.dist) * 0.27;
+      const y = groundY - size * 0.94;
+      const px = Math.max(2, Math.floor(size / 34));
+      drawFloorContact(screenX, y + size * 0.94, size, "#78d7ff", 0.2);
+      if (!drawComicSprite("knight", s.data, screenX - size * 0.56, y - size * 0.06, px, { width: 32, height: 40 })) {
+        drawPaperKnightSprite(s.data, screenX - size * 0.42, y, px);
+      }
+      drawNameplate(screenX, y - Math.max(22, size * 0.08), Math.max(64, Math.min(112, size * 0.52)), s.data.name, 1, "#64d6ff");
+    } else if (s.kind === "npc") {
       const size = Math.min(180, (H / s.dist) * 0.36);
       const groundY = HALF_H + H / Math.max(1, s.dist) * 0.27;
       const y = groundY - size * 0.94;
@@ -2950,12 +3026,11 @@ function drawSkeleton(e, x, y, size, dist) {
   x += walk * px * 0.42 + idle * px * 0.12;
   ctx.globalAlpha = 1;
   if (!king) {
-    if (drawPaperAtlasSprite("skeleton", e, x - 4 * px, y - 2 * px, px, { width: 25, height: 30 })) return;
+    if (drawComicSprite("skeleton", e, x - 5.5 * px, y - 5.4 * px, px, { width: 29, height: 36 })) return;
     drawPaperSkeletonSprite(e, x, y, px, bone, shade, eye, walk, hurt);
     ctx.globalAlpha = 1;
     return;
   }
-  if (drawPaperAtlasSprite("skeleton", e, x - 5.5 * px, y - 4 * px, px, { width: 29, height: 34 })) return;
   drawPaperSkeletonBossSprite(e, x, y, px, bone, shade, eye, walk, hurt, deathKnight);
   ctx.globalAlpha = 1;
   return;
@@ -3065,7 +3140,7 @@ function drawBalrog(e, x, y, size, dist) {
   y += bob + idle * px * 0.34 - attack * 4 * px + (winding ? 2 * px : 0);
   x += walk * px * 0.28;
   ctx.globalAlpha = 1;
-  if (drawPaperAtlasSprite("balrog", e, x - 10 * px, y - 5 * px, px, { width: 40, height: 44 })) return;
+  if (drawComicSprite("balrog", e, x - 17 * px, y - 9 * px, px, { width: 58, height: 54 })) return;
   drawPaperBalrogSprite(e, x, y, px, flash, walk, attack, winding);
   ctx.globalAlpha = 1;
   return;
@@ -3139,12 +3214,8 @@ function drawOrc(e, x, y, size, dist) {
   const eye = dark ? "#e12621" : "#f0d447";
 
   ctx.globalAlpha = 1;
-  const atlasScale = ogreLord ? 1.32 : ogre ? 1.2 : dark ? 1.12 : 1;
-  if (drawPaperAtlasSprite("orc", e, x - (4 + (atlasScale - 1) * 8) * px, y - (3 + (atlasScale - 1) * 8) * px, px, {
-    width: 27 * atlasScale,
-    height: 32 * atlasScale,
-  })) return;
   if (!dark && !ogre) {
+    if (drawComicSprite("orc", e, x - 6.3 * px, y - 6.2 * px, px, { width: 32, height: 38 })) return;
     drawPaperOrcSprite(e, x, y, px, skin, skinLight, shadow, deepShadow, armor, armorLight, eye, walk, attack, winding, hurt);
     ctx.globalAlpha = 1;
     return;
