@@ -40,10 +40,13 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260609-item-sprites-1";
+const COMIC_SPRITE_VERSION = "20260609-target-sword-1";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
+const targetSwordIcon = new Image();
+targetSwordIcon.decoding = "async";
+targetSwordIcon.src = `assets/target-sword-icon.png?v=${COMIC_SPRITE_VERSION}`;
 const swordTintCanvas = document.createElement("canvas");
 const swordTintCtx = swordTintCanvas.getContext("2d");
 const comicSprites = {
@@ -1664,7 +1667,6 @@ function draw() {
   drawSprites();
   drawRemotePlayers();
   drawProjectiles();
-  drawDeathBursts();
   drawDeathParticles();
   drawDamagePops();
   drawItems();
@@ -3533,7 +3535,6 @@ function drawWeapon() {
   const special = swingType === "special" && swing > 0;
   if (special) {
     drawSpecialSword(progress);
-    if (hitSpark > 0) drawHitSpark();
     return;
   }
   const windup = progress < 0.18 ? progress / 0.18 : 1;
@@ -3554,8 +3555,6 @@ function drawWeapon() {
     alpha: 1,
     tint: lunge > 0.08,
   });
-
-  if (hitSpark > 0) drawHitSpark();
 }
 
 function drawSpecialSword(progress) {
@@ -4448,30 +4447,22 @@ function drawCrosshair() {
   const cx = W / 2;
   const cy = H / 2;
   const normalTarget = getAttackHits(2.15, 0.38)[0];
-  const specialTarget = normalTarget || getAttackHits(3.05, 0.62)[0];
-  const strong = Boolean(normalTarget);
-  const warm = Boolean(specialTarget);
-  const size = strong ? 22 : warm ? 18 : 13;
-  const gap = strong ? 7 : warm ? 8 : 10;
-  ctx.strokeStyle = strong
-    ? "rgba(51, 220, 255, 0.98)"
-    : warm
-      ? "rgba(255, 82, 98, 0.72)"
-      : "rgba(110, 205, 255, 0.2)";
-  ctx.lineWidth = strong ? 3 : 2;
-  ctx.beginPath();
-  ctx.moveTo(cx - size, cy);
-  ctx.lineTo(cx - gap, cy);
-  ctx.moveTo(cx + gap, cy);
-  ctx.lineTo(cx + size, cy);
-  ctx.moveTo(cx, cy - size);
-  ctx.lineTo(cx, cy - gap);
-  ctx.moveTo(cx, cy + gap);
-  ctx.lineTo(cx, cy + size);
-  ctx.stroke();
-  if (strong) {
-    ctx.fillStyle = "rgba(75, 235, 255, 0.96)";
-    ctx.fillRect(cx - 3, cy - 3, 6, 6);
+  if (!normalTarget) return;
+  if (targetSwordIcon.complete && targetSwordIcon.naturalWidth) {
+    const iconH = 54;
+    const iconW = iconH * (targetSwordIcon.naturalWidth / targetSwordIcon.naturalHeight);
+    ctx.save();
+    ctx.globalAlpha = 0.94;
+    ctx.translate(cx, cy - 3);
+    ctx.rotate(-0.08 + Math.sin(performance.now() * 0.01) * 0.025);
+    ctx.drawImage(targetSwordIcon, -iconW / 2, -iconH / 2, iconW, iconH);
+    ctx.restore();
+  } else {
+    ctx.save();
+    ctx.strokeStyle = "rgba(51, 220, 255, 0.98)";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(cx - 10, cy - 10, 20, 20);
+    ctx.restore();
   }
 }
 
