@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260609-target-crosshair-1";
+const COMIC_SPRITE_VERSION = "20260609-server-projectiles-1";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -1027,6 +1027,12 @@ function applyServerDungeon(dungeon) {
     ...previous.get(enemy.id),
     ...enemy,
   }));
+  const previousProjectiles = new Map(projectiles.map((projectile) => [projectile.id, projectile]));
+  projectiles = (dungeon.projectiles || []).map((projectile) => ({
+    bob: previousProjectiles.get(projectile.id)?.bob ?? Math.random() * Math.PI * 2,
+    ...projectile,
+    serverOwned: true,
+  }));
 }
 
 function buildBaseMap() {
@@ -1310,6 +1316,7 @@ function update(dt) {
       continue;
     }
     if (Math.hypot(player.x - p.x, player.y - p.y) < (p.radius || 0.34)) {
+      if (p.serverOwned) continue;
       damagePlayer(p.damage, p.x, p.y);
       addRage(6);
       screenShake = Math.max(screenShake, p.type === "fire" ? 1.2 : 0.6);

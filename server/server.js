@@ -188,8 +188,10 @@ function createRoom(saved = null) {
     mapPattern: pattern,
     map: buildMap(pattern),
     enemies,
+    projectiles: [],
     balrogRespawnAt: Math.max(0, Math.floor(Number(saved?.balrogRespawnAt) || 0)),
     nextEnemyId: Math.max(1000, Math.floor(Number(saved?.nextEnemyId) || 1000), ...enemies.map((enemy) => numericEnemyId(enemy.id) + 1)),
+    nextProjectileId: 1,
   };
 }
 
@@ -200,7 +202,9 @@ function resetDungeon() {
   room.map = buildMap(0);
   room.balrogRespawnAt = 0;
   room.enemies = baseSpawns(0).map((spawn, index) => makeEnemy(spawn, index, 1));
+  room.projectiles = [];
   room.nextEnemyId = 1000;
+  room.nextProjectileId = 1;
   ensureMonsterPopulation();
   saveRoom();
   io.to(ROOM_ID).emit("dungeon:update", publicDungeon());
@@ -237,6 +241,21 @@ function publicDungeon() {
     mapPattern: room.mapPattern,
     playerCount: players.size,
     enemies: room.enemies.map(publicEnemy),
+    projectiles: room.projectiles.map(publicProjectile),
+  };
+}
+
+function publicProjectile(projectile) {
+  return {
+    id: projectile.id,
+    x: round2(projectile.x),
+    y: round2(projectile.y),
+    vx: round2(projectile.vx),
+    vy: round2(projectile.vy),
+    life: Math.max(0, Number(projectile.life) || 0),
+    radius: projectile.radius,
+    damage: projectile.damage,
+    type: projectile.type,
   };
 }
 
@@ -296,6 +315,7 @@ function publishPlayers() {
 
 function tickDungeon(dt) {
   ensureMonsterPopulation();
+  updateProjectiles(dt);
   const now = Date.now();
   for (const enemy of room.enemies) {
     enemy.hitFlash = Math.max(0, enemy.hitFlash - dt * 5);
@@ -318,6 +338,11 @@ function tickDungeon(dt) {
       continue;
     }
     const reach = enemy.attackRange + enemy.radius * 0.65 + 0.18;
+    if (enemy.projectile && dist < 2.5) {
+      moveOnMap(enemy, -(dx / dist) * enemy.speed * dt, -(dy / dist) * enemy.speed * dt, enemy.radius);
+      enemy.moving = true;
+      continue;
+    }
     if (dist > reach) {
       moveOnMap(enemy, (dx / dist) * enemy.speed * dt, (dy / dist) * enemy.speed * dt, enemy.radius);
       enemy.moving = true;
@@ -327,10 +352,52 @@ function tickDungeon(dt) {
     if (now >= enemy.nextAttackAt) {
       enemy.nextAttackAt = now + Math.floor((enemy.type === "balrog" ? 1250 : enemy.boss ? 1100 : 950));
       enemy.attackPose = 1;
-      damagePlayerFromEnemy(target, enemy);
+      if (enemy.projectile) spawnEnemyProjectile(enemy, target);
+      else damagePlayerFromEnemy(target, enemy);
     }
   }
   separateEnemies(dt);
+}
+
+function spawnEnemyProjectile(enemy, target) {
+  const dx = target.x - enemy.x;
+  const dy = target.y - enemy.y;
+  const dist = Math.hypot(dx, dy) || 1;
+  const ux = dx / dist;
+  const uy = dy / dist;
+  const fire = enemy.type === "balrog";
+  room.projectiles.push({
+    id: `p-${room.nextProjectileId++}`,
+    x: enemy.x + ux * 0.42,
+    y: enemy.y + uy * 0.42,
+    vx: ux * (fire ? 4.1 : 3.35),
+    vy: uy * (fire ? 4.1 : 3.35),
+    damage: fire ? Math.ceil(enemy.damage * 0.72) : enemy.damage,
+    life: fire ? 1.8 : 2.7,
+    radius: fire ? 0.48 : 0.34,
+    type: fire ? "fire" : "magic",
+  });
+}
+
+function updateProjectiles(dt) {
+  for (let i = room.projectiles.length - 1; i >= 0; i -= 1) {
+    const projectile = room.projectiles[i];
+    projectile.x += projectile.vx * dt;
+    projectile.y += projectile.vy * dt;
+    projectile.life -= dt;
+    if (projectile.life <= 0 || isWall(room.map, projectile.x, projectile.y)) {
+      room.projectiles.splice(i, 1);
+      continue;
+    }
+    for (const player of players.values()) {
+      if (inSafeZone(player.x, player.y) || player.hp <= 0) continue;
+      if (Math.hypot(player.x - projectile.x, player.y - projectile.y) < projectile.radius) {
+        damagePlayerFromProjectile(player, projectile);
+        room.projectiles.splice(i, 1);
+        break;
+      }
+    }
+  }
 }
 
 function separateEnemies(dt) {
@@ -400,6 +467,15 @@ function damagePlayerFromEnemy(player, enemy) {
   if (player.hp === 0) player.deaths += 1;
   persistCharacter(player);
   io.to(player.id).emit("player:damaged", { damage, hp: player.hp, sourceX: enemy.x, sourceY: enemy.y });
+}
+
+function damagePlayerFromProjectile(player, projectile) {
+  const mitigation = Math.min(0.82, player.armorLevel / (player.armorLevel + 90));
+  const damage = Math.max(1, Math.ceil(projectile.damage * (1 - mitigation)));
+  player.hp = Math.max(0, player.hp - damage);
+  if (player.hp === 0) player.deaths += 1;
+  persistCharacter(player);
+  io.to(player.id).emit("player:damaged", { damage, hp: player.hp, sourceX: projectile.x, sourceY: projectile.y });
 }
 
 function attackEnemies(socket, attack) {
