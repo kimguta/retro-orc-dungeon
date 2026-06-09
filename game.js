@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260609-remote-scale-1";
+const COMIC_SPRITE_VERSION = "20260609-remote-scale-2";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -229,16 +229,6 @@ const SPAWN_POINTS = [
 ];
 
 const TOWN_NPCS = [];
-const CODEX_KNIGHT = {
-  id: "codex-knight",
-  x: 6.4,
-  y: 3.6,
-  name: "Codex",
-  hp: 1,
-  maxHp: 1,
-  moving: false,
-  action: "idle",
-};
 const TOWN_PROPS = [];
 const ZONE_PROPS = [
   { type: "grave", x: 6.5, y: 17.5 },
@@ -1946,9 +1936,9 @@ function drawRemotePlayers() {
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < entry.dist - 0.2) continue;
     const hopLift = Math.min(size * 0.34, Math.max(0, entry.remote.hop || 0) * 118);
     const groundY = HALF_H + H / Math.max(1, entry.dist) * 0.27;
-    const y = groundY - size * 0.94 - hopLift;
+    const y = groundY - size * 0.82 - hopLift;
     drawFloorContact(screenX, groundY, size, "#1b100a", 0.18);
-    drawRemoteWarrior(entry.remote, screenX - size / 2, y, size, remoteViewMode(entry.remote));
+    drawRemoteWarrior(entry.remote, screenX - size / 2, y, size);
     drawNameplate(
       screenX,
       y - Math.max(22, size * 0.08),
@@ -1960,15 +1950,7 @@ function drawRemotePlayers() {
   }
 }
 
-function remoteViewMode(remote) {
-  const bearing = Math.atan2(remote.y - player.y, remote.x - player.x);
-  const facing = normAngle((remote.angle || 0) - bearing);
-  if (Math.abs(facing) < Math.PI * 0.34) return "back";
-  if (Math.abs(facing) > Math.PI * 0.66) return "front";
-  return facing > 0 ? "side-right" : "side-left";
-}
-
-function drawRemoteWarrior(remote, x, y, size, view = "front") {
+function drawRemoteWarrior(remote, x, y, size) {
   const px = Math.max(2, Math.floor(size / 24));
   const moving = Boolean(remote.moving);
   const attack = remote.action === "attack" || remote.action === "specialAttack";
@@ -1977,14 +1959,6 @@ function drawRemoteWarrior(remote, x, y, size, view = "front") {
   const palette = swordPalette(remote.weaponLevel || 0);
   const armor = armorPalette(remote.armorLevel || 0);
   y += bob - (attack ? 2 * px : 0);
-  if (view === "back") {
-    drawRemoteWarriorBack(remote, x, y, px, palette, armor, attack, stride);
-    return;
-  }
-  if (view.startsWith("side")) {
-    drawRemoteWarriorSide(remote, x, y, px, palette, armor, attack, stride, view === "side-left");
-    return;
-  }
   const comicPx = Math.max(1.7, size / 40);
   const comicW = 32 * comicPx;
   const comicH = 40 * comicPx;
@@ -2290,7 +2264,6 @@ function drawFloorContact(cx, baseY, size, color, alpha = 0.24) {
 function drawTownSprites() {
   const sprites = [
     ...WORLD_PROPS.map((prop) => ({ kind: "prop", data: prop })),
-    { kind: "codex", data: CODEX_KNIGHT },
     ...TOWN_NPCS.map((npc) => ({ kind: "npc", data: npc })),
   ]
     .map((sprite) => {
@@ -2305,17 +2278,7 @@ function drawTownSprites() {
     const screenX = W / 2 + Math.tan(s.angle) * (W / FOV);
     const depthIndex = Math.floor((screenX / W) * RAYS);
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < s.dist - 0.2) continue;
-    if (s.kind === "codex") {
-      const size = Math.min(190, (H / s.dist) * 0.42);
-      const groundY = HALF_H + H / Math.max(1, s.dist) * 0.27;
-      const y = groundY - size * 0.94;
-      const px = Math.max(2, Math.floor(size / 34));
-      drawFloorContact(screenX, y + size * 0.94, size, "#78d7ff", 0.2);
-      if (!drawComicSprite("knight", s.data, screenX - size * 0.56, y - size * 0.06, px, { width: 32, height: 40 })) {
-        drawPaperKnightSprite(s.data, screenX - size * 0.42, y, px);
-      }
-      drawNameplate(screenX, y - Math.max(22, size * 0.08), Math.max(64, Math.min(112, size * 0.52)), s.data.name, 1, "#64d6ff");
-    } else if (s.kind === "npc") {
+    if (s.kind === "npc") {
       const size = Math.min(180, (H / s.dist) * 0.36);
       const groundY = HALF_H + H / Math.max(1, s.dist) * 0.27;
       const y = groundY - size * 0.94;
