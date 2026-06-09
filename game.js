@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260609-forward-sword-4";
+const COMIC_SPRITE_VERSION = "20260609-forward-sword-5";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -521,7 +521,7 @@ function spawnDamagePop(x, y, value, boss) {
 
 function spawnDeathBurst(target) {
   const palette = deathPalette(target.type);
-  const count = target.type === "balrog" ? 86 : target.boss ? 54 : 30;
+  const count = target.type === "balrog" ? 172 : target.boss ? 108 : 60;
   screenShake = Math.max(screenShake, target.type === "balrog" ? 1.4 : target.boss ? 0.9 : 0.45);
   for (let i = 0; i < count; i += 1) {
     const angle = Math.random() * Math.PI * 2;
@@ -535,7 +535,7 @@ function spawnDeathBurst(target) {
       vz: 0.65 + Math.random() * (target.boss ? 1.7 : 1.05),
       life: 0.45 + Math.random() * (target.boss ? 0.5 : 0.34),
       maxLife: 0,
-      size: 0.036 + Math.random() * (target.boss ? 0.07 : 0.045),
+      size: 0.072 + Math.random() * (target.boss ? 0.14 : 0.09),
       kind: "paper",
       color: palette[Math.floor(Math.random() * palette.length)],
       spin: (Math.random() - 0.5) * 6,
@@ -3557,7 +3557,7 @@ function drawWeapon() {
 
   drawPlayerSwordSprite({
     x: W * (0.58 - lunge * 0.17 + recoil * 0.08) + sway * 0.08,
-    y: H * (0.94 - lunge * 0.35 + recoil * 0.1) + walkBob * 0.18,
+    y: H * (0.86 - lunge * 0.31 + recoil * 0.09) + walkBob * 0.2,
     width: Math.min(W * 0.35, H * 0.57) * (1 + lunge * 0.34),
     rotation: -0.1 + windup * 0.015 - lunge * 0.02 + recoil * 0.03,
     alpha: 1,
@@ -3588,7 +3588,7 @@ function drawSpecialSword(progress) {
   }
   drawPlayerSwordSprite({
     x: W * (0.6 - sweep * 0.17 + settle * 0.11 + (1 - charge) * 0.03),
-    y: H * (0.93 - sweep * 0.36 + settle * 0.18),
+    y: H * (0.86 - sweep * 0.32 + settle * 0.16),
     width: Math.min(W * 0.38, H * 0.62) * (1.02 + sweep * 0.3),
     rotation: -0.16 - sweep * 0.18 + settle * 0.14,
     alpha: 1,
