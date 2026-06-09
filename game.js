@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260609-forward-sword-2";
+const COMIC_SPRITE_VERSION = "20260609-forward-sword-3";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -2081,12 +2081,6 @@ function drawComicSprite(kind, entity, x, y, px, options = {}) {
     ctx.filter = `brightness(${1 + Math.min(0.5, hurt * 1.6)}) saturate(1.16)`;
   }
   ctx.drawImage(sprite.img, 0, 0, frameW, frameH, -width / 2, -height / 2, width, height);
-  if (hurt > 0) {
-    ctx.globalCompositeOperation = "source-atop";
-    ctx.globalAlpha = Math.min(0.28, hurt * 0.32);
-    ctx.fillStyle = "#ff4f42";
-    ctx.fillRect(-width / 2, -height / 2, width, height);
-  }
   ctx.restore();
   return true;
 }
@@ -3562,10 +3556,10 @@ function drawWeapon() {
   const sway = swing > 0 ? 0 : idleSway + walkSway;
 
   drawPlayerSwordSprite({
-    x: W * (0.68 - lunge * 0.18 + recoil * 0.07) + sway * 0.12,
-    y: H * (0.84 - lunge * 0.24 + recoil * 0.09) + walkBob * 0.32,
-    width: Math.min(W * 0.4, H * 0.66) * (1 + lunge * 0.3),
-    rotation: -0.05 + windup * 0.02 - lunge * 0.01 + recoil * 0.035,
+    x: W * (0.62 - lunge * 0.18 + recoil * 0.07) + sway * 0.1,
+    y: H * (0.73 - lunge * 0.24 + recoil * 0.09) + walkBob * 0.26,
+    width: Math.min(W * 0.36, H * 0.59) * (1 + lunge * 0.32),
+    rotation: -0.08 + windup * 0.02 - lunge * 0.01 + recoil * 0.035,
     alpha: 1,
     tint: lunge > 0.08,
   });
@@ -3593,10 +3587,10 @@ function drawSpecialSword(progress) {
     ctx.restore();
   }
   drawPlayerSwordSprite({
-    x: W * (0.69 - sweep * 0.18 + settle * 0.12 + (1 - charge) * 0.03),
-    y: H * (0.84 - sweep * 0.24 + settle * 0.16),
-    width: Math.min(W * 0.44, H * 0.72) * (1.02 + sweep * 0.28),
-    rotation: -0.1 - sweep * 0.22 + settle * 0.18,
+    x: W * (0.63 - sweep * 0.18 + settle * 0.12 + (1 - charge) * 0.03),
+    y: H * (0.75 - sweep * 0.24 + settle * 0.16),
+    width: Math.min(W * 0.39, H * 0.64) * (1.02 + sweep * 0.28),
+    rotation: -0.14 - sweep * 0.2 + settle * 0.16,
     alpha: 1,
     tint: true,
   });
