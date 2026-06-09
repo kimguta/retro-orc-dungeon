@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260609-sword-sprite-1";
+const COMIC_SPRITE_VERSION = "20260609-paper-burst-sword-1";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -518,8 +518,28 @@ function spawnDamagePop(x, y, value, boss) {
 }
 
 function spawnDeathBurst(target) {
-  deathParticles = [];
-  deathBursts = [];
+  const palette = deathPalette(target.type);
+  const count = target.type === "balrog" ? 86 : target.boss ? 54 : 30;
+  screenShake = Math.max(screenShake, target.type === "balrog" ? 1.4 : target.boss ? 0.9 : 0.45);
+  for (let i = 0; i < count; i += 1) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 0.35 + Math.random() * (target.boss ? 1.55 : 1.05);
+    deathParticles.push({
+      x: target.x + (Math.random() - 0.5) * target.radius * 0.75,
+      y: target.y + (Math.random() - 0.5) * target.radius * 0.75,
+      z: 0.15 + Math.random() * (target.boss ? 0.8 : 0.48),
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      vz: 0.65 + Math.random() * (target.boss ? 1.7 : 1.05),
+      life: 0.45 + Math.random() * (target.boss ? 0.5 : 0.34),
+      maxLife: 0,
+      size: 0.036 + Math.random() * (target.boss ? 0.07 : 0.045),
+      kind: "paper",
+      color: palette[Math.floor(Math.random() * palette.length)],
+      spin: (Math.random() - 0.5) * 6,
+    });
+    deathParticles[deathParticles.length - 1].maxLife = deathParticles[deathParticles.length - 1].life;
+  }
 }
 
 function deathPalette(type) {
@@ -2560,15 +2580,7 @@ function drawDeathParticles() {
     ctx.save();
     ctx.globalAlpha = alpha;
     const py = HALF_H - lift - size / 2;
-    if (s.p.kind === "spark") {
-      drawParticleSpark(screenX, py + size / 2, size, s.p.color);
-    } else if (s.p.kind === "puff") {
-      drawParticlePuff(screenX, py + size / 2, size, s.p.color);
-    } else if (s.p.kind === "confetti") {
-      drawParticleConfetti(screenX, py + size / 2, size, s.p.color, s.p.vx + s.p.vy);
-    } else {
-      drawParticleShard(screenX, py + size / 2, size, s.p.color);
-    }
+    drawParticlePaper(screenX, py + size / 2, size, s.p.color, s.p.spin + s.p.life * 3);
     ctx.restore();
   }
 }
@@ -2680,6 +2692,22 @@ function drawParticleConfetti(cx, cy, size, color, spin = 0) {
   ctx.fillRect(Math.round(-w / 2), Math.round(-h / 2), Math.ceil(w), Math.ceil(h));
   ctx.fillStyle = "rgba(255, 247, 209, 0.42)";
   ctx.fillRect(Math.round(-w / 2), Math.round(-h / 2), Math.ceil(w * 0.45), Math.max(1, Math.ceil(h * 0.42)));
+  ctx.restore();
+}
+
+function drawParticlePaper(cx, cy, size, color, spin = 0) {
+  const w = Math.max(4, size * 0.95);
+  const h = Math.max(3, size * (0.58 + Math.abs(Math.sin(spin)) * 0.26));
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(spin);
+  ctx.fillStyle = "rgba(34, 20, 10, 0.38)";
+  ctx.fillRect(Math.round(-w / 2 + 1), Math.round(-h / 2 + 1), Math.ceil(w), Math.ceil(h));
+  ctx.fillStyle = color || "#e8d0a5";
+  ctx.fillRect(Math.round(-w / 2), Math.round(-h / 2), Math.ceil(w), Math.ceil(h));
+  ctx.strokeStyle = "rgba(45, 27, 14, 0.58)";
+  ctx.lineWidth = Math.max(1, size * 0.08);
+  ctx.strokeRect(Math.round(-w / 2), Math.round(-h / 2), Math.ceil(w), Math.ceil(h));
   ctx.restore();
 }
 
@@ -3532,10 +3560,10 @@ function drawWeapon() {
   const sway = swing > 0 ? 0 : idleSway + walkSway;
 
   drawPlayerSwordSprite({
-    x: W * (0.71 - lunge * 0.16 + recoil * 0.07) + sway,
-    y: H * (0.88 - lunge * 0.25 + recoil * 0.08) + walkBob,
-    width: Math.min(W * 0.34, H * 0.58) * (1 + lunge * 0.28),
-    rotation: -0.15 + windup * 0.04 - lunge * 0.1 + recoil * 0.08,
+    x: W * (0.76 - lunge * 0.2 + recoil * 0.08) + sway * 0.55,
+    y: H * (0.9 - lunge * 0.23 + recoil * 0.07) + walkBob,
+    width: Math.min(W * 0.32, H * 0.54) * (1 + lunge * 0.44),
+    rotation: -0.82 + windup * 0.1 - lunge * 0.16 + recoil * 0.12,
     alpha: 1,
     tint: lunge > 0.08,
   });
@@ -3563,10 +3591,10 @@ function drawSpecialSword(progress) {
     ctx.restore();
   }
   drawPlayerSwordSprite({
-    x: W * (0.72 - sweep * 0.32 + settle * 0.24 + (1 - charge) * 0.04),
-    y: H * (0.88 - sweep * 0.2 + settle * 0.18),
-    width: Math.min(W * 0.4, H * 0.66) * (1.05 + sweep * 0.18),
-    rotation: -0.28 - sweep * 1.05 + settle * 0.82,
+    x: W * (0.78 - sweep * 0.34 + settle * 0.28 + (1 - charge) * 0.04),
+    y: H * (0.9 - sweep * 0.24 + settle * 0.18),
+    width: Math.min(W * 0.38, H * 0.64) * (1.02 + sweep * 0.22),
+    rotation: -0.9 - sweep * 0.95 + settle * 0.82,
     alpha: 1,
     tint: true,
   });
