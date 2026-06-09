@@ -40,7 +40,10 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260609-single-png-1";
+const COMIC_SPRITE_VERSION = "20260609-sword-sprite-1";
+const swordSprite = new Image();
+swordSprite.decoding = "async";
+swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
 const comicSprites = {
   knight: loadComicSprite(`assets/sprite-knight-comic.png?v=${COMIC_SPRITE_VERSION}`),
   skeleton: loadComicSprite(`assets/sprite-skeleton-comic.png?v=${COMIC_SPRITE_VERSION}`),
@@ -515,40 +518,8 @@ function spawnDamagePop(x, y, value, boss) {
 }
 
 function spawnDeathBurst(target) {
-  const palette = deathPalette(target.type);
-  const count = target.type === "balrog" ? 176 : target.boss ? 116 : target.type === "ogre" ? 88 : 68;
-  deathBursts.push({
-    x: target.x,
-    y: target.y,
-    z: target.type === "balrog" ? 0.62 : target.boss ? 0.48 : 0.34,
-    life: target.type === "balrog" ? 0.72 : target.boss ? 0.56 : 0.42,
-    maxLife: target.type === "balrog" ? 0.72 : target.boss ? 0.56 : 0.42,
-    boss: Boolean(target.boss),
-    balrog: target.type === "balrog",
-    palette,
-  });
-  screenShake = Math.max(screenShake, target.type === "balrog" ? 3.1 : target.boss ? 1.95 : 1.2);
-  for (let i = 0; i < count; i += 1) {
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 0.6 + Math.random() * (target.boss ? 2.8 : 1.9);
-    const spark = i % 6 === 0;
-    const puff = i % 13 === 0;
-    const confetti = !spark && !puff && i % 2 === 0;
-    deathParticles.push({
-      x: target.x + (Math.random() - 0.5) * target.radius,
-      y: target.y + (Math.random() - 0.5) * target.radius,
-      z: 0.2 + Math.random() * (target.boss ? 1.15 : 0.85),
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      vz: 1.05 + Math.random() * (target.boss ? 3.1 : 2.55),
-      life: 0.52 + Math.random() * (target.boss ? 0.82 : 0.52),
-      maxLife: 0,
-      size: 0.038 + Math.random() * (target.boss ? 0.11 : 0.068),
-      kind: spark ? "spark" : puff ? "puff" : confetti ? "confetti" : "shard",
-      color: palette[Math.floor(Math.random() * palette.length)],
-    });
-    deathParticles[deathParticles.length - 1].maxLife = deathParticles[deathParticles.length - 1].life;
-  }
+  deathParticles = [];
+  deathBursts = [];
 }
 
 function deathPalette(type) {
@@ -3559,13 +3530,15 @@ function drawWeapon() {
   const walkSway = moving && swing === 0 ? Math.sin(performance.now() * 0.014) * 10 : 0;
   const walkBob = moving && swing === 0 ? Math.abs(Math.sin(performance.now() * 0.014)) * 8 : 0;
   const sway = swing > 0 ? 0 : idleSway + walkSway;
-  const reach = lunge;
 
-  const nearX = W * (0.88 + (1 - windup) * 0.05 - reach * 0.24 + recoil * 0.08) + sway;
-  const nearY = H * (1.13 + (1 - windup) * 0.05 - reach * 0.24 + recoil * 0.09) + walkBob;
-  const farX = W * (0.53 - reach * 0.02) + walkSway * 0.24;
-  const farY = H * (0.8 - reach * 0.35) + walkBob * 0.36;
-  drawForwardPole(nearX, nearY, farX, farY, reach * 2.18, false, true);
+  drawPlayerSwordSprite({
+    x: W * (0.71 - lunge * 0.16 + recoil * 0.07) + sway,
+    y: H * (0.88 - lunge * 0.25 + recoil * 0.08) + walkBob,
+    width: Math.min(W * 0.34, H * 0.58) * (1 + lunge * 0.28),
+    rotation: -0.15 + windup * 0.04 - lunge * 0.1 + recoil * 0.08,
+    alpha: 1,
+    tint: lunge > 0.08,
+  });
 
   if (hitSpark > 0) drawHitSpark();
 }
@@ -3576,28 +3549,49 @@ function drawSpecialSword(progress) {
   const slashT = progress < 0.58 ? Math.max(0, (progress - 0.08) / 0.5) : Math.max(0, 1 - (progress - 0.58) / 0.26);
   const sweep = Math.sin(Math.min(1, slashT) * Math.PI);
   const settle = progress > 0.62 ? Math.min(1, (progress - 0.62) / 0.28) : 0;
-  const hiltX = W * (0.84 - sweep * 0.34 + settle * 0.26 + (1 - charge) * 0.05);
-  const hiltY = H * (1.13 - sweep * 0.18 + settle * 0.16);
-  const tipX = W * (0.72 - sweep * 0.5 + settle * 0.32);
-  const tipY = H * (0.76 - sweep * 0.44 + settle * 0.32);
 
   if (progress > 0.06 && progress < 0.62) {
     ctx.save();
-    ctx.globalAlpha = 0.18 + sweep * 0.34;
+    ctx.globalAlpha = 0.12 + sweep * 0.22;
     ctx.strokeStyle = palette.specialTrail;
-    ctx.lineWidth = 28;
+    ctx.lineWidth = 18;
     ctx.lineCap = "round";
     ctx.beginPath();
-    ctx.moveTo(W * 0.88, H * 0.9);
-    ctx.quadraticCurveTo(W * 0.56, H * 0.26, W * 0.18, H * 0.52);
-    ctx.stroke();
-    ctx.globalAlpha *= 0.6;
-    ctx.strokeStyle = "#fff8d0";
-    ctx.lineWidth = 6;
+    ctx.moveTo(W * 0.82, H * 0.9);
+    ctx.quadraticCurveTo(W * 0.5, H * 0.34, W * 0.22, H * 0.58);
     ctx.stroke();
     ctx.restore();
   }
-  drawForwardPole(hiltX, hiltY, tipX, tipY, 1.14 + sweep * 0.72, true, false);
+  drawPlayerSwordSprite({
+    x: W * (0.72 - sweep * 0.32 + settle * 0.24 + (1 - charge) * 0.04),
+    y: H * (0.88 - sweep * 0.2 + settle * 0.18),
+    width: Math.min(W * 0.4, H * 0.66) * (1.05 + sweep * 0.18),
+    rotation: -0.28 - sweep * 1.05 + settle * 0.82,
+    alpha: 1,
+    tint: true,
+  });
+}
+
+function drawPlayerSwordSprite({ x, y, width, rotation, alpha = 1, tint = false }) {
+  if (!swordSprite.complete || !swordSprite.naturalWidth) {
+    drawForwardPole(x + width * 0.24, y + width * 0.34, x - width * 0.2, y - width * 0.28, 0.5, false, false);
+    return;
+  }
+  const ratio = swordSprite.naturalHeight / swordSprite.naturalWidth;
+  const height = width * ratio;
+  const palette = swordPalette();
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(swordSprite, -width * 0.5, -height * 0.5, width, height);
+  if (tint || player.weaponLevel > 0) {
+    ctx.globalCompositeOperation = "source-atop";
+    ctx.globalAlpha = Math.min(0.42, 0.08 + Math.min(200, player.weaponLevel) / 600 + (tint ? 0.08 : 0));
+    ctx.fillStyle = palette.blade;
+    ctx.fillRect(-width * 0.5, -height * 0.5, width, height);
+  }
+  ctx.restore();
 }
 
 function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showTrail = true) {
