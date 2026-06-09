@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260609-paper-burst-sword-1";
+const COMIC_SPRITE_VERSION = "20260609-forward-sword-1";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -3560,10 +3560,10 @@ function drawWeapon() {
   const sway = swing > 0 ? 0 : idleSway + walkSway;
 
   drawPlayerSwordSprite({
-    x: W * (0.76 - lunge * 0.2 + recoil * 0.08) + sway * 0.55,
-    y: H * (0.9 - lunge * 0.23 + recoil * 0.07) + walkBob,
-    width: Math.min(W * 0.32, H * 0.54) * (1 + lunge * 0.44),
-    rotation: -0.82 + windup * 0.1 - lunge * 0.16 + recoil * 0.12,
+    x: W * (0.64 - lunge * 0.1 + recoil * 0.06) + sway * 0.18,
+    y: H * (0.78 - lunge * 0.18 + recoil * 0.08) + walkBob * 0.42,
+    width: Math.min(W * 0.48, H * 0.78) * (1 + lunge * 0.36),
+    rotation: -0.03 + windup * 0.03 - lunge * 0.02 + recoil * 0.04,
     alpha: 1,
     tint: lunge > 0.08,
   });
@@ -3591,10 +3591,10 @@ function drawSpecialSword(progress) {
     ctx.restore();
   }
   drawPlayerSwordSprite({
-    x: W * (0.78 - sweep * 0.34 + settle * 0.28 + (1 - charge) * 0.04),
-    y: H * (0.9 - sweep * 0.24 + settle * 0.18),
-    width: Math.min(W * 0.38, H * 0.64) * (1.02 + sweep * 0.22),
-    rotation: -0.9 - sweep * 0.95 + settle * 0.82,
+    x: W * (0.66 - sweep * 0.14 + settle * 0.1 + (1 - charge) * 0.04),
+    y: H * (0.8 - sweep * 0.16 + settle * 0.13),
+    width: Math.min(W * 0.52, H * 0.84) * (1.04 + sweep * 0.28),
+    rotation: -0.08 - sweep * 0.28 + settle * 0.24,
     alpha: 1,
     tint: true,
   });
