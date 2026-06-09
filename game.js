@@ -40,29 +40,29 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260609-concept-mobs-1";
+const COMIC_SPRITE_VERSION = "20260609-single-png-1";
 const comicSprites = {
-  knight: loadComicSprite(`assets/sprite-knight-comic.png?v=${COMIC_SPRITE_VERSION}`, 4),
-  skeleton: loadComicSprite(`assets/sprite-skeleton-comic.png?v=${COMIC_SPRITE_VERSION}`, 4),
-  skeletonKing: loadComicSprite(`assets/sprite-skeleton-king-comic.png?v=${COMIC_SPRITE_VERSION}`, 4),
-  deathKnight: loadComicSprite(`assets/sprite-death-knight-comic.png?v=${COMIC_SPRITE_VERSION}`, 4),
-  orc: loadComicSprite(`assets/sprite-orc-comic.png?v=${COMIC_SPRITE_VERSION}`, 4),
-  orcBoss: loadComicSprite(`assets/sprite-orc-boss-comic.png?v=${COMIC_SPRITE_VERSION}`, 4),
-  ogre: loadComicSprite(`assets/sprite-ogre-comic.png?v=${COMIC_SPRITE_VERSION}`, 4),
-  ogreLord: loadComicSprite(`assets/sprite-ogre-lord-comic.png?v=${COMIC_SPRITE_VERSION}`, 4),
-  warlock: loadComicSprite(`assets/sprite-warlock-comic.png?v=${COMIC_SPRITE_VERSION}`, 4),
-  warlockLord: loadComicSprite(`assets/sprite-warlock-lord-comic.png?v=${COMIC_SPRITE_VERSION}`, 4),
-  balrog: loadComicSprite(`assets/sprite-balrog-comic.png?v=${COMIC_SPRITE_VERSION}`, 3),
+  knight: loadComicSprite(`assets/sprite-knight-comic.png?v=${COMIC_SPRITE_VERSION}`),
+  skeleton: loadComicSprite(`assets/sprite-skeleton-comic.png?v=${COMIC_SPRITE_VERSION}`),
+  skeletonKing: loadComicSprite(`assets/sprite-skeleton-king-comic.png?v=${COMIC_SPRITE_VERSION}`),
+  deathKnight: loadComicSprite(`assets/sprite-death-knight-comic.png?v=${COMIC_SPRITE_VERSION}`),
+  orc: loadComicSprite(`assets/sprite-orc-comic.png?v=${COMIC_SPRITE_VERSION}`),
+  orcBoss: loadComicSprite(`assets/sprite-orc-boss-comic.png?v=${COMIC_SPRITE_VERSION}`),
+  ogre: loadComicSprite(`assets/sprite-ogre-comic.png?v=${COMIC_SPRITE_VERSION}`),
+  ogreLord: loadComicSprite(`assets/sprite-ogre-lord-comic.png?v=${COMIC_SPRITE_VERSION}`),
+  warlock: loadComicSprite(`assets/sprite-warlock-comic.png?v=${COMIC_SPRITE_VERSION}`),
+  warlockLord: loadComicSprite(`assets/sprite-warlock-lord-comic.png?v=${COMIC_SPRITE_VERSION}`),
+  balrog: loadComicSprite(`assets/sprite-balrog-comic.png?v=${COMIC_SPRITE_VERSION}`),
 };
 const PAPER_ATLAS_CELL_W = 500;
 const PAPER_ATLAS_CELL_H = 600;
 const PAPER_ATLAS_INDEX = { knight: 0, skeleton: 1, orc: 2, warlock: 3, balrog: 4 };
 
-function loadComicSprite(src, frames) {
+function loadComicSprite(src) {
   const img = new Image();
   img.decoding = "async";
   img.src = src;
-  return { img, frames };
+  return { img };
 }
 
 const MAP_W = 64;
@@ -2063,38 +2063,39 @@ function drawPaperKnightSprite(entity, x, y, px) {
 function drawComicSprite(kind, entity, x, y, px, options = {}) {
   const sprite = comicSprites[kind];
   if (!sprite || !sprite.img.complete || !sprite.img.naturalWidth) return false;
-  const frame = comicFrame(kind, entity, sprite.frames);
-  const frameW = sprite.img.naturalWidth / sprite.frames;
+  const frameW = sprite.img.naturalWidth;
   const frameH = sprite.img.naturalHeight;
-  const width = (options.width || 28) * px;
-  const height = (options.height || 34) * px;
+  const maxWidth = (options.width || 28) * px;
+  const maxHeight = (options.height || 34) * px;
+  const fit = Math.min(maxWidth / frameW, maxHeight / frameH);
+  const width = frameW * fit;
+  const height = frameH * fit;
   const attack = Math.max(0, entity.attackPose || 0);
   const windup = Math.max(0, entity.attackWindup || 0);
   const hurt = Math.max(0, entity.hitFlash || 0);
   const hop = Math.max(0, entity.hop || 0);
+  const moving = Boolean(entity.moving) || Math.abs(Math.sin(entity.step || 0)) > 0.62;
+  const walkBob = moving ? Math.sin(entity.step || 0) * px * 0.9 : 0;
+  const walkLean = moving ? Math.sin((entity.step || 0) * 0.65) * 0.025 : 0;
+  const attackLean = (windup * -0.045 + attack * 0.08) * (options.flip ? -1 : 1);
+  const squash = 1 - attack * 0.045 + hop * 0.025;
+  const stretch = 1 + attack * 0.04;
   ctx.save();
-  ctx.translate(x + width / 2, y + height / 2 - hop * px * 5);
-  ctx.rotate((windup * -0.03 + attack * 0.045) * (options.flip ? -1 : 1));
-  ctx.scale((options.flip ? -1 : 1) * (1 + attack * 0.03), 1 - attack * 0.015 + hop * 0.025);
-  if (hurt > 0) ctx.filter = `brightness(${1 + Math.min(0.55, hurt * 1.7)}) saturate(1.16)`;
-  ctx.drawImage(sprite.img, frame * frameW, 0, frameW, frameH, -width / 2, -height / 2, width, height);
+  ctx.translate(x + maxWidth / 2, y + maxHeight - height / 2 - hop * px * 5 + walkBob);
+  ctx.rotate(walkLean + attackLean);
+  ctx.scale((options.flip ? -1 : 1) * stretch, squash);
+  if (hurt > 0) {
+    ctx.filter = `brightness(${1 + Math.min(0.5, hurt * 1.6)}) saturate(1.16)`;
+  }
+  ctx.drawImage(sprite.img, 0, 0, frameW, frameH, -width / 2, -height / 2, width, height);
+  if (hurt > 0) {
+    ctx.globalCompositeOperation = "source-atop";
+    ctx.globalAlpha = Math.min(0.28, hurt * 0.32);
+    ctx.fillStyle = "#ff4f42";
+    ctx.fillRect(-width / 2, -height / 2, width, height);
+  }
   ctx.restore();
   return true;
-}
-
-function comicFrame(kind, entity, frames) {
-  const hurt = (entity.hitFlash || 0) > 0.08 || entity.action === "hurt";
-  const attack = (entity.attackPose || 0) > 0 || (entity.attackWindup || 0) > 0 || entity.action === "attack" || entity.action === "specialAttack";
-  const moving = Boolean(entity.moving) || Math.abs(Math.sin(entity.step || 0)) > 0.62;
-  if (kind === "balrog") {
-    if (hurt && frames > 2) return 2;
-    if (attack && frames > 1) return 1;
-    return 0;
-  }
-  if (hurt && frames > 3) return 3;
-  if (attack && frames > 2) return 2;
-  if (moving && frames > 1) return 1;
-  return 0;
 }
 
 function drawPaperAtlasSprite(kind, entity, x, y, px, options = {}) {
