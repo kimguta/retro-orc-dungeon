@@ -40,10 +40,12 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260609-forward-sword-1";
+const COMIC_SPRITE_VERSION = "20260609-forward-sword-2";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
+const swordTintCanvas = document.createElement("canvas");
+const swordTintCtx = swordTintCanvas.getContext("2d");
 const comicSprites = {
   knight: loadComicSprite(`assets/sprite-knight-comic.png?v=${COMIC_SPRITE_VERSION}`),
   skeleton: loadComicSprite(`assets/sprite-skeleton-comic.png?v=${COMIC_SPRITE_VERSION}`),
@@ -1939,7 +1941,7 @@ function drawRemotePlayers() {
 
   for (const entry of visible) {
     const screenX = W / 2 + Math.tan(entry.angle) * (W / FOV);
-    const size = Math.min(H * 0.82, (H / entry.dist) * 0.72);
+    const size = Math.min(H * 1.12, (H / Math.max(0.38, entry.dist)) * 0.92);
     const depthIndex = Math.floor((screenX / W) * RAYS);
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < entry.dist - 0.2) continue;
     const hopLift = Math.min(size * 0.34, Math.max(0, entry.remote.hop || 0) * 118);
@@ -3560,10 +3562,10 @@ function drawWeapon() {
   const sway = swing > 0 ? 0 : idleSway + walkSway;
 
   drawPlayerSwordSprite({
-    x: W * (0.64 - lunge * 0.1 + recoil * 0.06) + sway * 0.18,
-    y: H * (0.78 - lunge * 0.18 + recoil * 0.08) + walkBob * 0.42,
-    width: Math.min(W * 0.48, H * 0.78) * (1 + lunge * 0.36),
-    rotation: -0.03 + windup * 0.03 - lunge * 0.02 + recoil * 0.04,
+    x: W * (0.68 - lunge * 0.18 + recoil * 0.07) + sway * 0.12,
+    y: H * (0.84 - lunge * 0.24 + recoil * 0.09) + walkBob * 0.32,
+    width: Math.min(W * 0.4, H * 0.66) * (1 + lunge * 0.3),
+    rotation: -0.05 + windup * 0.02 - lunge * 0.01 + recoil * 0.035,
     alpha: 1,
     tint: lunge > 0.08,
   });
@@ -3591,10 +3593,10 @@ function drawSpecialSword(progress) {
     ctx.restore();
   }
   drawPlayerSwordSprite({
-    x: W * (0.66 - sweep * 0.14 + settle * 0.1 + (1 - charge) * 0.04),
-    y: H * (0.8 - sweep * 0.16 + settle * 0.13),
-    width: Math.min(W * 0.52, H * 0.84) * (1.04 + sweep * 0.28),
-    rotation: -0.08 - sweep * 0.28 + settle * 0.24,
+    x: W * (0.69 - sweep * 0.18 + settle * 0.12 + (1 - charge) * 0.03),
+    y: H * (0.84 - sweep * 0.24 + settle * 0.16),
+    width: Math.min(W * 0.44, H * 0.72) * (1.02 + sweep * 0.28),
+    rotation: -0.1 - sweep * 0.22 + settle * 0.18,
     alpha: 1,
     tint: true,
   });
@@ -3614,12 +3616,31 @@ function drawPlayerSwordSprite({ x, y, width, rotation, alpha = 1, tint = false 
   ctx.globalAlpha = alpha;
   ctx.drawImage(swordSprite, -width * 0.5, -height * 0.5, width, height);
   if (tint || player.weaponLevel > 0) {
-    ctx.globalCompositeOperation = "source-atop";
-    ctx.globalAlpha = Math.min(0.42, 0.08 + Math.min(200, player.weaponLevel) / 600 + (tint ? 0.08 : 0));
-    ctx.fillStyle = palette.blade;
-    ctx.fillRect(-width * 0.5, -height * 0.5, width, height);
+    const tintAlpha = Math.min(0.42, 0.08 + Math.min(200, player.weaponLevel) / 600 + (tint ? 0.08 : 0));
+    drawSwordTintLayer(-width * 0.5, -height * 0.5, width, height, palette.blade, tintAlpha);
   }
   ctx.restore();
+}
+
+function drawSwordTintLayer(x, y, width, height, color, alpha) {
+  if (!swordTintCtx) return;
+  const layerW = Math.max(1, Math.ceil(width));
+  const layerH = Math.max(1, Math.ceil(height));
+  if (swordTintCanvas.width !== layerW || swordTintCanvas.height !== layerH) {
+    swordTintCanvas.width = layerW;
+    swordTintCanvas.height = layerH;
+  }
+  swordTintCtx.clearRect(0, 0, layerW, layerH);
+  swordTintCtx.globalCompositeOperation = "source-over";
+  swordTintCtx.globalAlpha = 1;
+  swordTintCtx.drawImage(swordSprite, 0, 0, layerW, layerH);
+  swordTintCtx.globalCompositeOperation = "source-atop";
+  swordTintCtx.globalAlpha = alpha;
+  swordTintCtx.fillStyle = color;
+  swordTintCtx.fillRect(0, 0, layerW, layerH);
+  swordTintCtx.globalCompositeOperation = "source-over";
+  swordTintCtx.globalAlpha = 1;
+  ctx.drawImage(swordTintCanvas, x, y, width, height);
 }
 
 function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showTrail = true) {
