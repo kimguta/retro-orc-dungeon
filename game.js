@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260609-remote-scale-3";
+const COMIC_SPRITE_VERSION = "20260609-remote-scale-4";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -1936,7 +1936,7 @@ function drawRemotePlayers() {
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < entry.dist - 0.2) continue;
     const hopLift = Math.min(size * 0.34, Math.max(0, entry.remote.hop || 0) * 118);
     const groundY = HALF_H + H / Math.max(1, entry.dist) * 0.27;
-    const y = groundY - size * 0.74 - hopLift;
+    const y = groundY - size * 0.54 - hopLift;
     drawFloorContact(screenX, groundY, size, "#1b100a", 0.18);
     drawRemoteWarrior(entry.remote, screenX - size / 2, y, size);
     drawNameplate(
