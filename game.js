@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260610-bg-textures-1";
+const COMIC_SPRITE_VERSION = "20260610-bg-textures-2";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -1724,7 +1724,7 @@ function drawWorld() {
   floor.addColorStop(1, townView ? "#4d3621" : zone.floor[1]);
   ctx.fillStyle = floor;
   ctx.fillRect(0, HALF_H, W, HALF_H + 96);
-  drawStoneFloorTexture(townView);
+  // Floor texture is intentionally kept code-drawn; full-screen tiling looked like wallpaper in perspective.
   drawFloorDetails(townView);
 
   for (let r = 0; r < RAYS; r += 1) {
@@ -1831,20 +1831,21 @@ function drawPaperSkyTexture(townView) {
   const tileW = img.naturalWidth * scale;
   const offset = -((((player.angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)) / (Math.PI * 2)) * tileW;
   ctx.save();
-  ctx.globalAlpha = townView ? 0.58 : 0.72;
+  ctx.globalAlpha = townView ? 0.22 : 0.28;
   for (let x = offset - tileW; x < W + tileW; x += tileW) {
     ctx.drawImage(img, x, -72, tileW, h);
   }
   const haze = ctx.createLinearGradient(0, 0, 0, HALF_H);
-  haze.addColorStop(0, "rgba(255, 234, 180, 0.04)");
-  haze.addColorStop(0.62, "rgba(214, 166, 103, 0.08)");
-  haze.addColorStop(1, "rgba(122, 82, 48, 0.16)");
+  haze.addColorStop(0, "rgba(255, 234, 180, 0.02)");
+  haze.addColorStop(0.62, "rgba(214, 166, 103, 0.04)");
+  haze.addColorStop(1, "rgba(122, 82, 48, 0.08)");
   ctx.fillStyle = haze;
   ctx.fillRect(0, -72, W, h);
   ctx.restore();
 }
 
 function drawStoneFloorTexture(townView) {
+  return;
   const sprite = backgroundSprites.floor;
   if (!spriteReady(sprite)) return;
   const img = sprite.img;
@@ -1873,18 +1874,18 @@ function drawStoneWallColumn(hit, x, y, colW, wallH, light, faceShade, hitZone) 
   const img = sprite.img;
   const srcX = Math.max(0, Math.min(img.naturalWidth - 1, Math.floor(hit.wallU * img.naturalWidth)));
   ctx.save();
-  ctx.globalAlpha = 0.78;
+  ctx.globalAlpha = 0.24;
   ctx.drawImage(img, srcX, 0, 1, img.naturalHeight, x, y, colW, wallH);
   const zoneTint = hitZone.short === "발록방"
-    ? "rgba(110, 26, 18, 0.28)"
+    ? "rgba(110, 26, 18, 0.1)"
     : hitZone.short === "제단"
-      ? "rgba(70, 39, 106, 0.2)"
+      ? "rgba(70, 39, 106, 0.08)"
       : hitZone.short === "SAFE ZONE"
-        ? "rgba(220, 186, 116, 0.16)"
-        : "rgba(170, 126, 72, 0.13)";
+        ? "rgba(220, 186, 116, 0.06)"
+        : "rgba(170, 126, 72, 0.05)";
   ctx.fillStyle = zoneTint;
   ctx.fillRect(x, y, colW, wallH);
-  const shade = Math.min(0.48, Math.max(0.04, (246 - light) / 260 + (1 - faceShade) * 0.16));
+  const shade = Math.min(0.3, Math.max(0.03, (246 - light) / 400 + (1 - faceShade) * 0.08));
   ctx.fillStyle = `rgba(22, 14, 10, ${shade})`;
   ctx.fillRect(x, y, colW, wallH);
   ctx.restore();
