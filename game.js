@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260610-ui-sprites-5";
+const COMIC_SPRITE_VERSION = "20260610-ui-sprites-6";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -4139,31 +4139,19 @@ function drawHudPanel(x, y, w, h) {
 }
 
 function drawBoardCard(x, y, w, h, options = {}) {
-  const sprite = uiPanelSprite(w, h);
-  if (sprite?.img?.complete && sprite.img.naturalWidth) {
-    ctx.save();
-    const bleed = Math.max(18, Math.min(32, Math.min(w, h) * 0.24));
-    ctx.drawImage(sprite.img, Math.round(x - bleed), Math.round(y - bleed), Math.round(w + bleed * 2), Math.round(h + bleed * 2));
-    if (options.dark) {
-      ctx.fillStyle = "rgba(54, 27, 15, 0.28)";
-      ctx.fillRect(Math.round(x + 12), Math.round(y + 12), Math.round(w - 24), Math.round(h - 24));
-    }
-    ctx.restore();
-    return;
-  }
   ctx.save();
-  ctx.fillStyle = "rgba(17, 9, 4, 0.32)";
-  ctx.fillRect(Math.round(x + 5), Math.round(y + 6), Math.round(w), Math.round(h));
-  ctx.fillStyle = options.dark ? "rgba(70, 42, 24, 0.94)" : "rgba(239, 216, 168, 0.96)";
+  ctx.fillStyle = "rgba(17, 9, 4, 0.3)";
+  ctx.fillRect(Math.round(x + 4), Math.round(y + 5), Math.round(w), Math.round(h));
+  ctx.fillStyle = options.dark ? "rgba(64, 39, 24, 0.94)" : "rgba(238, 214, 166, 0.96)";
   ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
-  ctx.fillStyle = options.dark ? "rgba(255, 205, 126, 0.08)" : "rgba(255, 250, 224, 0.38)";
-  ctx.fillRect(Math.round(x + 4), Math.round(y + 4), Math.round(w - 8), Math.min(18, Math.round(h - 8)));
-  ctx.strokeStyle = "#24150d";
+  ctx.fillStyle = options.dark ? "rgba(255, 205, 126, 0.07)" : "rgba(255, 249, 219, 0.28)";
+  ctx.fillRect(Math.round(x + 5), Math.round(y + 5), Math.round(w - 10), Math.min(18, Math.round(h - 10)));
+  ctx.strokeStyle = "#23150d";
   ctx.lineWidth = 2;
   ctx.strokeRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
-  ctx.strokeStyle = options.dark ? "rgba(255, 213, 138, 0.24)" : "rgba(255, 246, 214, 0.56)";
+  ctx.strokeStyle = options.dark ? "rgba(255, 217, 148, 0.22)" : "rgba(93, 58, 31, 0.48)";
   ctx.lineWidth = 1;
-  ctx.strokeRect(Math.round(x + 4), Math.round(y + 4), Math.round(w - 8), Math.round(h - 8));
+  ctx.strokeRect(Math.round(x + 7), Math.round(y + 7), Math.round(w - 14), Math.round(h - 14));
   ctx.restore();
 }
 
@@ -4216,26 +4204,6 @@ function tokenSprite(label, fill = "") {
 
 function drawBoardBar(x, y, w, h, pct, fill, bg, label = "") {
   const clamped = Math.max(0, Math.min(1, pct || 0));
-  const sprite = w > 210 ? uiSprites.barLong : uiSprites.barShort;
-  if (sprite?.img?.complete && sprite.img.naturalWidth) {
-    const padX = Math.max(8, Math.round(w * 0.035));
-    const padY = Math.max(5, Math.round(h * 0.25));
-    ctx.save();
-    ctx.fillStyle = bg;
-    ctx.fillRect(Math.round(x + padX), Math.round(y + padY), Math.round(w - padX * 2), Math.max(2, Math.round(h - padY * 2)));
-    ctx.fillStyle = fill;
-    ctx.fillRect(Math.round(x + padX), Math.round(y + padY), Math.round((w - padX * 2) * clamped), Math.max(2, Math.round(h - padY * 2)));
-    ctx.fillStyle = "rgba(255, 248, 220, 0.3)";
-    ctx.fillRect(Math.round(x + padX), Math.round(y + padY), Math.round((w - padX * 2) * clamped), Math.max(2, Math.round((h - padY * 2) * 0.36)));
-    ctx.drawImage(sprite.img, Math.round(x - 16), Math.round(y - 13), Math.round(w + 32), Math.round(h + 26));
-    if (label) {
-      ctx.textAlign = "center";
-      drawText(label, x + w / 2, y + h - 5, Math.max(12, Math.min(14, h - 2)), "#fff9df", { outline: true, weight: 900 });
-      ctx.textAlign = "left";
-    }
-    ctx.restore();
-    return;
-  }
   ctx.save();
   ctx.fillStyle = "#24150d";
   ctx.fillRect(Math.round(x - 3), Math.round(y - 3), Math.round(w + 6), Math.round(h + 6));
@@ -4270,15 +4238,12 @@ function drawHud() {
     ctx.fillRect(0, 0, W, H);
   }
 
-  const hudH = 168;
-  const panelY = H - hudH;
-
   const gap = 48;
   const leftW = Math.min(560, Math.max(430, W * 0.34));
   const statW = 280;
   const equipW = 358;
-  const bottomCardH = 116;
-  const bottomCardY = panelY + 12;
+  const bottomCardH = 108;
+  const bottomCardY = H - bottomCardH - 14;
   const totalHudW = leftW + statW + equipW + gap * 2;
   const x1 = Math.max(24, Math.round((W - totalHudW) / 2));
   const x2 = x1 + leftW + gap;
@@ -4437,21 +4402,22 @@ function drawDialogue() {
 
 function drawMiniMap() {
   const cell = 5;
-  const x0 = 34;
-  const y0 = 34;
-  const pad = 3;
+  const x0 = 24;
+  const y0 = 24;
+  const pad = 8;
   const mw = map[0].length * cell;
   const mh = map.length * cell;
   const pulse = Math.sin(performance.now() * 0.008) > 0;
-  const frame = uiSprites.minimapFrame;
-  if (frame?.img?.complete && frame.img.naturalWidth) {
-    ctx.drawImage(frame.img, x0 - 30, y0 - 30, mw + 60, mh + 60);
-  } else {
-    ctx.fillStyle = "rgba(238, 215, 167, 0.86)";
-    ctx.fillRect(x0 - 10, y0 - 10, mw + 20, mh + 20);
-    ctx.strokeStyle = "#24150d";
-    ctx.strokeRect(x0 - 10, y0 - 10, mw + 20, mh + 20);
-  }
+  ctx.fillStyle = "rgba(16, 10, 6, 0.34)";
+  ctx.fillRect(x0 - pad + 4, y0 - pad + 5, mw + pad * 2, mh + pad * 2);
+  ctx.fillStyle = "rgba(232, 205, 154, 0.94)";
+  ctx.fillRect(x0 - pad, y0 - pad, mw + pad * 2, mh + pad * 2);
+  ctx.strokeStyle = "#23150d";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x0 - pad, y0 - pad, mw + pad * 2, mh + pad * 2);
+  ctx.strokeStyle = "rgba(93, 58, 31, 0.48)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x0 - pad + 4, y0 - pad + 4, mw + pad * 2 - 8, mh + pad * 2 - 8);
   ctx.fillStyle = "#2a2118";
   ctx.fillRect(x0, y0, mw, mh);
 
@@ -4521,7 +4487,7 @@ function drawMiniMap() {
   ctx.stroke();
   ctx.strokeStyle = "rgba(244, 218, 158, 0.72)";
   ctx.lineWidth = 1;
-  ctx.strokeRect(x0 - pad, y0 - pad, mw + pad * 2, mh + pad * 2);
+  ctx.strokeRect(x0, y0, mw, mh);
   ctx.lineWidth = 1;
 }
 
