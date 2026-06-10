@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260610-ui-sprites-7";
+const COMIC_SPRITE_VERSION = "20260610-ui-sprites-8";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -4177,6 +4177,24 @@ function drawBoardCard(x, y, w, h, options = {}) {
     ctx.lineTo(x + w - 18, yy + Math.sin(i + w * 0.01) * 2);
     ctx.stroke();
   }
+  ctx.globalAlpha = dark ? 0.08 : 0.13;
+  ctx.fillStyle = "#6b4628";
+  for (let i = 0; i < 16; i += 1) {
+    const nx = x + 12 + ((Math.sin(i * 18.17 + w * 0.11 + y) + 1) * 0.5) * Math.max(1, w - 24);
+    const ny = y + 10 + ((Math.sin(i * 9.41 + h * 0.19 + x) + 1) * 0.5) * Math.max(1, h - 20);
+    const dot = 0.8 + ((i % 3) * 0.45);
+    ctx.fillRect(Math.round(nx), Math.round(ny), dot, dot);
+  }
+  ctx.globalAlpha = dark ? 0.06 : 0.1;
+  ctx.strokeStyle = "#7a5634";
+  for (let i = 0; i < 5; i += 1) {
+    const nx = x + 18 + ((Math.sin(i * 7.73 + w) + 1) * 0.5) * Math.max(1, w - 36);
+    const ny = y + 14 + ((Math.sin(i * 11.9 + h) + 1) * 0.5) * Math.max(1, h - 28);
+    ctx.beginPath();
+    ctx.moveTo(nx, ny);
+    ctx.lineTo(nx + 18 + i * 3, ny + Math.sin(i + x) * 2);
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -4219,7 +4237,7 @@ function uiPanelSprite(w, h) {
 function drawToken(cx, cy, r, fill, label = "") {
   const sprite = tokenSprite(label, fill);
   if (sprite?.img?.complete && sprite.img.naturalWidth && r >= 12) {
-    const size = r * 3.05;
+    const size = r * 2.85;
     ctx.save();
     ctx.drawImage(sprite.img, Math.round(cx - size / 2), Math.round(cy - size / 2), Math.round(size), Math.round(size));
     ctx.restore();
@@ -4307,10 +4325,10 @@ function drawHud() {
   const x3 = Math.min(x2 + statW + gap, W - equipW - 18);
 
   drawBoardCard(x1, bottomCardY, leftW, bottomCardH, { tab: true });
-  drawToken(x1 + 34, bottomCardY + 37, 17, "#b94135", "HP");
+  drawToken(x1 + 34, bottomCardY + 36, 17, "#b94135", "HP");
   drawBoardBar(x1 + 72, bottomCardY + 22, leftW - 96, 28, player.hp / player.maxHp, "#d83d36", "#2b0d0a", `${player.hp}/${player.maxHp}`);
-  drawToken(x1 + 34, bottomCardY + 82, 17, berserk ? "#c94124" : "#d58a2f", "분");
-  drawBoardBar(x1 + 72, bottomCardY + 67, leftW - 96, 26, player.rage / player.maxRage, berserk ? "#f05a25" : "#d88428", "#2a1408", `${Math.floor(player.rage)}/${player.maxRage}`);
+  drawToken(x1 + 34, bottomCardY + 77, 17, berserk ? "#c94124" : "#d58a2f", "분");
+  drawBoardBar(x1 + 72, bottomCardY + 63, leftW - 96, 26, player.rage / player.maxRage, berserk ? "#f05a25" : "#d88428", "#2a1408", `${Math.floor(player.rage)}/${player.maxRage}`);
 
   drawBoardCard(x2, bottomCardY, statW, bottomCardH, { tab: true });
   drawText(`Lv. ${player.level}`, x2 + 25, bottomCardY + 38, 18, "#22140c", { weight: 900 });
