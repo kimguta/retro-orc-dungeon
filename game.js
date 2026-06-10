@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260610-ui-sprites-1";
+const COMIC_SPRITE_VERSION = "20260610-ui-sprites-2";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -4142,15 +4142,11 @@ function drawBoardCard(x, y, w, h, options = {}) {
   const sprite = uiPanelSprite(w, h);
   if (sprite?.img?.complete && sprite.img.naturalWidth) {
     ctx.save();
-    const bleed = Math.max(7, Math.min(16, Math.min(w, h) * 0.08));
+    const bleed = Math.max(10, Math.min(22, Math.min(w, h) * 0.11));
     ctx.drawImage(sprite.img, Math.round(x - bleed), Math.round(y - bleed), Math.round(w + bleed * 2), Math.round(h + bleed * 2));
     if (options.dark) {
       ctx.fillStyle = "rgba(54, 27, 15, 0.28)";
       ctx.fillRect(Math.round(x + 12), Math.round(y + 12), Math.round(w - 24), Math.round(h - 24));
-    }
-    if (options.tab) {
-      ctx.fillStyle = "rgba(39, 23, 14, 0.86)";
-      ctx.fillRect(Math.round(x + 16), Math.round(y + 12), Math.min(58, Math.round(w - 32)), 3);
     }
     ctx.restore();
     return;
@@ -4168,10 +4164,6 @@ function drawBoardCard(x, y, w, h, options = {}) {
   ctx.strokeStyle = options.dark ? "rgba(255, 213, 138, 0.24)" : "rgba(255, 246, 214, 0.56)";
   ctx.lineWidth = 1;
   ctx.strokeRect(Math.round(x + 4), Math.round(y + 4), Math.round(w - 8), Math.round(h - 8));
-  if (options.tab) {
-    ctx.fillStyle = "#2a1810";
-    ctx.fillRect(Math.round(x + 12), Math.round(y + 9), Math.min(50, Math.round(w - 24)), 3);
-  }
   ctx.restore();
 }
 
@@ -4182,9 +4174,9 @@ function uiPanelSprite(w, h) {
 }
 
 function drawToken(cx, cy, r, fill, label = "") {
-  const sprite = tokenSprite(label);
+  const sprite = tokenSprite(label, fill);
   if (sprite?.img?.complete && sprite.img.naturalWidth && r >= 12) {
-    const size = r * 2.35;
+    const size = r * 2.58;
     ctx.save();
     ctx.drawImage(sprite.img, Math.round(cx - size / 2), Math.round(cy - size / 2), Math.round(size), Math.round(size));
     ctx.restore();
@@ -4214,8 +4206,9 @@ function drawToken(cx, cy, r, fill, label = "") {
   ctx.restore();
 }
 
-function tokenSprite(label) {
+function tokenSprite(label, fill = "") {
   if (label === "HP") return uiSprites.heart;
+  if (fill === "#d58a2f" || fill === "#c94124") return uiSprites.rage;
   if (label === "분") return uiSprites.rage;
   if (label === "B") return uiSprites.skull;
   return null;
@@ -4234,7 +4227,7 @@ function drawBoardBar(x, y, w, h, pct, fill, bg, label = "") {
     ctx.fillRect(Math.round(x + padX), Math.round(y + padY), Math.round((w - padX * 2) * clamped), Math.max(2, Math.round(h - padY * 2)));
     ctx.fillStyle = "rgba(255, 248, 220, 0.3)";
     ctx.fillRect(Math.round(x + padX), Math.round(y + padY), Math.round((w - padX * 2) * clamped), Math.max(2, Math.round((h - padY * 2) * 0.36)));
-    ctx.drawImage(sprite.img, Math.round(x - 5), Math.round(y - 5), Math.round(w + 10), Math.round(h + 10));
+    ctx.drawImage(sprite.img, Math.round(x - 8), Math.round(y - 7), Math.round(w + 16), Math.round(h + 14));
     if (label) {
       ctx.textAlign = "center";
       drawText(label, x + w / 2, y + h - 5, Math.max(12, Math.min(14, h - 2)), "#fff9df", { outline: true, weight: 900 });
@@ -4279,8 +4272,6 @@ function drawHud() {
 
   const hudH = 124;
   const panelY = H - hudH;
-  ctx.fillStyle = "rgba(37, 22, 12, 0.48)";
-  ctx.fillRect(0, panelY - 5, W, hudH + 5);
 
   const gap = 12;
   const leftW = Math.min(520, Math.max(380, W * 0.34));
@@ -4449,13 +4440,16 @@ function drawMiniMap() {
   const mw = map[0].length * cell;
   const mh = map.length * cell;
   const pulse = Math.sin(performance.now() * 0.008) > 0;
-  ctx.fillStyle = "rgba(238, 215, 167, 0.78)";
+  ctx.fillStyle = "rgba(238, 215, 167, 0.9)";
   ctx.fillRect(x0 - pad, y0 - pad, mw + pad * 2, mh + pad * 2);
+  ctx.fillStyle = "#2a2118";
+  ctx.fillRect(x0, y0, mw, mh);
 
   for (let y = 0; y < map.length; y += 1) {
     for (let x = 0; x < map[y].length; x += 1) {
-      ctx.fillStyle = map[y][x] === "#" ? "#7d6243" : "#2a2118";
-      ctx.fillRect(x0 + x * cell, y0 + y * cell, cell - 1, cell - 1);
+      if (map[y][x] !== "#") continue;
+      ctx.fillStyle = "#7d6243";
+      ctx.fillRect(x0 + x * cell, y0 + y * cell, cell, cell);
     }
   }
 
@@ -4517,7 +4511,7 @@ function drawMiniMap() {
   ctx.stroke();
   const frame = uiSprites.minimapFrame;
   if (frame?.img?.complete && frame.img.naturalWidth) {
-    ctx.drawImage(frame.img, x0 - 18, y0 - 18, mw + 36, mh + 36);
+    ctx.drawImage(frame.img, x0 - 22, y0 - 22, mw + 44, mh + 44);
   } else {
     ctx.strokeStyle = "#24150d";
     ctx.strokeRect(x0 - pad, y0 - pad, mw + pad * 2, mh + pad * 2);
