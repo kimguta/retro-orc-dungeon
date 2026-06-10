@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260610-ui-sprites-6";
+const COMIC_SPRITE_VERSION = "20260610-ui-sprites-7";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -4140,19 +4140,74 @@ function drawHudPanel(x, y, w, h) {
 
 function drawBoardCard(x, y, w, h, options = {}) {
   ctx.save();
-  ctx.fillStyle = "rgba(17, 9, 4, 0.3)";
-  ctx.fillRect(Math.round(x + 4), Math.round(y + 5), Math.round(w), Math.round(h));
-  ctx.fillStyle = options.dark ? "rgba(64, 39, 24, 0.94)" : "rgba(238, 214, 166, 0.96)";
-  ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
-  ctx.fillStyle = options.dark ? "rgba(255, 205, 126, 0.07)" : "rgba(255, 249, 219, 0.28)";
-  ctx.fillRect(Math.round(x + 5), Math.round(y + 5), Math.round(w - 10), Math.min(18, Math.round(h - 10)));
-  ctx.strokeStyle = "#23150d";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
-  ctx.strokeStyle = options.dark ? "rgba(255, 217, 148, 0.22)" : "rgba(93, 58, 31, 0.48)";
+  const dark = !!options.dark;
+  ctx.fillStyle = "rgba(17, 9, 4, 0.32)";
+  parchmentPath(x + 5, y + 6, w, h, 3.8);
+  ctx.fill();
+
+  const paper = ctx.createLinearGradient(x, y, x + w, y + h);
+  paper.addColorStop(0, dark ? "rgba(75, 45, 27, 0.96)" : "rgba(246, 224, 177, 0.98)");
+  paper.addColorStop(0.5, dark ? "rgba(52, 31, 20, 0.96)" : "rgba(229, 198, 144, 0.98)");
+  paper.addColorStop(1, dark ? "rgba(84, 51, 30, 0.96)" : "rgba(241, 218, 168, 0.98)");
+  ctx.fillStyle = paper;
+  parchmentPath(x, y, w, h, 3.8);
+  ctx.fill();
+
+  ctx.fillStyle = dark ? "rgba(255, 208, 137, 0.07)" : "rgba(255, 248, 218, 0.24)";
+  parchmentPath(x + 8, y + 8, w - 16, Math.min(22, h - 16), 2.2);
+  ctx.fill();
+
+  ctx.strokeStyle = "#21140d";
+  ctx.lineWidth = 2.2;
+  parchmentPath(x, y, w, h, 3.8);
+  ctx.stroke();
+
+  ctx.strokeStyle = dark ? "rgba(255, 219, 153, 0.24)" : "rgba(98, 60, 32, 0.5)";
   ctx.lineWidth = 1;
-  ctx.strokeRect(Math.round(x + 7), Math.round(y + 7), Math.round(w - 14), Math.round(h - 14));
+  parchmentPath(x + 8, y + 8, w - 16, h - 16, 2.2);
+  ctx.stroke();
+
+  ctx.globalAlpha = dark ? 0.1 : 0.16;
+  ctx.strokeStyle = "#5b3922";
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 4; i += 1) {
+    const yy = y + 18 + i * Math.max(17, h / 5);
+    ctx.beginPath();
+    ctx.moveTo(x + 18, yy);
+    ctx.lineTo(x + w - 18, yy + Math.sin(i + w * 0.01) * 2);
+    ctx.stroke();
+  }
   ctx.restore();
+}
+
+function parchmentPath(x, y, w, h, rough = 3) {
+  const stepsX = Math.max(4, Math.round(w / 52));
+  const stepsY = Math.max(3, Math.round(h / 34));
+  ctx.beginPath();
+  for (let i = 0; i <= stepsX; i += 1) {
+    const t = i / stepsX;
+    const px = x + t * w;
+    const py = y + roughNoise(i, w + h) * rough;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  for (let i = 1; i <= stepsY; i += 1) {
+    const t = i / stepsY;
+    ctx.lineTo(x + w + roughNoise(i, x + h) * rough, y + t * h);
+  }
+  for (let i = stepsX - 1; i >= 0; i -= 1) {
+    const t = i / stepsX;
+    ctx.lineTo(x + t * w, y + h + roughNoise(i, x + y) * rough);
+  }
+  for (let i = stepsY - 1; i >= 1; i -= 1) {
+    const t = i / stepsY;
+    ctx.lineTo(x + roughNoise(i, y + w) * rough, y + t * h);
+  }
+  ctx.closePath();
+}
+
+function roughNoise(index, seed) {
+  return Math.sin(index * 12.9898 + seed * 0.017) * 0.5 + Math.sin(index * 4.1414 + seed * 0.031) * 0.35;
 }
 
 function uiPanelSprite(w, h) {
@@ -4206,9 +4261,11 @@ function drawBoardBar(x, y, w, h, pct, fill, bg, label = "") {
   const clamped = Math.max(0, Math.min(1, pct || 0));
   ctx.save();
   ctx.fillStyle = "#24150d";
-  ctx.fillRect(Math.round(x - 3), Math.round(y - 3), Math.round(w + 6), Math.round(h + 6));
-  ctx.fillStyle = "#b88448";
-  ctx.fillRect(Math.round(x - 1), Math.round(y - 1), Math.round(w + 2), Math.round(h + 2));
+  parchmentPath(x - 4, y - 4, w + 8, h + 8, 1.8);
+  ctx.fill();
+  ctx.fillStyle = "#c09154";
+  parchmentPath(x - 2, y - 2, w + 4, h + 4, 1.3);
+  ctx.fill();
   ctx.fillStyle = bg;
   ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
   ctx.fillStyle = fill;
@@ -4408,16 +4465,7 @@ function drawMiniMap() {
   const mw = map[0].length * cell;
   const mh = map.length * cell;
   const pulse = Math.sin(performance.now() * 0.008) > 0;
-  ctx.fillStyle = "rgba(16, 10, 6, 0.34)";
-  ctx.fillRect(x0 - pad + 4, y0 - pad + 5, mw + pad * 2, mh + pad * 2);
-  ctx.fillStyle = "rgba(232, 205, 154, 0.94)";
-  ctx.fillRect(x0 - pad, y0 - pad, mw + pad * 2, mh + pad * 2);
-  ctx.strokeStyle = "#23150d";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(x0 - pad, y0 - pad, mw + pad * 2, mh + pad * 2);
-  ctx.strokeStyle = "rgba(93, 58, 31, 0.48)";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x0 - pad + 4, y0 - pad + 4, mw + pad * 2 - 8, mh + pad * 2 - 8);
+  drawBoardCard(x0 - pad, y0 - pad, mw + pad * 2, mh + pad * 2);
   ctx.fillStyle = "#2a2118";
   ctx.fillRect(x0, y0, mw, mh);
 
