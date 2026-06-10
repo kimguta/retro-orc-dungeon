@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260610-bg-textures-2";
+const COMIC_SPRITE_VERSION = "20260610-citadel-render-1";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -1710,22 +1710,21 @@ function drawWorld() {
   const zone = zoneAt();
   const townView = isTown();
   const sky = ctx.createLinearGradient(0, -72, 0, HALF_H);
-  sky.addColorStop(0, townView ? "#8b7156" : zone.sky[0]);
-  sky.addColorStop(0.62, townView ? "#b69a72" : zone.sky[1]);
-  sky.addColorStop(1, townView ? "#d7bd88" : "#7a6044");
+  sky.addColorStop(0, townView ? "#2f2d2b" : "#161719");
+  sky.addColorStop(0.46, townView ? "#4d4439" : "#292723");
+  sky.addColorStop(1, townView ? "#756044" : "#4a3b2c");
   ctx.fillStyle = sky;
   ctx.fillRect(0, -72, W, HALF_H + 72);
-  drawPaperSkyTexture(townView);
+  drawCitadelUpper(townView);
   drawCeilingDetails(townView);
 
   const floor = ctx.createLinearGradient(0, HALF_H, 0, H + 96);
-  floor.addColorStop(0, townView ? "#b89b66" : zone.floor[0]);
-  floor.addColorStop(0.58, townView ? "#8d7147" : "#6d573c");
-  floor.addColorStop(1, townView ? "#4d3621" : zone.floor[1]);
+  floor.addColorStop(0, townView ? "#806b4a" : "#5b4b38");
+  floor.addColorStop(0.58, townView ? "#665033" : "#453424");
+  floor.addColorStop(1, townView ? "#332111" : "#21150d");
   ctx.fillStyle = floor;
   ctx.fillRect(0, HALF_H, W, HALF_H + 96);
-  // Floor texture is intentionally kept code-drawn; full-screen tiling looked like wallpaper in perspective.
-  drawFloorDetails(townView);
+  drawPerspectiveStoneFloor(townView);
 
   for (let r = 0; r < RAYS; r += 1) {
     const rayAngle = player.angle - FOV / 2 + (r / RAYS) * FOV;
@@ -1743,7 +1742,7 @@ function drawWorld() {
     const [wallR, wallG, wallB] = hitZone.wall;
     ctx.fillStyle = `rgb(${Math.floor(light * wallR)}, ${Math.floor(light * wallG)}, ${Math.floor(light * wallB)})`;
     ctx.fillRect(x, y, colW, wallH);
-    drawStoneWallColumn(hit, x, y, colW, wallH, light, faceShade, hitZone);
+    drawCitadelWallColumn(hit, x, y, colW, wallH, light, faceShade, hitZone, fixedDist);
 
     ctx.fillStyle = `rgba(35, 20, 12, ${1 - faceShade})`;
     ctx.fillRect(x, y, colW, wallH);
@@ -1820,6 +1819,129 @@ function drawCeilingDetails(townView) {
   ctx.fillStyle = "rgba(10, 7, 8, 0.2)";
   ctx.fillRect(0, 0, W, Math.max(10, H * 0.028));
   ctx.restore();
+}
+
+function drawCitadelUpper(townView) {
+  ctx.save();
+  const horizon = HALF_H - 18;
+  const phase = (((player.angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)) / (Math.PI * 2);
+  const scroll = phase * W * 0.45;
+
+  ctx.globalAlpha = townView ? 0.22 : 0.28;
+  ctx.strokeStyle = "rgba(18, 13, 10, 0.48)";
+  ctx.lineWidth = 2;
+  for (let i = -2; i < 8; i += 1) {
+    const x = i * 260 - (scroll % 260);
+    const top = horizon - 86 - ((i * 17) % 28);
+    const w = 72 + ((i * 23) % 42);
+    ctx.fillStyle = "rgba(38, 31, 25, 0.34)";
+    ctx.fillRect(x + 20, top + 34, w, horizon - top - 34);
+    ctx.fillRect(x + 48, top, 26, horizon - top);
+    ctx.fillRect(x + 88, top + 26, 18, horizon - top - 18);
+    ctx.beginPath();
+    ctx.moveTo(x, horizon);
+    ctx.lineTo(x + 170, horizon - 4);
+    ctx.stroke();
+  }
+
+  ctx.globalAlpha = townView ? 0.14 : 0.22;
+  ctx.fillStyle = "rgba(20, 15, 12, 0.34)";
+  ctx.fillRect(0, horizon - 5, W, 10);
+
+  const fog = ctx.createLinearGradient(0, horizon - 90, 0, HALF_H + 22);
+  fog.addColorStop(0, "rgba(0,0,0,0)");
+  fog.addColorStop(0.62, "rgba(175, 130, 78, 0.14)");
+  fog.addColorStop(1, "rgba(219, 174, 104, 0.22)");
+  ctx.fillStyle = fog;
+  ctx.fillRect(0, horizon - 100, W, 140);
+  ctx.restore();
+}
+
+function drawPerspectiveStoneFloor(townView) {
+  ctx.save();
+  const centerX = W / 2;
+  const horizon = HALF_H + 4;
+  const warm = townView ? "rgba(241, 204, 139, " : "rgba(196, 151, 88, ";
+  const dark = townView ? "rgba(54, 33, 18, " : "rgba(28, 18, 12, ";
+
+  for (let i = 1; i <= 15; i += 1) {
+    const t = i / 15;
+    const y = horizon + Math.pow(t, 1.82) * (H - horizon + 80);
+    const alpha = 0.04 + t * 0.2;
+    ctx.strokeStyle = `${dark}${alpha})`;
+    ctx.lineWidth = Math.max(1, t * 2.4);
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.quadraticCurveTo(centerX, y + t * 12, W, y + Math.sin(i) * 4);
+    ctx.stroke();
+    ctx.strokeStyle = `${warm}${alpha * 0.52})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, y + 2);
+    ctx.quadraticCurveTo(centerX, y + 2 + t * 8, W, y + 2);
+    ctx.stroke();
+  }
+
+  const lanes = [-8, -6, -4, -2, 2, 4, 6, 8];
+  for (const lane of lanes) {
+    const nearX = centerX + lane * 95;
+    const farX = centerX + lane * 10;
+    ctx.strokeStyle = `${dark}${0.12 + Math.min(0.16, Math.abs(lane) * 0.012)})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(nearX, H);
+    ctx.lineTo(farX, horizon + 10);
+    ctx.stroke();
+  }
+
+  ctx.globalAlpha = townView ? 0.08 : 0.11;
+  ctx.strokeStyle = "#d9b77a";
+  for (let i = 0; i < 24; i += 1) {
+    const y = horizon + 30 + ((i * 61) % Math.max(1, H - horizon - 40));
+    const x = (i * 137 + Math.floor(player.x * 23)) % W;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + 24 + (i % 4) * 9, y + Math.sin(i) * 3);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawCitadelWallColumn(hit, x, y, colW, wallH, light, faceShade, hitZone, fixedDist) {
+  const distFade = Math.max(0, 1 - fixedDist / 16);
+  const blockH = Math.max(42, wallH / 3.7);
+  const wallU = hit.wallU || 0;
+  const rowBase = Math.floor((hit.x + hit.y) * 1.7);
+  const jointAlpha = 0.22 + distFade * 0.35;
+  const ink = hitZone.short === "발록방" ? "45, 15, 12" : "27, 18, 12";
+  const shine = hitZone.short === "SAFE ZONE" ? "248, 220, 164" : "228, 194, 132";
+
+  for (let by = y + blockH * 0.38; by < y + wallH; by += blockH) {
+    ctx.fillStyle = `rgba(${ink}, ${jointAlpha})`;
+    ctx.fillRect(x, Math.round(by), colW, Math.max(1, wallH / 180));
+    ctx.fillStyle = `rgba(${shine}, ${0.05 + distFade * 0.05})`;
+    ctx.fillRect(x, Math.round(by) + 1, colW, 1);
+  }
+
+  const offsetU = (wallU + ((rowBase % 2) ? 0.32 : 0)) % 1;
+  if (offsetU < 0.018 || offsetU > 0.982 || Math.abs(offsetU - 0.5) < 0.012) {
+    ctx.fillStyle = `rgba(${ink}, ${0.18 + distFade * 0.42})`;
+    ctx.fillRect(x, y + wallH * 0.1, colW, wallH * 0.72);
+    ctx.fillStyle = `rgba(${shine}, ${0.04 + distFade * 0.05})`;
+    ctx.fillRect(x, y + wallH * 0.11, colW, wallH * 0.18);
+  }
+
+  const seed = Math.floor(hit.x * 17 + hit.y * 29);
+  if (fixedDist < 10 && (seed + Math.floor(wallU * 100)) % 37 === 0) {
+    const crackY = y + wallH * (0.24 + ((seed % 5) * 0.1));
+    ctx.fillStyle = `rgba(${ink}, ${0.22 + distFade * 0.24})`;
+    ctx.fillRect(x, crackY, colW, Math.max(1, wallH / 120));
+  }
+
+  ctx.fillStyle = `rgba(255, 235, 181, ${0.035 + distFade * 0.035})`;
+  ctx.fillRect(x, y + wallH * 0.08, colW, wallH * 0.18);
+  ctx.fillStyle = `rgba(13, 9, 7, ${Math.min(0.18, fixedDist / 60)})`;
+  ctx.fillRect(x, y, colW, wallH);
 }
 
 function drawPaperSkyTexture(townView) {
