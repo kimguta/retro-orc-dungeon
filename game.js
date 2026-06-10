@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260610-ui-sprites-10";
+const COMIC_SPRITE_VERSION = "20260610-ui-sprites-11";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -4235,14 +4235,9 @@ function uiPanelSprite(w, h) {
 }
 
 function drawToken(cx, cy, r, fill, label = "") {
-  const isRageIcon = fill === "#d58a2f" || fill === "#c94124";
-  if (isRageIcon) {
-    drawRageToken(cx, cy, r, fill);
-    return;
-  }
   const sprite = tokenSprite(label, fill);
   if (sprite?.img?.complete && sprite.img.naturalWidth && r >= 12) {
-    const size = r * 2.78;
+    const size = r * 2.72;
     ctx.save();
     ctx.drawImage(sprite.img, Math.round(cx - size / 2), Math.round(cy - size / 2), Math.round(size), Math.round(size));
     ctx.restore();
@@ -4269,41 +4264,6 @@ function drawToken(cx, cy, r, fill, label = "") {
     drawText(label, cx, cy + 5, 13, "#fff3cf", { outline: true, weight: 900 });
     ctx.textAlign = "left";
   }
-  ctx.restore();
-}
-
-function drawRageToken(cx, cy, r, fill) {
-  ctx.save();
-  ctx.fillStyle = "rgba(20, 9, 4, 0.32)";
-  ctx.beginPath();
-  ctx.arc(cx + 2, cy + 3, r, 0, Math.PI * 2);
-  ctx.fill();
-
-  const g = ctx.createRadialGradient(cx - r * 0.28, cy - r * 0.32, r * 0.1, cx, cy, r);
-  g.addColorStop(0, "#ffe6a0");
-  g.addColorStop(0.5, fill);
-  g.addColorStop(1, "#5a1c0d");
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = "#24150d";
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  ctx.fillStyle = "#fff1a8";
-  ctx.beginPath();
-  ctx.moveTo(cx, cy - r * 0.72);
-  ctx.bezierCurveTo(cx - r * 0.54, cy - r * 0.16, cx - r * 0.18, cy + r * 0.42, cx, cy + r * 0.5);
-  ctx.bezierCurveTo(cx + r * 0.46, cy + r * 0.12, cx + r * 0.24, cy - r * 0.42, cx, cy - r * 0.72);
-  ctx.fill();
-
-  ctx.fillStyle = "#c93519";
-  ctx.beginPath();
-  ctx.moveTo(cx + r * 0.03, cy - r * 0.48);
-  ctx.bezierCurveTo(cx - r * 0.38, cy - r * 0.03, cx - r * 0.07, cy + r * 0.34, cx + r * 0.06, cy + r * 0.36);
-  ctx.bezierCurveTo(cx + r * 0.34, cy + r * 0.08, cx + r * 0.24, cy - r * 0.28, cx + r * 0.03, cy - r * 0.48);
-  ctx.fill();
   ctx.restore();
 }
 
