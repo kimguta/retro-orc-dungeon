@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260610-ui-sprites-2";
+const COMIC_SPRITE_VERSION = "20260610-ui-sprites-3";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -4142,7 +4142,7 @@ function drawBoardCard(x, y, w, h, options = {}) {
   const sprite = uiPanelSprite(w, h);
   if (sprite?.img?.complete && sprite.img.naturalWidth) {
     ctx.save();
-    const bleed = Math.max(10, Math.min(22, Math.min(w, h) * 0.11));
+    const bleed = Math.max(12, Math.min(24, Math.min(w, h) * 0.12));
     ctx.drawImage(sprite.img, Math.round(x - bleed), Math.round(y - bleed), Math.round(w + bleed * 2), Math.round(h + bleed * 2));
     if (options.dark) {
       ctx.fillStyle = "rgba(54, 27, 15, 0.28)";
@@ -4176,7 +4176,7 @@ function uiPanelSprite(w, h) {
 function drawToken(cx, cy, r, fill, label = "") {
   const sprite = tokenSprite(label, fill);
   if (sprite?.img?.complete && sprite.img.naturalWidth && r >= 12) {
-    const size = r * 2.58;
+    const size = r * 2.7;
     ctx.save();
     ctx.drawImage(sprite.img, Math.round(cx - size / 2), Math.round(cy - size / 2), Math.round(size), Math.round(size));
     ctx.restore();
@@ -4227,7 +4227,7 @@ function drawBoardBar(x, y, w, h, pct, fill, bg, label = "") {
     ctx.fillRect(Math.round(x + padX), Math.round(y + padY), Math.round((w - padX * 2) * clamped), Math.max(2, Math.round(h - padY * 2)));
     ctx.fillStyle = "rgba(255, 248, 220, 0.3)";
     ctx.fillRect(Math.round(x + padX), Math.round(y + padY), Math.round((w - padX * 2) * clamped), Math.max(2, Math.round((h - padY * 2) * 0.36)));
-    ctx.drawImage(sprite.img, Math.round(x - 8), Math.round(y - 7), Math.round(w + 16), Math.round(h + 14));
+    ctx.drawImage(sprite.img, Math.round(x - 10), Math.round(y - 9), Math.round(w + 20), Math.round(h + 18));
     if (label) {
       ctx.textAlign = "center";
       drawText(label, x + w / 2, y + h - 5, Math.max(12, Math.min(14, h - 2)), "#fff9df", { outline: true, weight: 900 });
@@ -4270,38 +4270,41 @@ function drawHud() {
     ctx.fillRect(0, 0, W, H);
   }
 
-  const hudH = 124;
+  const hudH = 146;
   const panelY = H - hudH;
 
-  const gap = 12;
-  const leftW = Math.min(520, Math.max(380, W * 0.34));
-  const statW = 250;
-  const equipW = 330;
-  const x1 = 18;
+  const gap = 28;
+  const leftW = Math.min(560, Math.max(430, W * 0.35));
+  const statW = 272;
+  const equipW = 350;
+  const bottomCardH = 102;
+  const bottomCardY = panelY + 20;
+  const totalHudW = leftW + statW + equipW + gap * 2;
+  const x1 = Math.max(24, Math.round((W - totalHudW) / 2));
   const x2 = x1 + leftW + gap;
   const x3 = Math.min(x2 + statW + gap, W - equipW - 18);
 
-  drawBoardCard(x1, panelY + 14, leftW, 92, { tab: true });
-  drawToken(x1 + 27, panelY + 42, 15, "#b94135", "HP");
-  drawBoardBar(x1 + 58, panelY + 28, leftW - 76, 24, player.hp / player.maxHp, "#d83d36", "#2b0d0a", `${player.hp}/${player.maxHp}`);
-  drawToken(x1 + 27, panelY + 78, 15, berserk ? "#c94124" : "#d58a2f", "분");
-  drawBoardBar(x1 + 58, panelY + 64, leftW - 76, 22, player.rage / player.maxRage, berserk ? "#f05a25" : "#d88428", "#2a1408", `${Math.floor(player.rage)}/${player.maxRage}`);
+  drawBoardCard(x1, bottomCardY, leftW, bottomCardH, { tab: true });
+  drawToken(x1 + 31, bottomCardY + 32, 16, "#b94135", "HP");
+  drawBoardBar(x1 + 66, bottomCardY + 18, leftW - 86, 26, player.hp / player.maxHp, "#d83d36", "#2b0d0a", `${player.hp}/${player.maxHp}`);
+  drawToken(x1 + 31, bottomCardY + 72, 16, berserk ? "#c94124" : "#d58a2f", "분");
+  drawBoardBar(x1 + 66, bottomCardY + 58, leftW - 86, 24, player.rage / player.maxRage, berserk ? "#f05a25" : "#d88428", "#2a1408", `${Math.floor(player.rage)}/${player.maxRage}`);
 
-  drawBoardCard(x2, panelY + 14, statW, 92, { tab: true });
-  drawText(`Lv. ${player.level}`, x2 + 18, panelY + 43, 18, "#22140c", { weight: 900 });
-  drawText(`처치 ${kills}`, x2 + 138, panelY + 43, 14, "#4d2b16", { weight: 900 });
-  drawText("경험치", x2 + 18, panelY + 79, 13, "#17394a", { weight: 900 });
-  drawBoardBar(x2 + 70, panelY + 64, statW - 94, 18, player.xp / player.nextXp, "#5ea9d3", "#101a20", `${compactNumber(player.xp)}/${compactNumber(player.nextXp)}`);
+  drawBoardCard(x2, bottomCardY, statW, bottomCardH, { tab: true });
+  drawText(`Lv. ${player.level}`, x2 + 22, bottomCardY + 33, 18, "#22140c", { weight: 900 });
+  drawText(`처치 ${kills}`, x2 + 148, bottomCardY + 33, 14, "#4d2b16", { weight: 900 });
+  drawText("경험치", x2 + 22, bottomCardY + 77, 13, "#17394a", { weight: 900 });
+  drawBoardBar(x2 + 76, bottomCardY + 61, statW - 104, 20, player.xp / player.nextXp, "#5ea9d3", "#101a20", `${compactNumber(player.xp)}/${compactNumber(player.nextXp)}`);
 
-  drawBoardCard(x3, panelY + 14, equipW, 92, { tab: true });
-  drawText(swordName(), x3 + 18, panelY + 43, 16, "#22140c", { weight: 900 });
-  drawText(armorName(), x3 + 180, panelY + 43, 16, "#17394a", { weight: 900 });
+  drawBoardCard(x3, bottomCardY, equipW, bottomCardH, { tab: true });
+  drawText(swordName(), x3 + 22, bottomCardY + 33, 16, "#22140c", { weight: 900 });
+  drawText(armorName(), x3 + 190, bottomCardY + 33, 16, "#17394a", { weight: 900 });
   const actionText = berserk
     ? "광폭화: 특수공격 무제한"
     : player.rage >= SPECIAL_RAGE_COST
       ? "우클릭 특수공격 준비"
       : `특수공격 분노 ${SPECIAL_RAGE_COST}`;
-  drawText(actionText, x3 + 18, panelY + 78, 13, berserk ? "#8f2418" : "#5f3419", { weight: 900 });
+  drawText(actionText, x3 + 22, bottomCardY + 77, 13, berserk ? "#8f2418" : "#5f3419", { weight: 900 });
 
   drawObjectivePanel();
   drawParticipantRoster(W - 252, 216, 214);
