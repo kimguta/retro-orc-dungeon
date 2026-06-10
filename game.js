@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260610-ui-sprites-11";
+const COMIC_SPRITE_VERSION = "20260610-bg-textures-1";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -84,6 +84,11 @@ const uiSprites = {
   shield: loadComicSprite(`assets/ui-icon-shield.png?v=${COMIC_SPRITE_VERSION}`),
   skull: loadComicSprite(`assets/ui-icon-skull.png?v=${COMIC_SPRITE_VERSION}`),
 };
+const backgroundSprites = {
+  sky: loadComicSprite(`assets/bg-paper-sky.png?v=${COMIC_SPRITE_VERSION}`),
+  wall: loadComicSprite(`assets/bg-stone-wall.png?v=${COMIC_SPRITE_VERSION}`),
+  floor: loadComicSprite(`assets/bg-stone-floor.png?v=${COMIC_SPRITE_VERSION}`),
+};
 const PAPER_ATLAS_CELL_W = 500;
 const PAPER_ATLAS_CELL_H = 600;
 const PAPER_ATLAS_INDEX = { knight: 0, skeleton: 1, orc: 2, warlock: 3, balrog: 4 };
@@ -93,6 +98,10 @@ function loadComicSprite(src) {
   img.decoding = "async";
   img.src = src;
   return { img };
+}
+
+function spriteReady(sprite) {
+  return !!(sprite?.img?.complete && sprite.img.naturalWidth);
 }
 
 const MAP_W = 64;
@@ -1706,6 +1715,7 @@ function drawWorld() {
   sky.addColorStop(1, townView ? "#d7bd88" : "#7a6044");
   ctx.fillStyle = sky;
   ctx.fillRect(0, -72, W, HALF_H + 72);
+  drawPaperSkyTexture(townView);
   drawCeilingDetails(townView);
 
   const floor = ctx.createLinearGradient(0, HALF_H, 0, H + 96);
@@ -1714,6 +1724,7 @@ function drawWorld() {
   floor.addColorStop(1, townView ? "#4d3621" : zone.floor[1]);
   ctx.fillStyle = floor;
   ctx.fillRect(0, HALF_H, W, HALF_H + 96);
+  drawStoneFloorTexture(townView);
   drawFloorDetails(townView);
 
   for (let r = 0; r < RAYS; r += 1) {
@@ -1732,6 +1743,7 @@ function drawWorld() {
     const [wallR, wallG, wallB] = hitZone.wall;
     ctx.fillStyle = `rgb(${Math.floor(light * wallR)}, ${Math.floor(light * wallG)}, ${Math.floor(light * wallB)})`;
     ctx.fillRect(x, y, colW, wallH);
+    drawStoneWallColumn(hit, x, y, colW, wallH, light, faceShade, hitZone);
 
     ctx.fillStyle = `rgba(35, 20, 12, ${1 - faceShade})`;
     ctx.fillRect(x, y, colW, wallH);
@@ -1807,6 +1819,74 @@ function drawCeilingDetails(townView) {
   ctx.globalAlpha = 0.72;
   ctx.fillStyle = "rgba(10, 7, 8, 0.2)";
   ctx.fillRect(0, 0, W, Math.max(10, H * 0.028));
+  ctx.restore();
+}
+
+function drawPaperSkyTexture(townView) {
+  const sprite = backgroundSprites.sky;
+  if (!spriteReady(sprite)) return;
+  const img = sprite.img;
+  const h = HALF_H + 72;
+  const scale = h / img.naturalHeight;
+  const tileW = img.naturalWidth * scale;
+  const offset = -((((player.angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)) / (Math.PI * 2)) * tileW;
+  ctx.save();
+  ctx.globalAlpha = townView ? 0.58 : 0.72;
+  for (let x = offset - tileW; x < W + tileW; x += tileW) {
+    ctx.drawImage(img, x, -72, tileW, h);
+  }
+  const haze = ctx.createLinearGradient(0, 0, 0, HALF_H);
+  haze.addColorStop(0, "rgba(255, 234, 180, 0.04)");
+  haze.addColorStop(0.62, "rgba(214, 166, 103, 0.08)");
+  haze.addColorStop(1, "rgba(122, 82, 48, 0.16)");
+  ctx.fillStyle = haze;
+  ctx.fillRect(0, -72, W, h);
+  ctx.restore();
+}
+
+function drawStoneFloorTexture(townView) {
+  const sprite = backgroundSprites.floor;
+  if (!spriteReady(sprite)) return;
+  const img = sprite.img;
+  const tile = Math.max(220, Math.min(430, W * 0.22));
+  const ox = -((player.x * 38) % tile);
+  const oy = HALF_H - ((player.y * 38) % tile);
+  ctx.save();
+  ctx.globalAlpha = townView ? 0.34 : 0.42;
+  for (let y = oy; y < H + tile; y += tile) {
+    for (let x = ox - tile; x < W + tile; x += tile) {
+      ctx.drawImage(img, x, y, tile, tile);
+    }
+  }
+  const fade = ctx.createLinearGradient(0, HALF_H, 0, H);
+  fade.addColorStop(0, "rgba(212, 166, 99, 0.28)");
+  fade.addColorStop(0.52, "rgba(126, 83, 45, 0.04)");
+  fade.addColorStop(1, "rgba(38, 22, 12, 0.28)");
+  ctx.fillStyle = fade;
+  ctx.fillRect(0, HALF_H, W, HALF_H + 96);
+  ctx.restore();
+}
+
+function drawStoneWallColumn(hit, x, y, colW, wallH, light, faceShade, hitZone) {
+  const sprite = backgroundSprites.wall;
+  if (!spriteReady(sprite)) return;
+  const img = sprite.img;
+  const srcX = Math.max(0, Math.min(img.naturalWidth - 1, Math.floor(hit.wallU * img.naturalWidth)));
+  ctx.save();
+  ctx.globalAlpha = 0.78;
+  ctx.drawImage(img, srcX, 0, 1, img.naturalHeight, x, y, colW, wallH);
+  const zoneTint = hitZone.short === "발록방"
+    ? "rgba(110, 26, 18, 0.28)"
+    : hitZone.short === "제단"
+      ? "rgba(70, 39, 106, 0.2)"
+      : hitZone.short === "SAFE ZONE"
+        ? "rgba(220, 186, 116, 0.16)"
+        : "rgba(170, 126, 72, 0.13)";
+  ctx.fillStyle = zoneTint;
+  ctx.fillRect(x, y, colW, wallH);
+  const shade = Math.min(0.48, Math.max(0.04, (246 - light) / 260 + (1 - faceShade) * 0.16));
+  ctx.fillStyle = `rgba(22, 14, 10, ${shade})`;
+  ctx.fillRect(x, y, colW, wallH);
   ctx.restore();
 }
 
