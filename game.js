@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260609-server-projectiles-1";
+const COMIC_SPRITE_VERSION = "20260610-ui-sprites-1";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -68,6 +68,21 @@ const itemSprites = {
   armorScroll: loadComicSprite(`assets/item-armor-scroll.png?v=${COMIC_SPRITE_VERSION}`),
   bossArmorScroll: loadComicSprite(`assets/item-boss-armor-scroll.png?v=${COMIC_SPRITE_VERSION}`),
   legendScroll: loadComicSprite(`assets/item-legend-scroll.png?v=${COMIC_SPRITE_VERSION}`),
+};
+const uiSprites = {
+  panelWide: loadComicSprite(`assets/ui-panel-wide.png?v=${COMIC_SPRITE_VERSION}`),
+  panelMedium: loadComicSprite(`assets/ui-panel-medium.png?v=${COMIC_SPRITE_VERSION}`),
+  panelSmall: loadComicSprite(`assets/ui-panel-small.png?v=${COMIC_SPRITE_VERSION}`),
+  minimapFrame: loadComicSprite(`assets/ui-minimap-frame.png?v=${COMIC_SPRITE_VERSION}`),
+  barLong: loadComicSprite(`assets/ui-bar-long.png?v=${COMIC_SPRITE_VERSION}`),
+  barShort: loadComicSprite(`assets/ui-bar-short.png?v=${COMIC_SPRITE_VERSION}`),
+  slot: loadComicSprite(`assets/ui-slot.png?v=${COMIC_SPRITE_VERSION}`),
+  heart: loadComicSprite(`assets/ui-icon-heart.png?v=${COMIC_SPRITE_VERSION}`),
+  rage: loadComicSprite(`assets/ui-icon-rage.png?v=${COMIC_SPRITE_VERSION}`),
+  exp: loadComicSprite(`assets/ui-icon-exp.png?v=${COMIC_SPRITE_VERSION}`),
+  sword: loadComicSprite(`assets/ui-icon-sword.png?v=${COMIC_SPRITE_VERSION}`),
+  shield: loadComicSprite(`assets/ui-icon-shield.png?v=${COMIC_SPRITE_VERSION}`),
+  skull: loadComicSprite(`assets/ui-icon-skull.png?v=${COMIC_SPRITE_VERSION}`),
 };
 const PAPER_ATLAS_CELL_W = 500;
 const PAPER_ATLAS_CELL_H = 600;
@@ -4124,6 +4139,22 @@ function drawHudPanel(x, y, w, h) {
 }
 
 function drawBoardCard(x, y, w, h, options = {}) {
+  const sprite = uiPanelSprite(w, h);
+  if (sprite?.img?.complete && sprite.img.naturalWidth) {
+    ctx.save();
+    const bleed = Math.max(7, Math.min(16, Math.min(w, h) * 0.08));
+    ctx.drawImage(sprite.img, Math.round(x - bleed), Math.round(y - bleed), Math.round(w + bleed * 2), Math.round(h + bleed * 2));
+    if (options.dark) {
+      ctx.fillStyle = "rgba(54, 27, 15, 0.28)";
+      ctx.fillRect(Math.round(x + 12), Math.round(y + 12), Math.round(w - 24), Math.round(h - 24));
+    }
+    if (options.tab) {
+      ctx.fillStyle = "rgba(39, 23, 14, 0.86)";
+      ctx.fillRect(Math.round(x + 16), Math.round(y + 12), Math.min(58, Math.round(w - 32)), 3);
+    }
+    ctx.restore();
+    return;
+  }
   ctx.save();
   ctx.fillStyle = "rgba(17, 9, 4, 0.32)";
   ctx.fillRect(Math.round(x + 5), Math.round(y + 6), Math.round(w), Math.round(h));
@@ -4144,7 +4175,21 @@ function drawBoardCard(x, y, w, h, options = {}) {
   ctx.restore();
 }
 
+function uiPanelSprite(w, h) {
+  if (h > w * 0.92) return uiSprites.panelSmall;
+  if (w > 340) return uiSprites.panelWide;
+  return uiSprites.panelMedium;
+}
+
 function drawToken(cx, cy, r, fill, label = "") {
+  const sprite = tokenSprite(label);
+  if (sprite?.img?.complete && sprite.img.naturalWidth && r >= 12) {
+    const size = r * 2.35;
+    ctx.save();
+    ctx.drawImage(sprite.img, Math.round(cx - size / 2), Math.round(cy - size / 2), Math.round(size), Math.round(size));
+    ctx.restore();
+    return;
+  }
   ctx.save();
   ctx.fillStyle = "rgba(20, 9, 4, 0.32)";
   ctx.beginPath();
@@ -4169,8 +4214,35 @@ function drawToken(cx, cy, r, fill, label = "") {
   ctx.restore();
 }
 
+function tokenSprite(label) {
+  if (label === "HP") return uiSprites.heart;
+  if (label === "분") return uiSprites.rage;
+  if (label === "B") return uiSprites.skull;
+  return null;
+}
+
 function drawBoardBar(x, y, w, h, pct, fill, bg, label = "") {
   const clamped = Math.max(0, Math.min(1, pct || 0));
+  const sprite = w > 210 ? uiSprites.barLong : uiSprites.barShort;
+  if (sprite?.img?.complete && sprite.img.naturalWidth) {
+    const padX = Math.max(8, Math.round(w * 0.035));
+    const padY = Math.max(5, Math.round(h * 0.25));
+    ctx.save();
+    ctx.fillStyle = bg;
+    ctx.fillRect(Math.round(x + padX), Math.round(y + padY), Math.round(w - padX * 2), Math.max(2, Math.round(h - padY * 2)));
+    ctx.fillStyle = fill;
+    ctx.fillRect(Math.round(x + padX), Math.round(y + padY), Math.round((w - padX * 2) * clamped), Math.max(2, Math.round(h - padY * 2)));
+    ctx.fillStyle = "rgba(255, 248, 220, 0.3)";
+    ctx.fillRect(Math.round(x + padX), Math.round(y + padY), Math.round((w - padX * 2) * clamped), Math.max(2, Math.round((h - padY * 2) * 0.36)));
+    ctx.drawImage(sprite.img, Math.round(x - 5), Math.round(y - 5), Math.round(w + 10), Math.round(h + 10));
+    if (label) {
+      ctx.textAlign = "center";
+      drawText(label, x + w / 2, y + h - 5, Math.max(12, Math.min(14, h - 2)), "#fff9df", { outline: true, weight: 900 });
+      ctx.textAlign = "left";
+    }
+    ctx.restore();
+    return;
+  }
   ctx.save();
   ctx.fillStyle = "#24150d";
   ctx.fillRect(Math.round(x - 3), Math.round(y - 3), Math.round(w + 6), Math.round(h + 6));
@@ -4377,10 +4449,8 @@ function drawMiniMap() {
   const mw = map[0].length * cell;
   const mh = map.length * cell;
   const pulse = Math.sin(performance.now() * 0.008) > 0;
-  ctx.fillStyle = "rgba(238, 215, 167, 0.9)";
+  ctx.fillStyle = "rgba(238, 215, 167, 0.78)";
   ctx.fillRect(x0 - pad, y0 - pad, mw + pad * 2, mh + pad * 2);
-  ctx.strokeStyle = "#24150d";
-  ctx.strokeRect(x0 - pad, y0 - pad, mw + pad * 2, mh + pad * 2);
 
   for (let y = 0; y < map.length; y += 1) {
     for (let x = 0; x < map[y].length; x += 1) {
@@ -4445,6 +4515,13 @@ function drawMiniMap() {
   ctx.moveTo(x0 + player.x * cell, y0 + player.y * cell);
   ctx.lineTo(x0 + player.x * cell + Math.cos(player.angle) * 6, y0 + player.y * cell + Math.sin(player.angle) * 6);
   ctx.stroke();
+  const frame = uiSprites.minimapFrame;
+  if (frame?.img?.complete && frame.img.naturalWidth) {
+    ctx.drawImage(frame.img, x0 - 18, y0 - 18, mw + 36, mh + 36);
+  } else {
+    ctx.strokeStyle = "#24150d";
+    ctx.strokeRect(x0 - pad, y0 - pad, mw + pad * 2, mh + pad * 2);
+  }
 }
 
 function drawCrosshair() {
