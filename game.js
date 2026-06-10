@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260610-ui-sprites-8";
+const COMIC_SPRITE_VERSION = "20260610-ui-sprites-9";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -4237,7 +4237,8 @@ function uiPanelSprite(w, h) {
 function drawToken(cx, cy, r, fill, label = "") {
   const sprite = tokenSprite(label, fill);
   if (sprite?.img?.complete && sprite.img.naturalWidth && r >= 12) {
-    const size = r * 2.85;
+    const isRageIcon = fill === "#d58a2f" || fill === "#c94124";
+    const size = r * (isRageIcon ? 2.38 : 2.78);
     ctx.save();
     ctx.drawImage(sprite.img, Math.round(cx - size / 2), Math.round(cy - size / 2), Math.round(size), Math.round(size));
     ctx.restore();
@@ -4327,7 +4328,7 @@ function drawHud() {
   drawBoardCard(x1, bottomCardY, leftW, bottomCardH, { tab: true });
   drawToken(x1 + 34, bottomCardY + 36, 17, "#b94135", "HP");
   drawBoardBar(x1 + 72, bottomCardY + 22, leftW - 96, 28, player.hp / player.maxHp, "#d83d36", "#2b0d0a", `${player.hp}/${player.maxHp}`);
-  drawToken(x1 + 34, bottomCardY + 77, 17, berserk ? "#c94124" : "#d58a2f", "분");
+  drawToken(x1 + 34, bottomCardY + 74, 16, berserk ? "#c94124" : "#d58a2f", "분");
   drawBoardBar(x1 + 72, bottomCardY + 63, leftW - 96, 26, player.rage / player.maxRage, berserk ? "#f05a25" : "#d88428", "#2a1408", `${Math.floor(player.rage)}/${player.maxRage}`);
 
   drawBoardCard(x2, bottomCardY, statW, bottomCardH, { tab: true });
