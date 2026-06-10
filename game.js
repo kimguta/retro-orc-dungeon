@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260610-ui-sprites-4";
+const COMIC_SPRITE_VERSION = "20260610-ui-sprites-5";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -4142,7 +4142,7 @@ function drawBoardCard(x, y, w, h, options = {}) {
   const sprite = uiPanelSprite(w, h);
   if (sprite?.img?.complete && sprite.img.naturalWidth) {
     ctx.save();
-    const bleed = Math.max(28, Math.min(62, Math.min(w, h) * 0.38));
+    const bleed = Math.max(18, Math.min(32, Math.min(w, h) * 0.24));
     ctx.drawImage(sprite.img, Math.round(x - bleed), Math.round(y - bleed), Math.round(w + bleed * 2), Math.round(h + bleed * 2));
     if (options.dark) {
       ctx.fillStyle = "rgba(54, 27, 15, 0.28)";
@@ -4270,15 +4270,15 @@ function drawHud() {
     ctx.fillRect(0, 0, W, H);
   }
 
-  const hudH = 192;
+  const hudH = 168;
   const panelY = H - hudH;
 
-  const gap = 28;
-  const leftW = Math.min(590, Math.max(450, W * 0.36));
-  const statW = 292;
-  const equipW = 374;
+  const gap = 48;
+  const leftW = Math.min(560, Math.max(430, W * 0.34));
+  const statW = 280;
+  const equipW = 358;
   const bottomCardH = 116;
-  const bottomCardY = panelY + 16;
+  const bottomCardY = panelY + 12;
   const totalHudW = leftW + statW + equipW + gap * 2;
   const x1 = Math.max(24, Math.round((W - totalHudW) / 2));
   const x2 = x1 + leftW + gap;
@@ -4307,7 +4307,7 @@ function drawHud() {
   drawText(actionText, x3 + 25, bottomCardY + 86, 13, berserk ? "#8f2418" : "#5f3419", { weight: 900 });
 
   drawObjectivePanel();
-  drawParticipantRoster(W - 252, 216, 214);
+  drawParticipantRoster(W - 294, 216, 236);
 
   const boss = balrogEnemy() || enemies.find((e) => e.boss && !e.dead);
   if (boss && (Math.hypot(player.x - boss.x, player.y - boss.y) < 8 || boss.hp < boss.maxHp)) {
@@ -4339,17 +4339,17 @@ function drawHud() {
 }
 
 function drawObjectivePanel() {
-  const x = W - 252;
+  const x = W - 294;
   const y = 58;
-  const w = 214;
+  const w = 236;
   const balrog = balrogEnemy();
   const respawn = balrogRespawnSeconds();
   drawBoardCard(x, y, w, 132, { tab: true });
-  drawToken(x + 24, y + 32, 15, "#9b2e22", "B");
-  drawText(`성채 단계 ${roomState.dungeonTier}`, x + 48, y + 36, 15, "#22140c", { weight: 900 });
-  drawText(`발록 처치 ${roomState.balrogDefeatedCount}회`, x + 18, y + 65, 13, "#4d2b16", { weight: 900 });
-  drawText(balrog ? "발록 활성" : `발록 리스폰 ${formatClock(respawn)}`, x + 18, y + 91, 13, balrog ? "#8f2418" : "#17394a", { weight: 900 });
-  drawText(balrog ? `목표: ${directionTo(balrog.x, balrog.y)}쪽 발록` : "목표: 사냥하며 재정비", x + 18, y + 116, 12, "#5f3419", { weight: 900 });
+  drawToken(x + 31, y + 34, 15, "#9b2e22", "B");
+  drawText(`성채 단계 ${roomState.dungeonTier}`, x + 58, y + 38, 15, "#22140c", { weight: 900 });
+  drawText(`발록 처치 ${roomState.balrogDefeatedCount}회`, x + 28, y + 67, 13, "#4d2b16", { weight: 900 });
+  drawText(balrog ? "발록 활성" : `발록 리스폰 ${formatClock(respawn)}`, x + 28, y + 93, 13, balrog ? "#8f2418" : "#17394a", { weight: 900 });
+  drawText(balrog ? `목표: ${directionTo(balrog.x, balrog.y)}쪽 발록` : "목표: 사냥하며 재정비", x + 28, y + 118, 12, "#5f3419", { weight: 900 });
 }
 
 function drawParticipantRoster(x, y, w) {
@@ -4367,14 +4367,14 @@ function drawParticipantRoster(x, y, w) {
   const rowH = 28;
   const h = 42 + shown.length * rowH + (members.length > shown.length ? 18 : 0);
   drawBoardCard(x, y, w, h, { tab: true });
-  drawText(`참가자 ${Math.max(serverPlayerCount, members.length)}명`, x + 16, y + 25, 14, "#17394a", { weight: 900 });
+  drawText(`참가자 ${Math.max(serverPlayerCount, members.length)}명`, x + 24, y + 27, 14, "#17394a", { weight: 900 });
   shown.forEach((member, index) => {
     const rowY = y + 39 + index * rowH;
     const name = trimRosterName(member.displayName || member.name || "기사");
     const hpPct = Math.max(0, Math.min(1, (member.hp || 0) / Math.max(1, member.maxHp || 1)));
-    drawToken(x + 18, rowY + 8, 8, member.self ? "#c77a30" : "#5b94b6");
-    drawText(`${member.self ? "나 " : ""}Lv.${member.level || 1} ${name}`, x + 32, rowY + 12, 12, member.self ? "#6c2f14" : "#25170f", { weight: 900 });
-    drawRosterHpBar(x + 32, rowY + 17, w - 46, hpPct, member.self ? "#d53b35" : "#65b987");
+    drawToken(x + 25, rowY + 8, 8, member.self ? "#c77a30" : "#5b94b6");
+    drawText(`${member.self ? "나 " : ""}Lv.${member.level || 1} ${name}`, x + 41, rowY + 12, 12, member.self ? "#6c2f14" : "#25170f", { weight: 900 });
+    drawRosterHpBar(x + 41, rowY + 17, w - 64, hpPct, member.self ? "#d53b35" : "#65b987");
   });
   if (members.length > shown.length) {
     drawText(`+${members.length - shown.length}명 더 참가 중`, x + 14, y + h - 11, 12, "#4a3322", { weight: 800 });
@@ -4437,14 +4437,21 @@ function drawDialogue() {
 
 function drawMiniMap() {
   const cell = 5;
-  const x0 = 18;
-  const y0 = 18;
-  const pad = 5;
+  const x0 = 34;
+  const y0 = 34;
+  const pad = 3;
   const mw = map[0].length * cell;
   const mh = map.length * cell;
   const pulse = Math.sin(performance.now() * 0.008) > 0;
-  ctx.fillStyle = "rgba(238, 215, 167, 0.9)";
-  ctx.fillRect(x0 - pad, y0 - pad, mw + pad * 2, mh + pad * 2);
+  const frame = uiSprites.minimapFrame;
+  if (frame?.img?.complete && frame.img.naturalWidth) {
+    ctx.drawImage(frame.img, x0 - 30, y0 - 30, mw + 60, mh + 60);
+  } else {
+    ctx.fillStyle = "rgba(238, 215, 167, 0.86)";
+    ctx.fillRect(x0 - 10, y0 - 10, mw + 20, mh + 20);
+    ctx.strokeStyle = "#24150d";
+    ctx.strokeRect(x0 - 10, y0 - 10, mw + 20, mh + 20);
+  }
   ctx.fillStyle = "#2a2118";
   ctx.fillRect(x0, y0, mw, mh);
 
@@ -4512,13 +4519,10 @@ function drawMiniMap() {
   ctx.moveTo(x0 + player.x * cell, y0 + player.y * cell);
   ctx.lineTo(x0 + player.x * cell + Math.cos(player.angle) * 6, y0 + player.y * cell + Math.sin(player.angle) * 6);
   ctx.stroke();
-  const frame = uiSprites.minimapFrame;
-  if (frame?.img?.complete && frame.img.naturalWidth) {
-    ctx.drawImage(frame.img, x0 - 22, y0 - 22, mw + 44, mh + 44);
-  } else {
-    ctx.strokeStyle = "#24150d";
-    ctx.strokeRect(x0 - pad, y0 - pad, mw + pad * 2, mh + pad * 2);
-  }
+  ctx.strokeStyle = "rgba(244, 218, 158, 0.72)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x0 - pad, y0 - pad, mw + pad * 2, mh + pad * 2);
+  ctx.lineWidth = 1;
 }
 
 function drawCrosshair() {
