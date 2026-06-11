@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260611-flat-dark-floor-1";
+const COMIC_SPRITE_VERSION = "20260611-dark-earth-floor-1";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -1721,9 +1721,9 @@ function drawWorld() {
   drawCeilingDetails(townView);
 
   const floor = ctx.createLinearGradient(0, HALF_H, 0, H + 96);
-  floor.addColorStop(0, townView ? "#191713" : "#11100e");
-  floor.addColorStop(0.58, townView ? "#100e0b" : "#090807");
-  floor.addColorStop(1, townView ? "#060504" : "#020202");
+  floor.addColorStop(0, townView ? "#3a2f22" : "#30271d");
+  floor.addColorStop(0.58, townView ? "#2a2117" : "#241b13");
+  floor.addColorStop(1, townView ? "#17110b" : "#120d08");
   ctx.fillStyle = floor;
   ctx.fillRect(0, HALF_H, W, HALF_H + 96);
   drawPerspectiveStoneFloor(townView);
@@ -1821,9 +1821,9 @@ function drawCitadelUpper(townView) {
 function drawPerspectiveStoneFloor(townView) {
   ctx.save();
   const fade = ctx.createLinearGradient(0, HALF_H, 0, H);
-  fade.addColorStop(0, townView ? "rgba(0, 0, 0, 0.22)" : "rgba(0, 0, 0, 0.3)");
-  fade.addColorStop(0.58, "rgba(0, 0, 0, 0.28)");
-  fade.addColorStop(1, "rgba(0, 0, 0, 0.62)");
+  fade.addColorStop(0, townView ? "rgba(78, 50, 24, 0.08)" : "rgba(68, 43, 22, 0.06)");
+  fade.addColorStop(0.58, "rgba(0, 0, 0, 0.16)");
+  fade.addColorStop(1, "rgba(0, 0, 0, 0.42)");
   ctx.fillStyle = fade;
   ctx.fillRect(0, HALF_H, W, H - HALF_H);
   ctx.restore();
