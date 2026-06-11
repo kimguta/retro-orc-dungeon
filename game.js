@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260611-perspective-floor-1";
+const COMIC_SPRITE_VERSION = "20260611-perspective-floor-2";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -1891,15 +1891,27 @@ function drawPerspectiveFloorSprite(townView) {
   const floorTop = HALF_H - Math.max(28, H * 0.055);
   const floorH = H - floorTop + Math.max(60, H * 0.08);
   const aspectW = floorH * (img.naturalWidth / img.naturalHeight);
-  const drawW = Math.max(W * 1.18, aspectW);
-  const subtleX = Math.sin(player.x * 0.34 + player.angle * 0.55) * 18;
-  const subtleY = Math.sin(player.y * 0.28) * 8;
-  const dx = (W - drawW) / 2 + subtleX;
-  const dy = floorTop + subtleY;
+  const drawW = Math.max(W * 1.28, aspectW * 1.12);
+  const forward = player.x * Math.cos(player.angle) + player.y * Math.sin(player.angle);
+  const strafe = -player.x * Math.sin(player.angle) + player.y * Math.cos(player.angle);
+  const angleTurn = (((player.angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)) / (Math.PI * 2);
+  const tileShiftX = drawW * 0.5;
+  const rawX = angleTurn * drawW * 0.9 + strafe * 44;
+  const shiftX = ((rawX % tileShiftX) + tileShiftX) % tileShiftX;
+  const rawY = forward * 36;
+  const shiftY = ((rawY % 96) + 96) % 96;
+  const baseX = (W - drawW) / 2 - shiftX;
+  const dy = floorTop - shiftY;
 
   ctx.save();
   ctx.globalAlpha = townView ? 0.78 : 0.84;
-  ctx.drawImage(img, dx, dy, drawW, floorH);
+  for (let i = -1; i <= 2; i += 1) {
+    ctx.drawImage(img, baseX + i * tileShiftX, dy, drawW, floorH + 120);
+  }
+  if (shiftY > 8) {
+    ctx.globalAlpha = townView ? 0.2 : 0.24;
+    ctx.drawImage(img, baseX, dy + floorH, drawW, floorH + 120);
+  }
 
   const topFade = ctx.createLinearGradient(0, floorTop, 0, floorTop + floorH * 0.28);
   topFade.addColorStop(0, "rgba(0, 0, 0, 0.72)");
