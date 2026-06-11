@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260611-black-ceiling-floor-1";
+const COMIC_SPRITE_VERSION = "20260611-perspective-floor-1";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -92,6 +92,7 @@ const backgroundSprites = {
 const wallTextureSprites = {
   stone: loadComicSprite(`assets/wall-texture-stone-seamless.png?v=${COMIC_SPRITE_VERSION}`),
 };
+const floorPerspectiveSprite = loadComicSprite(`assets/floor-perspective-slab.png?v=${COMIC_SPRITE_VERSION}`);
 const PAPER_ATLAS_CELL_W = 500;
 const PAPER_ATLAS_CELL_H = 600;
 const PAPER_ATLAS_INDEX = { knight: 0, skeleton: 1, orc: 2, warlock: 3, balrog: 4 };
@@ -1825,6 +1826,7 @@ function drawCitadelUpper(townView) {
 }
 
 function drawPerspectiveStoneFloor(townView) {
+  if (drawPerspectiveFloorSprite(townView)) return;
   ctx.save();
   const centerX = W / 2;
   const horizon = HALF_H + 3;
@@ -1880,6 +1882,39 @@ function drawPerspectiveStoneFloor(townView) {
   ctx.fillStyle = fade;
   ctx.fillRect(0, HALF_H, W, H - HALF_H);
   ctx.restore();
+}
+
+function drawPerspectiveFloorSprite(townView) {
+  const sprite = floorPerspectiveSprite;
+  if (!spriteReady(sprite)) return false;
+  const img = sprite.img;
+  const floorTop = HALF_H - Math.max(28, H * 0.055);
+  const floorH = H - floorTop + Math.max(60, H * 0.08);
+  const aspectW = floorH * (img.naturalWidth / img.naturalHeight);
+  const drawW = Math.max(W * 1.18, aspectW);
+  const subtleX = Math.sin(player.x * 0.34 + player.angle * 0.55) * 18;
+  const subtleY = Math.sin(player.y * 0.28) * 8;
+  const dx = (W - drawW) / 2 + subtleX;
+  const dy = floorTop + subtleY;
+
+  ctx.save();
+  ctx.globalAlpha = townView ? 0.78 : 0.84;
+  ctx.drawImage(img, dx, dy, drawW, floorH);
+
+  const topFade = ctx.createLinearGradient(0, floorTop, 0, floorTop + floorH * 0.28);
+  topFade.addColorStop(0, "rgba(0, 0, 0, 0.72)");
+  topFade.addColorStop(0.52, "rgba(0, 0, 0, 0.18)");
+  topFade.addColorStop(1, "rgba(0, 0, 0, 0)");
+  ctx.fillStyle = topFade;
+  ctx.fillRect(0, floorTop, W, floorH * 0.32);
+
+  const bottomShade = ctx.createLinearGradient(0, H * 0.66, 0, H);
+  bottomShade.addColorStop(0, "rgba(0, 0, 0, 0)");
+  bottomShade.addColorStop(1, "rgba(0, 0, 0, 0.28)");
+  ctx.fillStyle = bottomShade;
+  ctx.fillRect(0, H * 0.62, W, H * 0.38);
+  ctx.restore();
+  return true;
 }
 
 function wallBaseColor(hitZone, hitTown, fixedDist) {
