@@ -16,7 +16,7 @@ const FOV = Math.PI / 3;
 const RAYS = 960;
 const MAX_DEPTH = 18;
 const TILE = 64;
-const WALL_TEXTURE_WORLD_SPAN = 16;
+const WALL_TEXTURE_WORLD_SPAN = 2;
 const TURN_SPEED = 1.95;
 const MOVE_SPEED = 2.1;
 const SPECIAL_RAGE_COST = 40;
@@ -41,7 +41,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260611-far-enemy-occlusion-1";
+const COMIC_SPRITE_VERSION = "20260611-stone-tile-wall-1";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -91,7 +91,7 @@ const backgroundSprites = {
   floor: loadComicSprite(`assets/bg-stone-floor.png?v=${COMIC_SPRITE_VERSION}`),
 };
 const wallTextureSprites = {
-  stone: loadComicSprite(`assets/wall-texture-stone-wide.png?v=${COMIC_SPRITE_VERSION}`),
+  stone: loadComicSprite(`assets/wall-texture-stone-tile.png?v=${COMIC_SPRITE_VERSION}`),
 };
 const PAPER_ATLAS_CELL_W = 500;
 const PAPER_ATLAS_CELL_H = 600;
