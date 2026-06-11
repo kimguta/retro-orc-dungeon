@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260611-dark-code-floor-1";
+const COMIC_SPRITE_VERSION = "20260611-flat-dark-floor-1";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -1721,9 +1721,9 @@ function drawWorld() {
   drawCeilingDetails(townView);
 
   const floor = ctx.createLinearGradient(0, HALF_H, 0, H + 96);
-  floor.addColorStop(0, townView ? "#39352e" : "#2c2925");
-  floor.addColorStop(0.58, townView ? "#2d261e" : "#211c17");
-  floor.addColorStop(1, townView ? "#17110c" : "#100d0a");
+  floor.addColorStop(0, townView ? "#191713" : "#11100e");
+  floor.addColorStop(0.58, townView ? "#100e0b" : "#090807");
+  floor.addColorStop(1, townView ? "#060504" : "#020202");
   ctx.fillStyle = floor;
   ctx.fillRect(0, HALF_H, W, HALF_H + 96);
   drawPerspectiveStoneFloor(townView);
@@ -1761,12 +1761,6 @@ function drawWorld() {
     ctx.fillRect(x, y, colW, wallH);
   }
 
-  ctx.fillStyle = "rgba(170, 148, 112, 0.035)";
-  for (let i = 0; i < 9; i += 1) {
-    const tx = ((i * 137 + 53) % W);
-    const ty = HALF_H + ((i * 71 + 41) % (H - HALF_H));
-    ctx.fillRect(tx, ty, 2, 2);
-  }
   drawPaperWorldOverlay();
 }
 
@@ -1826,57 +1820,10 @@ function drawCitadelUpper(townView) {
 
 function drawPerspectiveStoneFloor(townView) {
   ctx.save();
-  const centerX = W / 2;
-  const horizon = HALF_H + 3;
-  const dark = townView ? "rgba(7, 6, 5, " : "rgba(2, 2, 2, ";
-  const light = townView ? "rgba(78, 68, 52, " : "rgba(42, 39, 34, ";
-  const rows = 13;
-  const basePhase = ((player.y * 0.42) % 1 + 1) % 1;
-
-  for (let row = 0; row < rows; row += 1) {
-    const t0 = (row + basePhase) / rows;
-    const t1 = (row + 1 + basePhase) / rows;
-    const y0 = horizon + Math.pow(t0, 1.92) * (H - horizon + 120);
-    const y1 = horizon + Math.pow(t1, 1.92) * (H - horizon + 120);
-    const clippedY0 = Math.max(horizon, Math.min(H + 80, y0));
-    const clippedY1 = Math.max(horizon, Math.min(H + 100, y1));
-    const rowDepth = Math.min(1, t1);
-    const halfTop = 42 + rowDepth * W * 0.55;
-    const halfBottom = 56 + rowDepth * W * 0.78;
-    const slabCount = 5 + Math.floor(rowDepth * 9);
-    const skew = Math.sin(row * 1.7 + player.x * 0.24) * 18 * rowDepth;
-
-    for (let col = -Math.floor(slabCount / 2) - 1; col <= Math.floor(slabCount / 2) + 1; col += 1) {
-      const colShift = ((player.x * 0.34) % 1) * (halfBottom * 2 / slabCount);
-      const x0 = centerX + (col / slabCount) * halfTop * 2 - colShift * (1 - rowDepth) + skew;
-      const x1 = centerX + ((col + 1) / slabCount) * halfTop * 2 - colShift * (1 - rowDepth) + skew;
-      const x2 = centerX + ((col + 1) / slabCount) * halfBottom * 2 - colShift + skew * 1.2;
-      const x3 = centerX + (col / slabCount) * halfBottom * 2 - colShift + skew * 1.2;
-      const shade = 0.018 + rowDepth * 0.034 + ((row + col) % 2) * 0.01;
-      ctx.fillStyle = `rgba(45, 41, 35, ${shade})`;
-      ctx.beginPath();
-      ctx.moveTo(x0, clippedY0);
-      ctx.lineTo(x1, clippedY0 + Math.sin(col + row) * rowDepth * 2);
-      ctx.lineTo(x2, clippedY1);
-      ctx.lineTo(x3, clippedY1 + Math.cos(col) * rowDepth * 2);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = `${dark}${0.16 + rowDepth * 0.18})`;
-      ctx.lineWidth = Math.max(1, rowDepth * 1.35);
-      ctx.stroke();
-      ctx.strokeStyle = `${light}${0.018 + rowDepth * 0.028})`;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(x0 + 4, clippedY0 + 2);
-      ctx.lineTo(x1 - 4, clippedY0 + 2);
-      ctx.stroke();
-    }
-  }
-
   const fade = ctx.createLinearGradient(0, HALF_H, 0, H);
-  fade.addColorStop(0, "rgba(0, 0, 0, 0.16)");
+  fade.addColorStop(0, townView ? "rgba(0, 0, 0, 0.22)" : "rgba(0, 0, 0, 0.3)");
   fade.addColorStop(0.58, "rgba(0, 0, 0, 0.28)");
-  fade.addColorStop(1, "rgba(0, 0, 0, 0.52)");
+  fade.addColorStop(1, "rgba(0, 0, 0, 0.62)");
   ctx.fillStyle = fade;
   ctx.fillRect(0, HALF_H, W, H - HALF_H);
   ctx.restore();
