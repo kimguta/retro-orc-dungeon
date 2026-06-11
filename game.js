@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260611-seamless-wall-4";
+const COMIC_SPRITE_VERSION = "20260611-wall-uv-tile-1";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -1914,14 +1914,14 @@ function drawCitadelWallColumn(hit, x, y, colW, wallH, light, faceShade, hitZone
   const distFade = Math.max(0.12, 1 - fixedDist / 20);
   const tile = wallTileAtHit(hit);
   const seed = Math.abs(tile.x * 97 + tile.y * 57);
-  const surfaceCoord = hit.side === "x" ? hit.y : hit.x;
-  const textureScale = 0.54;
-  const wallU = ((surfaceCoord * textureScale) % 1 + 1) % 1;
+  const tileOffset = ((seed % 17) / 17) * 0.18;
+  const faceOffset = hit.side === "x" ? 0.09 : 0;
+  const wallU = (hit.wallU * 0.82 + 0.09 + tileOffset + faceOffset) % 1;
 
   if (spriteReady(sprite)) {
     const img = sprite.img;
-    const texSpanY = Math.max(780, Math.floor(img.naturalHeight * 0.88));
-    const startY = Math.floor(((seed % 7) / 7) * Math.max(1, img.naturalHeight - texSpanY));
+    const texSpanY = Math.max(720, Math.floor(img.naturalHeight * 0.8));
+    const startY = Math.floor(((seed % 5) / 5) * Math.max(1, img.naturalHeight - texSpanY));
     const srcW = Math.max(3, Math.floor(img.naturalWidth / 300));
     const srcX = Math.max(0, Math.min(img.naturalWidth - srcW, Math.floor(wallU * img.naturalWidth)));
     ctx.save();
