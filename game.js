@@ -16,6 +16,7 @@ const FOV = Math.PI / 3;
 const RAYS = 960;
 const MAX_DEPTH = 18;
 const TILE = 64;
+const WALL_TEXTURE_WORLD_SPAN = 16;
 const TURN_SPEED = 1.95;
 const MOVE_SPEED = 2.1;
 const SPECIAL_RAGE_COST = 40;
@@ -40,7 +41,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260611-dark-earth-floor-1";
+const COMIC_SPRITE_VERSION = "20260611-wide-wall-1";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -90,7 +91,7 @@ const backgroundSprites = {
   floor: loadComicSprite(`assets/bg-stone-floor.png?v=${COMIC_SPRITE_VERSION}`),
 };
 const wallTextureSprites = {
-  stone: loadComicSprite(`assets/wall-texture-stone-seamless.png?v=${COMIC_SPRITE_VERSION}`),
+  stone: loadComicSprite(`assets/wall-texture-stone-wide.png?v=${COMIC_SPRITE_VERSION}`),
 };
 const PAPER_ATLAS_CELL_W = 500;
 const PAPER_ATLAS_CELL_H = 600;
@@ -1868,18 +1869,19 @@ function drawCitadelWallColumn(hit, x, y, colW, wallH, light, faceShade, hitZone
   const distFade = Math.max(0.12, 1 - fixedDist / 20);
   const tile = wallTileAtHit(hit);
   const seed = Math.abs(tile.x * 97 + tile.y * 57);
-  const tileOffset = ((seed % 17) / 17) * 0.18;
-  const faceOffset = hit.side === "x" ? 0.09 : 0;
-  const wallU = (hit.wallU * 0.82 + 0.09 + tileOffset + faceOffset) % 1;
+  const worldAxis = hit.side === "x" ? hit.y : hit.x;
+  const faceOffset = hit.side === "x" ? 0.31 : 0;
+  const wallU = ((worldAxis / WALL_TEXTURE_WORLD_SPAN + faceOffset) % 1 + 1) % 1;
 
   if (spriteReady(sprite)) {
     const img = sprite.img;
-    const texSpanY = Math.max(720, Math.floor(img.naturalHeight * 0.8));
-    const startY = Math.floor(((seed % 5) / 5) * Math.max(1, img.naturalHeight - texSpanY));
-    const srcW = Math.max(3, Math.floor(img.naturalWidth / 300));
+    const texSpanY = Math.max(1, img.naturalHeight);
+    const startY = 0;
+    const distanceBlend = Math.min(1, fixedDist / MAX_DEPTH);
+    const srcW = Math.max(5, Math.floor(img.naturalWidth / (720 - distanceBlend * 260)));
     const srcX = Math.max(0, Math.min(img.naturalWidth - srcW, Math.floor(wallU * img.naturalWidth)));
     ctx.save();
-    ctx.globalAlpha = Math.min(0.96, 0.72 + distFade * 0.22);
+    ctx.globalAlpha = Math.min(0.98, 0.78 + distFade * 0.18);
     ctx.drawImage(img, srcX, startY, srcW, texSpanY, x, y, colW, wallH);
     ctx.restore();
   }
@@ -1887,6 +1889,12 @@ function drawCitadelWallColumn(hit, x, y, colW, wallH, light, faceShade, hitZone
   const tintAlpha = hitZone.short === "SAFE ZONE" ? 0.08 : hitZone.short === "발록방" ? 0.2 : 0.12;
   ctx.fillStyle = `rgba(18, 12, 10, ${Math.max(0.04, tintAlpha - distFade * 0.06)})`;
   ctx.fillRect(x, y, colW, wallH);
+
+  const distanceShade = Math.max(0, Math.min(0.48, (fixedDist - 5) / 20));
+  if (distanceShade > 0) {
+    ctx.fillStyle = `rgba(0, 0, 0, ${distanceShade})`;
+    ctx.fillRect(x, y, colW, wallH);
+  }
 
   const topShade = ctx.createLinearGradient(0, y, 0, y + wallH);
   topShade.addColorStop(0, `rgba(3, 3, 3, ${0.28 + Math.min(0.16, fixedDist / 38)})`);
