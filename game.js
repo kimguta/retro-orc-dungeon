@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260610-citadel-render-1";
+const COMIC_SPRITE_VERSION = "20260611-bg-panels-1";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -88,6 +88,16 @@ const backgroundSprites = {
   sky: loadComicSprite(`assets/bg-paper-sky.png?v=${COMIC_SPRITE_VERSION}`),
   wall: loadComicSprite(`assets/bg-stone-wall.png?v=${COMIC_SPRITE_VERSION}`),
   floor: loadComicSprite(`assets/bg-stone-floor.png?v=${COMIC_SPRITE_VERSION}`),
+};
+const stagePanelSprites = {
+  wall: loadComicSprite(`assets/bg-panel-wall.png?v=${COMIC_SPRITE_VERSION}`),
+  corner: loadComicSprite(`assets/bg-panel-corner.png?v=${COMIC_SPRITE_VERSION}`),
+  gate: loadComicSprite(`assets/bg-panel-gate.png?v=${COMIC_SPRITE_VERSION}`),
+  crackedWall: loadComicSprite(`assets/bg-panel-cracked-wall.png?v=${COMIC_SPRITE_VERSION}`),
+  floorSlab: loadComicSprite(`assets/bg-panel-floor-slab.png?v=${COMIC_SPRITE_VERSION}`),
+  floorCrack: loadComicSprite(`assets/bg-panel-floor-crack.png?v=${COMIC_SPRITE_VERSION}`),
+  lowWall: loadComicSprite(`assets/bg-panel-low-wall.png?v=${COMIC_SPRITE_VERSION}`),
+  tunnel: loadComicSprite(`assets/bg-panel-tunnel.png?v=${COMIC_SPRITE_VERSION}`),
 };
 const PAPER_ATLAS_CELL_W = 500;
 const PAPER_ATLAS_CELL_H = 600;
@@ -287,6 +297,17 @@ const ZONE_PROPS = [
   { type: "obelisk", x: 61.5, y: 33.5 },
 ];
 const WORLD_PROPS = [...TOWN_PROPS, ...ZONE_PROPS];
+const STAGE_PANELS = [
+  { type: "gate", x: 8.5, y: 4.8, scale: 0.9 },
+  { type: "wall", x: 17.5, y: 7.5, scale: 0.86 },
+  { type: "floorSlab", x: 10.5, y: 8.5, scale: 0.7 },
+  { type: "corner", x: 22.5, y: 16.5, scale: 0.85 },
+  { type: "crackedWall", x: 32.5, y: 18.5, scale: 0.82 },
+  { type: "lowWall", x: 39.5, y: 15.5, scale: 0.8 },
+  { type: "tunnel", x: 44.5, y: 29.5, scale: 0.9 },
+  { type: "floorCrack", x: 51.5, y: 30.5, scale: 0.72 },
+  { type: "gate", x: 57.5, y: 29.5, scale: 1.02 },
+];
 
 enemies = buildEnemies();
 
@@ -2497,6 +2518,7 @@ function drawFloorContact(cx, baseY, size, color, alpha = 0.24) {
 
 function drawTownSprites() {
   const sprites = [
+    ...STAGE_PANELS.map((panel) => ({ kind: "panel", data: panel })),
     ...WORLD_PROPS.map((prop) => ({ kind: "prop", data: prop })),
     ...TOWN_NPCS.map((npc) => ({ kind: "npc", data: npc })),
   ]
@@ -2521,12 +2543,47 @@ function drawTownSprites() {
       if (gameState === "play") {
         drawNameplate(screenX, y - Math.max(24, size * 0.1), Math.max(64, Math.min(112, size * 0.55)), s.data.name, s.data.hp / s.data.maxHp, "#6bcf77");
       }
+    } else if (s.kind === "panel") {
+      const scale = panelScale(s.data.type) * (s.data.scale || 1);
+      const size = Math.min(360, Math.max(36, (H / s.dist) * scale));
+      const groundY = HALF_H + H / Math.max(1, s.dist) * 0.27;
+      drawStagePanel(s.data, screenX, groundY, size, s.dist);
     } else {
       const size = Math.min(150, (H / s.dist) * propScale(s.data.type));
       const groundY = HALF_H + H / Math.max(1, s.dist) * 0.27;
       drawTownProp(s.data, screenX - size / 2, groundY - size, size);
     }
   }
+}
+
+function panelScale(type) {
+  if (type === "gate" || type === "tunnel") return 0.92;
+  if (type === "wall" || type === "corner" || type === "crackedWall") return 0.78;
+  if (type === "lowWall") return 0.62;
+  if (type === "floorSlab" || type === "floorCrack") return 0.72;
+  return 0.7;
+}
+
+function drawStagePanel(panel, cx, groundY, size, dist) {
+  const sprite = stagePanelSprites[panel.type];
+  if (!spriteReady(sprite)) return;
+  const img = sprite.img;
+  const floorPanel = panel.type === "floorSlab" || panel.type === "floorCrack";
+  const lowPanel = panel.type === "lowWall";
+  const ratio = img.naturalHeight / Math.max(1, img.naturalWidth);
+  const drawW = floorPanel ? size * 1.35 : lowPanel ? size * 1.25 : size;
+  const drawH = floorPanel ? drawW * ratio * 0.58 : lowPanel ? drawW * ratio * 0.72 : drawW * ratio;
+  const x = cx - drawW / 2;
+  const y = floorPanel ? groundY - drawH * 0.42 : groundY - drawH;
+  const alpha = Math.max(0.34, Math.min(0.92, 1 - dist / 26));
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  if (!floorPanel) drawFloorContact(cx, groundY, drawW, "#1c120c", 0.12 * alpha);
+  ctx.drawImage(img, x, y, drawW, drawH);
+  const fog = Math.max(0, Math.min(0.24, dist / 42));
+  ctx.fillStyle = `rgba(97, 70, 44, ${fog})`;
+  ctx.fillRect(x, y, drawW, drawH);
+  ctx.restore();
 }
 
 function propScale(type) {
