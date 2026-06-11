@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260611-bg-panels-1";
+const COMIC_SPRITE_VERSION = "20260611-wall-skins-1";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -89,15 +89,13 @@ const backgroundSprites = {
   wall: loadComicSprite(`assets/bg-stone-wall.png?v=${COMIC_SPRITE_VERSION}`),
   floor: loadComicSprite(`assets/bg-stone-floor.png?v=${COMIC_SPRITE_VERSION}`),
 };
-const stagePanelSprites = {
-  wall: loadComicSprite(`assets/bg-panel-wall.png?v=${COMIC_SPRITE_VERSION}`),
-  corner: loadComicSprite(`assets/bg-panel-corner.png?v=${COMIC_SPRITE_VERSION}`),
-  gate: loadComicSprite(`assets/bg-panel-gate.png?v=${COMIC_SPRITE_VERSION}`),
-  crackedWall: loadComicSprite(`assets/bg-panel-cracked-wall.png?v=${COMIC_SPRITE_VERSION}`),
-  floorSlab: loadComicSprite(`assets/bg-panel-floor-slab.png?v=${COMIC_SPRITE_VERSION}`),
-  floorCrack: loadComicSprite(`assets/bg-panel-floor-crack.png?v=${COMIC_SPRITE_VERSION}`),
-  lowWall: loadComicSprite(`assets/bg-panel-low-wall.png?v=${COMIC_SPRITE_VERSION}`),
-  tunnel: loadComicSprite(`assets/bg-panel-tunnel.png?v=${COMIC_SPRITE_VERSION}`),
+const wallSkinSprites = {
+  front: loadComicSprite(`assets/wall-skin-front.png?v=${COMIC_SPRITE_VERSION}`),
+  side: loadComicSprite(`assets/wall-skin-side.png?v=${COMIC_SPRITE_VERSION}`),
+  corner: loadComicSprite(`assets/wall-skin-corner.png?v=${COMIC_SPRITE_VERSION}`),
+  cracked: loadComicSprite(`assets/wall-skin-cracked.png?v=${COMIC_SPRITE_VERSION}`),
+  gate: loadComicSprite(`assets/wall-skin-gate.png?v=${COMIC_SPRITE_VERSION}`),
+  tunnel: loadComicSprite(`assets/wall-skin-tunnel.png?v=${COMIC_SPRITE_VERSION}`),
 };
 const PAPER_ATLAS_CELL_W = 500;
 const PAPER_ATLAS_CELL_H = 600;
@@ -297,17 +295,6 @@ const ZONE_PROPS = [
   { type: "obelisk", x: 61.5, y: 33.5 },
 ];
 const WORLD_PROPS = [...TOWN_PROPS, ...ZONE_PROPS];
-const STAGE_PANELS = [
-  { type: "gate", x: 8.5, y: 4.8, scale: 0.9 },
-  { type: "wall", x: 17.5, y: 7.5, scale: 0.86 },
-  { type: "floorSlab", x: 10.5, y: 8.5, scale: 0.7 },
-  { type: "corner", x: 22.5, y: 16.5, scale: 0.85 },
-  { type: "crackedWall", x: 32.5, y: 18.5, scale: 0.82 },
-  { type: "lowWall", x: 39.5, y: 15.5, scale: 0.8 },
-  { type: "tunnel", x: 44.5, y: 29.5, scale: 0.9 },
-  { type: "floorCrack", x: 51.5, y: 30.5, scale: 0.72 },
-  { type: "gate", x: 57.5, y: 29.5, scale: 1.02 },
-];
 
 enemies = buildEnemies();
 
@@ -1760,15 +1747,14 @@ function drawWorld() {
     const hitZone = zoneAt(hit.x, hit.y);
     const hitTown = isTown(hit.x, hit.y);
     const faceShade = hit.side === "x" ? 1 : 0.84;
-    const [wallR, wallG, wallB] = hitZone.wall;
-    ctx.fillStyle = `rgb(${Math.floor(light * wallR)}, ${Math.floor(light * wallG)}, ${Math.floor(light * wallB)})`;
+    ctx.fillStyle = wallBaseColor(hitZone, hitTown, fixedDist);
     ctx.fillRect(x, y, colW, wallH);
     drawCitadelWallColumn(hit, x, y, colW, wallH, light, faceShade, hitZone, fixedDist);
 
-    ctx.fillStyle = `rgba(35, 20, 12, ${1 - faceShade})`;
+    ctx.fillStyle = `rgba(21, 13, 9, ${0.05 + (1 - faceShade) * 0.62})`;
     ctx.fillRect(x, y, colW, wallH);
 
-    const outlineAlpha = Math.min(0.86, 0.42 + Math.max(0, 1 - fixedDist / 12) * 0.32);
+    const outlineAlpha = Math.min(0.78, 0.34 + Math.max(0, 1 - fixedDist / 12) * 0.3);
     const outlineDark = `rgba(32, 19, 12, ${outlineAlpha})`;
     const outlineLight = `rgba(255, 238, 190, ${Math.min(0.32, outlineAlpha * 0.3)})`;
     ctx.fillStyle = outlineDark;
@@ -1777,41 +1763,7 @@ function drawWorld() {
     ctx.fillStyle = outlineLight;
     ctx.fillRect(x, Math.round(y + 1), colW, 1);
 
-    const distanceFade = Math.max(0.18, 1 - fixedDist / 20);
-    const edgeAlpha = Math.min(0.5, 0.18 + distanceFade * 0.32);
-    const blockH = Math.max(64, wallH / 2.75);
-    const row = Math.floor((hit.y + hit.x) * 1.55);
-    const u = (hit.wallU + (row % 2 ? 0.2 : 0)) % 1;
-    const joint = 1;
-    for (let by = y + blockH * 0.42; by < y + wallH; by += blockH) {
-      ctx.fillStyle = `rgba(31, 18, 11, ${edgeAlpha * 0.9})`;
-      ctx.fillRect(x, Math.round(by), colW, joint);
-      ctx.fillStyle = hitTown ? "rgba(255, 242, 202, 0.18)" : "rgba(255, 232, 178, 0.12)";
-      ctx.fillRect(x, Math.round(by) + 1, colW, 1);
-    }
-    if (fixedDist < 8.5 && (u < 0.018 || u > 0.982)) {
-      ctx.fillStyle = `rgba(28, 16, 10, ${Math.min(0.74, edgeAlpha * 1.28)})`;
-      ctx.fillRect(x, y + wallH * 0.1, colW, wallH * 0.72);
-      ctx.fillStyle = "rgba(255, 241, 199, 0.14)";
-      ctx.fillRect(x, y + wallH * 0.1, colW, wallH * 0.16);
-    }
-    if (u > 0.12 && u < 0.26) {
-      ctx.fillStyle = "rgba(255, 241, 199, 0.07)";
-      ctx.fillRect(x, y + wallH * 0.12, colW, wallH * 0.7);
-    }
-    if (fixedDist < 12 && (r + Math.floor(hit.x * 13 + hit.y * 17)) % 43 === 0) {
-      const nickY = y + (0.22 + ((Math.floor(hit.x * 7 + hit.y * 9) % 5) * 0.12)) * wallH;
-      ctx.fillStyle = "rgba(255, 244, 204, 0.09)";
-      ctx.fillRect(x, nickY, colW, Math.max(1, wallH / 110));
-    }
-    ctx.fillStyle = "rgba(31, 18, 11, 0.08)";
-    ctx.fillRect(x, y, colW, 1);
-    ctx.fillStyle = "rgba(255, 241, 199, 0.1)";
-    ctx.fillRect(x, y + wallH * 0.06, colW, 1);
-    ctx.fillStyle = "rgba(255, 241, 199, 0.035)";
-    ctx.fillRect(x, y + wallH * 0.1, colW, wallH * 0.38);
-
-    ctx.fillStyle = `rgba(28, 22, 17, ${Math.min(townView ? 0.08 : 0.2, fixedDist / 24)})`;
+    ctx.fillStyle = `rgba(24, 17, 12, ${Math.min(townView ? 0.1 : 0.24, fixedDist / 24)})`;
     ctx.fillRect(x, y, colW, wallH);
   }
 
@@ -1928,7 +1880,86 @@ function drawPerspectiveStoneFloor(townView) {
   ctx.restore();
 }
 
+function wallBaseColor(hitZone, hitTown, fixedDist) {
+  const tint = hitZone.wall || [0.55, 0.5, 0.42];
+  const near = Math.max(0, 1 - fixedDist / 18);
+  const base = hitTown ? [42, 34, 25] : [22, 18, 15];
+  const warm = [42 + tint[0] * 30, 34 + tint[1] * 24, 27 + tint[2] * 20];
+  const r = Math.floor(base[0] + warm[0] * near * 0.34);
+  const g = Math.floor(base[1] + warm[1] * near * 0.3);
+  const b = Math.floor(base[2] + warm[2] * near * 0.26);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+function wallTileAtHit(hit) {
+  return {
+    x: Math.max(0, Math.min(map[0].length - 1, Math.floor(hit.x))),
+    y: Math.max(0, Math.min(map.length - 1, Math.floor(hit.y))),
+  };
+}
+
+function isWallTile(tx, ty) {
+  return ty < 0 || ty >= map.length || tx < 0 || tx >= map[0].length || map[ty][tx] === "#";
+}
+
+function wallOpen(tx, ty, dx, dy) {
+  return !isWallTile(tx + dx, ty + dy);
+}
+
+function isCornerWallTile(tx, ty) {
+  const n = wallOpen(tx, ty, 0, -1);
+  const s = wallOpen(tx, ty, 0, 1);
+  const e = wallOpen(tx, ty, 1, 0);
+  const w = wallOpen(tx, ty, -1, 0);
+  return (n && e) || (e && s) || (s && w) || (w && n);
+}
+
+function wallSkinKind(hit, hitZone) {
+  const tile = wallTileAtHit(hit);
+  const seed = Math.abs(tile.x * 73 + tile.y * 41);
+  if (hitZone.short === "SAFE ZONE" && seed % 23 === 0) return "gate";
+  if (hitZone.short !== "SAFE ZONE" && seed % 29 === 0) return "tunnel";
+  if (isCornerWallTile(tile.x, tile.y)) return "corner";
+  if (seed % 11 === 0 || seed % 17 === 0) return "cracked";
+  return hit.side === "x" ? "side" : "front";
+}
+
 function drawCitadelWallColumn(hit, x, y, colW, wallH, light, faceShade, hitZone, fixedDist) {
+  const kind = wallSkinKind(hit, hitZone);
+  const sprite = wallSkinSprites[kind] || wallSkinSprites.front;
+  const distFade = Math.max(0.12, 1 - fixedDist / 20);
+  const tile = wallTileAtHit(hit);
+  const seed = Math.abs(tile.x * 97 + tile.y * 57);
+  const uOffset = ((seed % 7) - 3) * 0.013;
+  const wallU = (hit.wallU + uOffset + 1) % 1;
+
+  if (spriteReady(sprite)) {
+    const img = sprite.img;
+    const srcX = Math.max(0, Math.min(img.naturalWidth - 1, Math.floor(wallU * img.naturalWidth)));
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.96, 0.56 + distFade * 0.36);
+    ctx.drawImage(img, srcX, 0, 1, img.naturalHeight, x, y, colW, wallH);
+    ctx.restore();
+  }
+
+  const edgeU = Math.min(wallU, 1 - wallU);
+  if (fixedDist < 12 && edgeU < 0.035) {
+    ctx.fillStyle = `rgba(7, 5, 4, ${0.18 + distFade * 0.44})`;
+    ctx.fillRect(x, y, colW, wallH);
+    ctx.fillStyle = `rgba(232, 202, 145, ${0.02 + distFade * 0.05})`;
+    ctx.fillRect(x, y + wallH * 0.06, colW, wallH * 0.18);
+  }
+
+  const topShade = ctx.createLinearGradient(0, y, 0, y + wallH);
+  topShade.addColorStop(0, `rgba(7, 5, 4, ${0.2 + Math.min(0.18, fixedDist / 40)})`);
+  topShade.addColorStop(0.12, "rgba(7, 5, 4, 0)");
+  topShade.addColorStop(0.82, "rgba(7, 5, 4, 0)");
+  topShade.addColorStop(1, `rgba(7, 5, 4, ${0.16 + Math.min(0.16, fixedDist / 50)})`);
+  ctx.fillStyle = topShade;
+  ctx.fillRect(x, y, colW, wallH);
+}
+
+function drawCitadelWallColumnLegacy(hit, x, y, colW, wallH, light, faceShade, hitZone, fixedDist) {
   const distFade = Math.max(0, 1 - fixedDist / 16);
   const blockH = Math.max(42, wallH / 3.7);
   const wallU = hit.wallU || 0;
@@ -2518,7 +2549,6 @@ function drawFloorContact(cx, baseY, size, color, alpha = 0.24) {
 
 function drawTownSprites() {
   const sprites = [
-    ...STAGE_PANELS.map((panel) => ({ kind: "panel", data: panel })),
     ...WORLD_PROPS.map((prop) => ({ kind: "prop", data: prop })),
     ...TOWN_NPCS.map((npc) => ({ kind: "npc", data: npc })),
   ]
@@ -2543,47 +2573,12 @@ function drawTownSprites() {
       if (gameState === "play") {
         drawNameplate(screenX, y - Math.max(24, size * 0.1), Math.max(64, Math.min(112, size * 0.55)), s.data.name, s.data.hp / s.data.maxHp, "#6bcf77");
       }
-    } else if (s.kind === "panel") {
-      const scale = panelScale(s.data.type) * (s.data.scale || 1);
-      const size = Math.min(360, Math.max(36, (H / s.dist) * scale));
-      const groundY = HALF_H + H / Math.max(1, s.dist) * 0.27;
-      drawStagePanel(s.data, screenX, groundY, size, s.dist);
     } else {
       const size = Math.min(150, (H / s.dist) * propScale(s.data.type));
       const groundY = HALF_H + H / Math.max(1, s.dist) * 0.27;
       drawTownProp(s.data, screenX - size / 2, groundY - size, size);
     }
   }
-}
-
-function panelScale(type) {
-  if (type === "gate" || type === "tunnel") return 0.92;
-  if (type === "wall" || type === "corner" || type === "crackedWall") return 0.78;
-  if (type === "lowWall") return 0.62;
-  if (type === "floorSlab" || type === "floorCrack") return 0.72;
-  return 0.7;
-}
-
-function drawStagePanel(panel, cx, groundY, size, dist) {
-  const sprite = stagePanelSprites[panel.type];
-  if (!spriteReady(sprite)) return;
-  const img = sprite.img;
-  const floorPanel = panel.type === "floorSlab" || panel.type === "floorCrack";
-  const lowPanel = panel.type === "lowWall";
-  const ratio = img.naturalHeight / Math.max(1, img.naturalWidth);
-  const drawW = floorPanel ? size * 1.35 : lowPanel ? size * 1.25 : size;
-  const drawH = floorPanel ? drawW * ratio * 0.58 : lowPanel ? drawW * ratio * 0.72 : drawW * ratio;
-  const x = cx - drawW / 2;
-  const y = floorPanel ? groundY - drawH * 0.42 : groundY - drawH;
-  const alpha = Math.max(0.34, Math.min(0.92, 1 - dist / 26));
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  if (!floorPanel) drawFloorContact(cx, groundY, drawW, "#1c120c", 0.12 * alpha);
-  ctx.drawImage(img, x, y, drawW, drawH);
-  const fog = Math.max(0, Math.min(0.24, dist / 42));
-  ctx.fillStyle = `rgba(97, 70, 44, ${fog})`;
-  ctx.fillRect(x, y, drawW, drawH);
-  ctx.restore();
 }
 
 function propScale(type) {
