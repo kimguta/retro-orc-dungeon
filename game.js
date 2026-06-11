@@ -41,7 +41,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260611-grounded-enemies-1";
+const COMIC_SPRITE_VERSION = "20260611-grounded-vignette-1";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -290,7 +290,7 @@ const ZONE_PROPS = [
   { type: "ember", x: 55.5, y: 30.5 },
   { type: "obelisk", x: 61.5, y: 33.5 },
 ];
-const WORLD_PROPS = [...TOWN_PROPS, ...ZONE_PROPS];
+const WORLD_PROPS = [];
 
 enemies = buildEnemies();
 
@@ -2094,7 +2094,7 @@ function drawSprites() {
     const depthIndex = Math.floor((screenX / W) * RAYS);
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < s.dist - 0.2) continue;
     const groundY = HALF_H + H / Math.max(1, s.dist) * 0.27;
-    const y = groundY - size * 0.8;
+    const y = groundY - size * 0.7;
     projected.push({ ...s, screenX, size, groundY, y, renderX: screenX, renderY: y });
   }
 
@@ -2477,7 +2477,7 @@ function spriteScale(e) {
 }
 
 function drawEnemy(e, x, y, size, dist) {
-  drawFloorContact(x + size / 2, y + size * 0.95, size, e.type === "balrog" ? "#ff5a22" : e.boss ? "#ffb65c" : "#d8bd76", e.boss ? 0.36 : 0.24);
+  drawFloorContact(x + size / 2, y + size * 0.82, size, e.type === "balrog" ? "#ff5a22" : e.boss ? "#ffb65c" : "#d8bd76", e.boss ? 0.36 : 0.24);
   if (e.type === "balrog") drawBalrog(e, x, y, size, dist);
   else if (e.type === "skeleton" || e.type === "skeletonKing" || e.type === "deathKnight") drawSkeleton(e, x, y, size, dist);
   else if (e.type === "warlock" || e.type === "warlockLord") drawWarlock(e, x, y, size, dist);
@@ -2485,9 +2485,9 @@ function drawEnemy(e, x, y, size, dist) {
 }
 
 function drawEnemyWithDistanceShade(e, x, y, size, dist) {
-  const shade = Math.max(0, Math.min(0.38, (dist - 4.5) / 22));
+  const shade = Math.max(0, Math.min(0.72, (dist - 3.5) / 12));
   ctx.save();
-  if (shade > 0) ctx.filter = `brightness(${Math.max(0.58, 1 - shade)}) saturate(${Math.max(0.76, 1 - shade * 0.42)})`;
+  if (shade > 0) ctx.filter = `brightness(${Math.max(0.22, 1 - shade)}) saturate(${Math.max(0.42, 1 - shade * 0.68)})`;
   drawEnemy(e, x, y, size, dist);
   ctx.restore();
 }
@@ -4514,13 +4514,12 @@ function drawHud() {
   drawMiniMap();
   drawCrosshair();
   if (berserk) {
-    const pulse = 0.42 + Math.sin(performance.now() * 0.006) * 0.08;
-    ctx.fillStyle = `rgba(188, 18, 10, ${0.2 + pulse * 0.13})`;
-    ctx.fillRect(0, 0, W, H);
-    const furyGlow = ctx.createRadialGradient(W / 2, H / 2, W * 0.16, W / 2, H / 2, W * 0.62);
-    furyGlow.addColorStop(0, `rgba(255, 130, 42, ${0.07 * pulse})`);
-    furyGlow.addColorStop(0.7, `rgba(190, 38, 18, ${0.2 * pulse})`);
-    furyGlow.addColorStop(1, `rgba(90, 8, 5, ${0.42 * pulse})`);
+    const pulse = 0.34 + Math.sin(performance.now() * 0.003) * 0.04;
+    const furyGlow = ctx.createRadialGradient(W / 2, H / 2, W * 0.22, W / 2, H / 2, W * 0.74);
+    furyGlow.addColorStop(0, "rgba(255, 120, 60, 0)");
+    furyGlow.addColorStop(0.55, "rgba(255, 72, 32, 0)");
+    furyGlow.addColorStop(0.82, `rgba(190, 38, 18, ${0.12 + pulse * 0.08})`);
+    furyGlow.addColorStop(1, `rgba(96, 4, 2, ${0.3 + pulse * 0.12})`);
     ctx.fillStyle = furyGlow;
     ctx.fillRect(0, 0, W, H);
   }
