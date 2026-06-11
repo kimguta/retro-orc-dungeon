@@ -41,7 +41,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260611-wide-wall-1";
+const COMIC_SPRITE_VERSION = "20260611-grounded-enemies-1";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -2094,13 +2094,13 @@ function drawSprites() {
     const depthIndex = Math.floor((screenX / W) * RAYS);
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < s.dist - 0.2) continue;
     const groundY = HALF_H + H / Math.max(1, s.dist) * 0.27;
-    const y = groundY - size * 0.95;
-    projected.push({ ...s, screenX, size, y, renderX: screenX, renderY: y });
+    const y = groundY - size * 0.8;
+    projected.push({ ...s, screenX, size, groundY, y, renderX: screenX, renderY: y });
   }
 
   spreadProjectedEnemies(projected);
   for (const s of projected) {
-    drawEnemy(s.e, s.renderX - s.size / 2, s.renderY, s.size, s.dist);
+    drawEnemyWithDistanceShade(s.e, s.renderX - s.size / 2, s.renderY, s.size, s.dist);
     if (gameState === "play") {
       drawNameplate(
         s.renderX,
@@ -2482,6 +2482,14 @@ function drawEnemy(e, x, y, size, dist) {
   else if (e.type === "skeleton" || e.type === "skeletonKing" || e.type === "deathKnight") drawSkeleton(e, x, y, size, dist);
   else if (e.type === "warlock" || e.type === "warlockLord") drawWarlock(e, x, y, size, dist);
   else drawOrc(e, x, y, size, dist);
+}
+
+function drawEnemyWithDistanceShade(e, x, y, size, dist) {
+  const shade = Math.max(0, Math.min(0.38, (dist - 4.5) / 22));
+  ctx.save();
+  if (shade > 0) ctx.filter = `brightness(${Math.max(0.58, 1 - shade)}) saturate(${Math.max(0.76, 1 - shade * 0.42)})`;
+  drawEnemy(e, x, y, size, dist);
+  ctx.restore();
 }
 
 function drawFloorContact(cx, baseY, size, color, alpha = 0.24) {
