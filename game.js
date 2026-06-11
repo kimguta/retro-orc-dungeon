@@ -40,7 +40,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260611-wall-skins-1";
+const COMIC_SPRITE_VERSION = "20260611-seamless-wall-1";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -89,13 +89,8 @@ const backgroundSprites = {
   wall: loadComicSprite(`assets/bg-stone-wall.png?v=${COMIC_SPRITE_VERSION}`),
   floor: loadComicSprite(`assets/bg-stone-floor.png?v=${COMIC_SPRITE_VERSION}`),
 };
-const wallSkinSprites = {
-  front: loadComicSprite(`assets/wall-skin-front.png?v=${COMIC_SPRITE_VERSION}`),
-  side: loadComicSprite(`assets/wall-skin-side.png?v=${COMIC_SPRITE_VERSION}`),
-  corner: loadComicSprite(`assets/wall-skin-corner.png?v=${COMIC_SPRITE_VERSION}`),
-  cracked: loadComicSprite(`assets/wall-skin-cracked.png?v=${COMIC_SPRITE_VERSION}`),
-  gate: loadComicSprite(`assets/wall-skin-gate.png?v=${COMIC_SPRITE_VERSION}`),
-  tunnel: loadComicSprite(`assets/wall-skin-tunnel.png?v=${COMIC_SPRITE_VERSION}`),
+const wallTextureSprites = {
+  stone: loadComicSprite(`assets/wall-texture-stone-seamless.png?v=${COMIC_SPRITE_VERSION}`),
 };
 const PAPER_ATLAS_CELL_W = 500;
 const PAPER_ATLAS_CELL_H = 600;
@@ -1914,49 +1909,57 @@ function isCornerWallTile(tx, ty) {
   return (n && e) || (e && s) || (s && w) || (w && n);
 }
 
-function wallSkinKind(hit, hitZone) {
-  const tile = wallTileAtHit(hit);
-  const seed = Math.abs(tile.x * 73 + tile.y * 41);
-  if (hitZone.short === "SAFE ZONE" && seed % 23 === 0) return "gate";
-  if (hitZone.short !== "SAFE ZONE" && seed % 29 === 0) return "tunnel";
-  if (isCornerWallTile(tile.x, tile.y)) return "corner";
-  if (seed % 11 === 0 || seed % 17 === 0) return "cracked";
-  return hit.side === "x" ? "side" : "front";
-}
-
 function drawCitadelWallColumn(hit, x, y, colW, wallH, light, faceShade, hitZone, fixedDist) {
-  const kind = wallSkinKind(hit, hitZone);
-  const sprite = wallSkinSprites[kind] || wallSkinSprites.front;
+  const sprite = wallTextureSprites.stone;
   const distFade = Math.max(0.12, 1 - fixedDist / 20);
   const tile = wallTileAtHit(hit);
   const seed = Math.abs(tile.x * 97 + tile.y * 57);
-  const uOffset = ((seed % 7) - 3) * 0.013;
-  const wallU = (hit.wallU + uOffset + 1) % 1;
+  const wallU = (hit.wallU + ((seed % 5) - 2) * 0.004 + 1) % 1;
 
   if (spriteReady(sprite)) {
     const img = sprite.img;
-    const srcX = Math.max(0, Math.min(img.naturalWidth - 1, Math.floor(wallU * img.naturalWidth)));
+    const texSpanX = 0.42;
+    const texSpanY = Math.max(360, Math.floor(img.naturalHeight * 0.54));
+    const startU = ((tile.x * 0.137 + tile.y * 0.071) % 1 + 1) % 1;
+    const startY = Math.floor(((seed % 13) / 13) * Math.max(1, img.naturalHeight - texSpanY));
+    const srcX = Math.max(0, Math.min(img.naturalWidth - 1, Math.floor(((startU + wallU * texSpanX) % 1) * img.naturalWidth)));
     ctx.save();
-    ctx.globalAlpha = Math.min(0.96, 0.56 + distFade * 0.36);
-    ctx.drawImage(img, srcX, 0, 1, img.naturalHeight, x, y, colW, wallH);
+    ctx.globalAlpha = Math.min(0.96, 0.72 + distFade * 0.22);
+    ctx.drawImage(img, srcX, startY, 1, texSpanY, x, y, colW, wallH);
     ctx.restore();
   }
 
+  const tintAlpha = hitZone.short === "SAFE ZONE" ? 0.08 : hitZone.short === "발록방" ? 0.2 : 0.12;
+  ctx.fillStyle = `rgba(18, 12, 10, ${Math.max(0.04, tintAlpha - distFade * 0.06)})`;
+  ctx.fillRect(x, y, colW, wallH);
+
   const edgeU = Math.min(wallU, 1 - wallU);
-  if (fixedDist < 12 && edgeU < 0.035) {
-    ctx.fillStyle = `rgba(7, 5, 4, ${0.18 + distFade * 0.44})`;
+  if (fixedDist < 12 && edgeU < 0.028) {
+    ctx.fillStyle = `rgba(5, 4, 3, ${0.3 + distFade * 0.38})`;
+    ctx.fillRect(x, y - 1, colW, wallH + 2);
+  }
+
+  const corner = isCornerWallTile(tile.x, tile.y);
+  if (corner && fixedDist < 14 && edgeU < 0.09) {
+    ctx.fillStyle = `rgba(2, 2, 2, ${0.18 + distFade * 0.34})`;
     ctx.fillRect(x, y, colW, wallH);
-    ctx.fillStyle = `rgba(232, 202, 145, ${0.02 + distFade * 0.05})`;
-    ctx.fillRect(x, y + wallH * 0.06, colW, wallH * 0.18);
+  }
+
+  if (fixedDist < 10 && (edgeU < 0.018 || Math.abs(wallU - 0.5) < 0.012) && seed % 3 === 0) {
+    ctx.fillStyle = `rgba(4, 3, 3, ${0.18 + distFade * 0.24})`;
+    ctx.fillRect(x, y + wallH * 0.04, colW, wallH * 0.86);
   }
 
   const topShade = ctx.createLinearGradient(0, y, 0, y + wallH);
-  topShade.addColorStop(0, `rgba(7, 5, 4, ${0.2 + Math.min(0.18, fixedDist / 40)})`);
-  topShade.addColorStop(0.12, "rgba(7, 5, 4, 0)");
-  topShade.addColorStop(0.82, "rgba(7, 5, 4, 0)");
-  topShade.addColorStop(1, `rgba(7, 5, 4, ${0.16 + Math.min(0.16, fixedDist / 50)})`);
+  topShade.addColorStop(0, `rgba(3, 3, 3, ${0.28 + Math.min(0.16, fixedDist / 38)})`);
+  topShade.addColorStop(0.11, "rgba(3, 3, 3, 0.04)");
+  topShade.addColorStop(0.78, "rgba(3, 3, 3, 0)");
+  topShade.addColorStop(1, `rgba(3, 3, 3, ${0.2 + Math.min(0.18, fixedDist / 48)})`);
   ctx.fillStyle = topShade;
   ctx.fillRect(x, y, colW, wallH);
+
+  ctx.fillStyle = `rgba(236, 211, 156, ${0.02 + distFade * 0.035})`;
+  ctx.fillRect(x, y + wallH * 0.055, colW, Math.max(1, wallH * 0.006));
 }
 
 function drawCitadelWallColumnLegacy(hit, x, y, colW, wallH, light, faceShade, hitZone, fixedDist) {
