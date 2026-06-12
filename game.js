@@ -41,7 +41,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260611-stone-tile-wall-1";
+const COMIC_SPRITE_VERSION = "20260612-ui-weapon-depth-1";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -2496,9 +2496,9 @@ function drawEnemy(e, x, y, size, dist) {
 }
 
 function drawEnemyWithDistanceShade(e, x, y, size, dist) {
-  const shade = Math.max(0, Math.min(0.88, (dist - 2.8) / 8.5));
+  const shade = Math.max(0, Math.min(0.96, (dist - 2.2) / 6.4));
   ctx.save();
-  if (shade > 0) ctx.filter = `brightness(${Math.max(0.08, 1 - shade)}) saturate(${Math.max(0.25, 1 - shade * 0.8)})`;
+  if (shade > 0) ctx.filter = `brightness(${Math.max(0.035, 1 - shade)}) saturate(${Math.max(0.16, 1 - shade * 0.9)})`;
   drawEnemy(e, x, y, size, dist);
   ctx.restore();
 }
@@ -3800,24 +3800,11 @@ function drawWeapon() {
 }
 
 function drawSpecialSword(progress) {
-  const palette = swordPalette();
   const charge = progress < 0.18 ? progress / 0.18 : 1;
   const slashT = progress < 0.58 ? Math.max(0, (progress - 0.08) / 0.5) : Math.max(0, 1 - (progress - 0.58) / 0.26);
   const sweep = Math.sin(Math.min(1, slashT) * Math.PI);
   const settle = progress > 0.62 ? Math.min(1, (progress - 0.62) / 0.28) : 0;
 
-  if (progress > 0.06 && progress < 0.62) {
-    ctx.save();
-    ctx.globalAlpha = 0.12 + sweep * 0.22;
-    ctx.strokeStyle = palette.specialTrail;
-    ctx.lineWidth = 18;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(W * 0.82, H * 0.9);
-    ctx.quadraticCurveTo(W * 0.5, H * 0.34, W * 0.22, H * 0.58);
-    ctx.stroke();
-    ctx.restore();
-  }
   drawPlayerSwordSprite({
     x: W * (0.6 - sweep * 0.17 + settle * 0.11 + (1 - charge) * 0.03),
     y: H * (0.86 - sweep * 0.32 + settle * 0.16),
@@ -3944,7 +3931,7 @@ function drawForwardPole(nearX, nearY, farX, farY, lunge, special = false, showT
     [hiltX + nx * 20 - dx / len * 28, hiltY + ny * 20 - dy / len * 28],
   ], "#bd7b3e", "#32190c", 0.22);
 
-  if (showTrail && (lunge > 0.42 || special)) {
+  if (showTrail && !special && lunge > 0.42) {
     ctx.strokeStyle = special ? palette.specialTrail : palette.trail;
     ctx.lineWidth = special ? 8 : 4;
     ctx.beginPath();
@@ -4312,7 +4299,7 @@ function compactNumber(value) {
 function drawParticipantRoster(x, y, w) {
   const members = [
     {
-      displayName: displayCharacterName(characterName) || "나",
+      displayName: displayCharacterName(characterName) || "\uAE30\uC0AC",
       level: player.level,
       hp: player.hp,
       maxHp: player.maxHp,
@@ -4321,19 +4308,19 @@ function drawParticipantRoster(x, y, w) {
     ...remotePlayers.values(),
   ];
   const shown = members.slice(0, 10);
-  const rowH = 25;
+  const rowH = 28;
   const h = 42 + shown.length * rowH + (members.length > shown.length ? 18 : 0);
-  drawHudPanel(x, y, w, h);
-  drawText(`참가자 ${Math.max(serverPlayerCount, members.length)}명`, x + 16, y + 24, 14, "#123849", { weight: 900 });
+  drawBoardCard(x, y, w, h, { tab: true });
+  drawText(`\uCC38\uAC00\uC790 ${Math.max(serverPlayerCount, members.length)}\uBA85`, x + 24, y + 27, 14, "#17394a", { weight: 900 });
   shown.forEach((member, index) => {
-    const rowY = y + 38 + index * rowH;
-    const name = trimRosterName(member.displayName || member.name || "전사");
+    const rowY = y + 39 + index * rowH;
+    const name = trimRosterName(member.displayName || member.name || "\uAE30\uC0AC");
     const hpPct = Math.max(0, Math.min(1, (member.hp || 0) / Math.max(1, member.maxHp || 1)));
-    drawText(`${member.self ? "나 " : ""}Lv.${member.level || 1} ${name}`, x + 14, rowY + 10, 12, member.self ? "#6c2f14" : "#25170f", { weight: 800 });
-    drawRosterHpBar(x + 14, rowY + 16, w - 28, hpPct, member.self ? "#d53b35" : "#65b987");
+    drawText(`${member.self ? "\uB098 " : ""}Lv.${member.level || 1} ${name}`, x + 20, rowY + 12, 12, member.self ? "#6c2f14" : "#25170f", { weight: 900 });
+    drawRosterHpBar(x + 20, rowY + 17, w - 42, hpPct, member.self ? "#d53b35" : "#65b987");
   });
   if (members.length > shown.length) {
-    drawText(`+${members.length - shown.length}명 더 참가 중`, x + 14, y + h - 11, 12, "#4a3322", { weight: 800 });
+    drawText(`+${members.length - shown.length}\uBA85 \uB354 \uCC38\uAC00 \uC911`, x + 14, y + h - 11, 12, "#4a3322", { weight: 800 });
   }
 }
 
@@ -4608,16 +4595,16 @@ function drawObjectivePanel() {
   const respawn = balrogRespawnSeconds();
   drawBoardCard(x, y, w, 132, { tab: true });
   drawToken(x + 31, y + 34, 15, "#9b2e22", "B");
-  drawText(`성채 단계 ${roomState.dungeonTier}`, x + 58, y + 38, 15, "#22140c", { weight: 900 });
-  drawText(`발록 처치 ${roomState.balrogDefeatedCount}회`, x + 28, y + 67, 13, "#4d2b16", { weight: 900 });
-  drawText(balrog ? "발록 활성" : `발록 리스폰 ${formatClock(respawn)}`, x + 28, y + 93, 13, balrog ? "#8f2418" : "#17394a", { weight: 900 });
-  drawText(balrog ? `목표: ${directionTo(balrog.x, balrog.y)}쪽 발록` : "목표: 사냥하며 재정비", x + 28, y + 118, 12, "#5f3419", { weight: 900 });
+  drawText(`\uC131\uCC44 \uB2E8\uACC4 ${roomState.dungeonTier}`, x + 58, y + 38, 15, "#22140c", { weight: 900 });
+  drawText(`\uBC1C\uB85D \uCC98\uCE58 ${roomState.balrogDefeatedCount}\uD68C`, x + 28, y + 67, 13, "#4d2b16", { weight: 900 });
+  drawText(balrog ? "\uBC1C\uB85D \uD65C\uC131" : `\uBC1C\uB85D \uB9AC\uC2A4\uD3F0 ${formatClock(respawn)}`, x + 28, y + 93, 15, balrog ? "#6f120d" : "#123849", { weight: 900, outline: true });
+  drawText(balrog ? `\uBAA9\uD45C: ${directionTo(balrog.x, balrog.y)}\uCABD \uBC1C\uB85D` : "\uBAA9\uD45C: \uC0AC\uB0E5\uD558\uBA70 \uC7AC\uC815\uBE44", x + 28, y + 118, 12, "#5f3419", { weight: 900 });
 }
 
 function drawParticipantRoster(x, y, w) {
   const members = [
     {
-      displayName: displayCharacterName(characterName) || "나",
+      displayName: displayCharacterName(characterName) || "\uAE30\uC0AC",
       level: player.level,
       hp: player.hp,
       maxHp: player.maxHp,
@@ -4629,17 +4616,16 @@ function drawParticipantRoster(x, y, w) {
   const rowH = 28;
   const h = 42 + shown.length * rowH + (members.length > shown.length ? 18 : 0);
   drawBoardCard(x, y, w, h, { tab: true });
-  drawText(`참가자 ${Math.max(serverPlayerCount, members.length)}명`, x + 24, y + 27, 14, "#17394a", { weight: 900 });
+  drawText(`\uCC38\uAC00\uC790 ${Math.max(serverPlayerCount, members.length)}\uBA85`, x + 24, y + 27, 14, "#17394a", { weight: 900 });
   shown.forEach((member, index) => {
     const rowY = y + 39 + index * rowH;
-    const name = trimRosterName(member.displayName || member.name || "기사");
+    const name = trimRosterName(member.displayName || member.name || "\uAE30\uC0AC");
     const hpPct = Math.max(0, Math.min(1, (member.hp || 0) / Math.max(1, member.maxHp || 1)));
-    drawToken(x + 25, rowY + 8, 8, member.self ? "#c77a30" : "#5b94b6");
-    drawText(`${member.self ? "나 " : ""}Lv.${member.level || 1} ${name}`, x + 41, rowY + 12, 12, member.self ? "#6c2f14" : "#25170f", { weight: 900 });
-    drawRosterHpBar(x + 41, rowY + 17, w - 64, hpPct, member.self ? "#d53b35" : "#65b987");
+    drawText(`${member.self ? "\uB098 " : ""}Lv.${member.level || 1} ${name}`, x + 20, rowY + 12, 12, member.self ? "#6c2f14" : "#25170f", { weight: 900 });
+    drawRosterHpBar(x + 20, rowY + 17, w - 42, hpPct, member.self ? "#d53b35" : "#65b987");
   });
   if (members.length > shown.length) {
-    drawText(`+${members.length - shown.length}명 더 참가 중`, x + 14, y + h - 11, 12, "#4a3322", { weight: 800 });
+    drawText(`+${members.length - shown.length}\uBA85 \uB354 \uCC38\uAC00 \uC911`, x + 14, y + h - 11, 12, "#4a3322", { weight: 800 });
   }
 }
 
