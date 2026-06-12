@@ -41,29 +41,32 @@ canvas {
 
 .help {
   position: fixed;
-  left: 50%;
-  top: 10px;
-  transform: translateX(-50%);
+  right: 16px;
+  bottom: 132px;
+  z-index: 2;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-  font-size: clamp(11px, 1.4vw, 13px);
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-size: clamp(9px, 0.82vw, 11px);
   font-weight: 800;
   color: #24150d;
   pointer-events: none;
-  opacity: 0.95;
+  opacity: 0.78;
 }
 
 .help span {
-  padding: 6px 11px;
-  border: 2px solid #26170e;
-  border-radius: 5px;
+  min-width: 104px;
+  padding: 4px 7px;
+  border: 1px solid rgba(38, 23, 14, 0.82);
+  border-radius: 4px;
   background:
-    linear-gradient(180deg, rgba(255, 248, 218, 0.86), rgba(218, 176, 101, 0.42)),
-    #e9d0a0;
-  box-shadow: 2px 3px 0 rgba(25, 12, 7, 0.64), inset 0 0 0 1px rgba(117, 76, 36, 0.25);
+    linear-gradient(180deg, rgba(255, 248, 218, 0.72), rgba(218, 176, 101, 0.32)),
+    rgba(233, 208, 160, 0.78);
+  box-shadow: 1px 2px 0 rgba(25, 12, 7, 0.42), inset 0 0 0 1px rgba(117, 76, 36, 0.18);
   text-shadow: none;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .name-screen {
