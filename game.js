@@ -41,7 +41,7 @@ paperKnight.src =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "https://raw.githubusercontent.com/kimguta/retro-orc-dungeon/main/assets/paper-knight.png?v=20260605-ink-1"
     : "assets/paper-knight.png?v=20260605-ink-1";
-const COMIC_SPRITE_VERSION = "20260612-sprite-anim-1";
+const COMIC_SPRITE_VERSION = "20260612-all-monster-anim-1";
 const swordSprite = new Image();
 swordSprite.decoding = "async";
 swordSprite.src = `assets/sprite-player-sword.png?v=${COMIC_SPRITE_VERSION}`;
@@ -60,6 +60,18 @@ const comicSprites = {
   warlockLord: loadComicSprite(`assets/sprite-warlock-lord-comic.png?v=${COMIC_SPRITE_VERSION}`),
   balrog: loadComicSprite(`assets/sprite-balrog-comic.png?v=${COMIC_SPRITE_VERSION}`),
 };
+function makeAnimatedComicSet(kind, slug = kind) {
+  return {
+    idle: [comicSprites[kind]],
+    walk: [comicSprites[kind]],
+    attack: [
+      loadComicSprite(`assets/sprite-${slug}-attack-1.png?v=${COMIC_SPRITE_VERSION}`),
+      loadComicSprite(`assets/sprite-${slug}-attack-2.png?v=${COMIC_SPRITE_VERSION}`),
+    ],
+    hurt: [loadComicSprite(`assets/sprite-${slug}-hurt-1.png?v=${COMIC_SPRITE_VERSION}`)],
+  };
+}
+
 const animatedComicSprites = {
   knight: {
     idle: [comicSprites.knight, loadComicSprite(`assets/sprite-knight-idle-2.png?v=${COMIC_SPRITE_VERSION}`)],
@@ -89,6 +101,15 @@ const animatedComicSprites = {
     ],
     hurt: [loadComicSprite(`assets/sprite-orc-hurt-1.png?v=${COMIC_SPRITE_VERSION}`)],
   },
+  skeleton: makeAnimatedComicSet("skeleton"),
+  skeletonKing: makeAnimatedComicSet("skeletonKing", "skeleton-king"),
+  deathKnight: makeAnimatedComicSet("deathKnight", "death-knight"),
+  orcBoss: makeAnimatedComicSet("orcBoss", "orc-boss"),
+  ogre: makeAnimatedComicSet("ogre"),
+  ogreLord: makeAnimatedComicSet("ogreLord", "ogre-lord"),
+  warlock: makeAnimatedComicSet("warlock"),
+  warlockLord: makeAnimatedComicSet("warlockLord", "warlock-lord"),
+  balrog: makeAnimatedComicSet("balrog"),
 };
 const itemSprites = {
   health: loadComicSprite(`assets/item-health.png?v=${COMIC_SPRITE_VERSION}`),
