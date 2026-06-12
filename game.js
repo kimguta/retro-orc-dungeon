@@ -2343,6 +2343,7 @@ function selectComicSpriteFrame(kind, entity) {
   const attack = Math.max(0, entity.attackPose || 0);
   const windup = Math.max(0, entity.attackWindup || 0);
   const hurt = Math.max(0, entity.hitFlash || 0);
+  const actionAttack = entity.action === "attack" || entity.action === "specialAttack";
   const moving = Boolean(entity.moving) || Math.abs(Math.sin(entity.step || 0)) > 0.62;
   let frames = set.idle;
   let index = Math.floor(now / 520) % frames.length;
@@ -2350,9 +2351,9 @@ function selectComicSpriteFrame(kind, entity) {
   if (hurt > 0 && set.hurt?.length) {
     frames = set.hurt;
     index = 0;
-  } else if ((attack > 0 || windup > 0) && set.attack?.length) {
+  } else if ((attack > 0 || windup > 0 || actionAttack) && set.attack?.length) {
     frames = set.attack;
-    index = attack > 0.45 ? 1 : 0;
+    index = attack > 0.45 || actionAttack ? 1 : 0;
   } else if (moving && set.walk?.length) {
     frames = set.walk;
     index = Math.floor(now / 130 + Math.abs((entity.x || 0) + (entity.y || 0)) * 0.7) % frames.length;
