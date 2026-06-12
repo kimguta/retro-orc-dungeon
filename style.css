@@ -42,7 +42,7 @@ canvas {
 .help {
   position: fixed;
   right: 16px;
-  bottom: 132px;
+  bottom: 82px;
   z-index: 2;
   display: flex;
   flex-direction: column;

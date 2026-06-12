@@ -4597,7 +4597,7 @@ function drawObjectivePanel() {
   drawToken(x + 31, y + 34, 15, "#9b2e22", "B");
   drawText(`\uC131\uCC44 \uB2E8\uACC4 ${roomState.dungeonTier}`, x + 58, y + 38, 15, "#22140c", { weight: 900 });
   drawText(`\uBC1C\uB85D \uCC98\uCE58 ${roomState.balrogDefeatedCount}\uD68C`, x + 28, y + 67, 13, "#4d2b16", { weight: 900 });
-  drawText(balrog ? "\uBC1C\uB85D \uD65C\uC131" : `\uBC1C\uB85D \uB9AC\uC2A4\uD3F0 ${formatClock(respawn)}`, x + 28, y + 93, 15, balrog ? "#6f120d" : "#123849", { weight: 900, outline: true });
+  drawText(balrog ? "\uBC1C\uB85D \uD65C\uC131" : `\uBC1C\uB85D \uB9AC\uC2A4\uD3F0 ${formatClock(respawn)}`, x + 28, y + 93, 15, balrog ? "#6f120d" : "#123849", { weight: 900 });
   drawText(balrog ? `\uBAA9\uD45C: ${directionTo(balrog.x, balrog.y)}\uCABD \uBC1C\uB85D` : "\uBAA9\uD45C: \uC0AC\uB0E5\uD558\uBA70 \uC7AC\uC815\uBE44", x + 28, y + 118, 12, "#5f3419", { weight: 900 });
 }
 
