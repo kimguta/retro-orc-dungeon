@@ -88,13 +88,8 @@ const animatedComicSprites = {
     hurt: [loadComicSprite(`assets/sprite-knight-hurt-1.png?v=${COMIC_SPRITE_VERSION}`)],
   },
   orc: {
-    idle: [comicSprites.orc, loadComicSprite(`assets/sprite-orc-idle-2.png?v=${COMIC_SPRITE_VERSION}`)],
-    walk: [
-      loadComicSprite(`assets/sprite-orc-walk-1.png?v=${COMIC_SPRITE_VERSION}`),
-      comicSprites.orc,
-      loadComicSprite(`assets/sprite-orc-walk-2.png?v=${COMIC_SPRITE_VERSION}`),
-      comicSprites.orc,
-    ],
+    idle: [comicSprites.orc],
+    walk: [comicSprites.orc],
     attack: [
       loadComicSprite(`assets/sprite-orc-attack-1.png?v=${COMIC_SPRITE_VERSION}`),
       loadComicSprite(`assets/sprite-orc-attack-2.png?v=${COMIC_SPRITE_VERSION}`),
