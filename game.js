@@ -2228,7 +2228,7 @@ function drawRemotePlayers() {
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < entry.dist - 0.2) continue;
     const hopLift = Math.min(size * 0.34, Math.max(0, entry.remote.hop || 0) * 118);
     const groundY = HALF_H + H / Math.max(1, entry.dist) * 0.27;
-    const y = groundY - size * 0.64 - hopLift;
+    const y = groundY - size * 0.52 - hopLift;
     drawFloorContact(screenX, groundY, size, "#1b100a", 0.18);
     drawRemoteWarrior(entry.remote, screenX - size / 2, y, size);
     drawNameplate(
