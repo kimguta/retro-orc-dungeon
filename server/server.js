@@ -13,13 +13,15 @@ const CLIENT_ORIGINS = (process.env.CLIENT_ORIGIN || "http://127.0.0.1:4173,http
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 const ROOM_FILE = path.join(DATA_DIR, "room.json");
+const STATE_FILE = path.join(DATA_DIR, "state.json");
 const ROOM_ID = "citadel";
 const MAP_W = 64;
 const MAP_H = 36;
 const BALROG_RESPAWN_MS = 150000;
-const users = loadUsers();
+const persistedState = loadState();
+const users = persistedState.users;
 const players = new Map();
-const room = createRoom(loadRoom());
+const room = createRoom(persistedState.room);
 let lastUsersSaveAt = 0;
 let lastStorageError = "";
 
@@ -760,7 +762,24 @@ function loadUsers() {
 }
 
 function saveUsers() {
-  return writeJsonAtomic(USERS_FILE, users);
+  const stateSaved = saveState();
+  const usersSaved = writeJsonAtomic(USERS_FILE, users);
+  return stateSaved && usersSaved;
+}
+
+function loadState() {
+  try {
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
+    return {
+      users: state && typeof state.users === "object" && !Array.isArray(state.users) ? state.users : {},
+      room: state?.room || null,
+    };
+  } catch (_) {
+    return {
+      users: loadUsers(),
+      room: loadRoom(),
+    };
+  }
 }
 
 function loadRoom() {
@@ -772,7 +791,13 @@ function loadRoom() {
 }
 
 function saveRoom() {
-  return writeJsonAtomic(ROOM_FILE, serializeRoom());
+  const stateSaved = saveState();
+  const roomSaved = writeJsonAtomic(ROOM_FILE, serializeRoom());
+  return stateSaved && roomSaved;
+}
+
+function saveState() {
+  return writeJsonAtomic(STATE_FILE, serializeState());
 }
 
 function writeJsonAtomic(file, data) {
@@ -798,6 +823,15 @@ function serializeRoom() {
     mapPattern: room.mapPattern,
     balrogRespawnAt: room.balrogRespawnAt,
     nextEnemyId: room.nextEnemyId,
+    savedAt: Date.now(),
+  };
+}
+
+function serializeState() {
+  return {
+    version: 1,
+    users,
+    room: serializeRoom(),
     savedAt: Date.now(),
   };
 }
