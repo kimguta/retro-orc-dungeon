@@ -74,7 +74,7 @@ function makeAnimatedComicSet(kind, slug = kind) {
 
 const animatedComicSprites = {
   knight: {
-    idle: [comicSprites.knight, loadComicSprite(`assets/sprite-knight-idle-2.png?v=${COMIC_SPRITE_VERSION}`)],
+    idle: [comicSprites.knight],
     walk: [
       loadComicSprite(`assets/sprite-knight-walk-1.png?v=${COMIC_SPRITE_VERSION}`),
       comicSprites.knight,
@@ -1019,13 +1019,19 @@ function connectMultiplayer() {
 function upsertRemotePlayer(remote) {
   if (!remote || !remote.id) return;
   const previous = remotePlayers.get(remote.id) || {};
+  const incomingX = Number(remote.x) || previous.targetX || 4.5;
+  const incomingY = Number(remote.y) || previous.targetY || 4.5;
+  const moving = Boolean(remote.moving);
+  const jitter = Math.hypot(incomingX - (previous.targetX ?? incomingX), incomingY - (previous.targetY ?? incomingY));
+  const targetX = !moving && jitter < 0.045 ? previous.targetX ?? incomingX : incomingX;
+  const targetY = !moving && jitter < 0.045 ? previous.targetY ?? incomingY : incomingY;
   remotePlayers.set(remote.id, {
     ...previous,
     ...remote,
     x: previous.x ?? (Number(remote.x) || 4.5),
     y: previous.y ?? (Number(remote.y) || 4.5),
-    targetX: Number(remote.x) || previous.targetX || 4.5,
-    targetY: Number(remote.y) || previous.targetY || 4.5,
+    targetX,
+    targetY,
     angle: Number(remote.angle) || 0,
     action: remote.action || previous.action || "idle",
   });
@@ -1350,8 +1356,16 @@ function update(dt) {
     if (items[i].expiresAt && performance.now() >= items[i].expiresAt) items.splice(i, 1);
   }
   for (const remote of remotePlayers.values()) {
-    remote.x += ((remote.targetX ?? remote.x) - remote.x) * Math.min(1, dt * 12);
-    remote.y += ((remote.targetY ?? remote.y) - remote.y) * Math.min(1, dt * 12);
+    const dx = (remote.targetX ?? remote.x) - remote.x;
+    const dy = (remote.targetY ?? remote.y) - remote.y;
+    if (!remote.moving && Math.hypot(dx, dy) < 0.018) {
+      remote.x = remote.targetX ?? remote.x;
+      remote.y = remote.targetY ?? remote.y;
+    } else {
+      const follow = Math.min(1, dt * 12);
+      remote.x += dx * follow;
+      remote.y += dy * follow;
+    }
   }
   if (serverDungeonLive) {
     for (const e of enemies) {
