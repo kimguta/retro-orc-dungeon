@@ -2223,12 +2223,12 @@ function drawRemotePlayers() {
 
   for (const entry of visible) {
     const screenX = W / 2 + Math.tan(entry.angle) * (W / FOV);
-    const size = Math.min(H * 1.24, (H / Math.max(0.32, entry.dist)) * 1.07);
+    const size = Math.min(H * 1.42, (H / Math.max(0.32, entry.dist)) * 1.23);
     const depthIndex = Math.floor((screenX / W) * RAYS);
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < entry.dist - 0.2) continue;
     const hopLift = Math.min(size * 0.34, Math.max(0, entry.remote.hop || 0) * 118);
     const groundY = HALF_H + H / Math.max(1, entry.dist) * 0.27;
-    const y = groundY - size * 0.43 - hopLift;
+    const y = groundY - size * 0.5 - hopLift;
     drawFloorContact(screenX, groundY, size, "#1b100a", 0.18);
     drawRemoteWarrior(entry.remote, screenX - size / 2, y, size);
     drawNameplate(
@@ -2247,7 +2247,7 @@ function drawRemoteWarrior(remote, x, y, size) {
   const moving = Boolean(remote.moving);
   const attack = remote.action === "attack" || remote.action === "specialAttack";
   const stride = moving ? Math.sin(performance.now() * 0.012 + remote.x * 2) : 0;
-  const bob = moving ? Math.abs(stride) * px * 0.7 : Math.sin(performance.now() * 0.003 + remote.y) * px * 0.16;
+  const bob = moving ? Math.abs(stride) * px * 0.55 : 0;
   const palette = swordPalette(remote.weaponLevel || 0);
   const armor = armorPalette(remote.armorLevel || 0);
   y += bob - (attack ? 2 * px : 0);
