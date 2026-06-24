@@ -2269,12 +2269,12 @@ function drawRemoteWarrior(remote, x, y, size) {
   const comicW = 32 * comicPx;
   const comicH = 40 * comicPx;
   if (drawComicSprite("knight", remote, x + size * 0.5 - comicW / 2, y + size * 0.95 - comicH, comicPx, { width: 32, height: 40 })) {
-    if (remote.berserk) drawSpriteAura(x + 11.5 * px, y + 13 * px, 12 * px, 16 * px, "#ff542a");
+    if (remote.berserk) drawSpriteAura(x + size * 0.5, y + size * 0.95, size * 0.34, size * 0.18, "#ff542a");
     return;
   }
   if (drawPaperKnightSprite(remote, x - px * 1.8, y - px * 3.2, px)) {
     drawRemoteSword(x + px * 0.7, y + px * 0.9, px, palette, attack);
-    if (remote.berserk) drawSpriteAura(x + 12 * px, y + 14 * px, 11 * px, 15 * px, "#ff542a");
+    if (remote.berserk) drawSpriteAura(x + 12 * px, y + 27 * px, 10 * px, 4 * px, "#ff542a");
     return;
   }
   const edge = "#231812";
@@ -2298,24 +2298,30 @@ function drawRemoteWarrior(remote, x, y, size) {
   paperRect(x + (5 - leg) * px, y + 25 * px, 6 * px, 2 * px, "#17110e", edge, 0.04);
   paperRect(x + (13 + leg) * px, y + 25 * px, 6 * px, 2 * px, "#17110e", edge, 0.04);
   drawRemoteSword(x, y, px, palette, attack);
-  if (remote.berserk) {
-    ctx.save();
-    ctx.globalAlpha = 0.34;
-    ctx.fillStyle = "#ff542a";
-    ctx.beginPath();
-    ctx.ellipse(x + 9.5 * px, y + 13 * px, 10 * px, 14 * px, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
+  if (remote.berserk) drawSpriteAura(x + 9.5 * px, y + 27 * px, 10 * px, 4 * px, "#ff542a");
 }
 
 function drawSpriteAura(cx, cy, rx, ry, color) {
   ctx.save();
-  ctx.globalAlpha = 0.26;
-  ctx.fillStyle = color;
+  ctx.globalAlpha = 0.82;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(1.5, rx * 0.045);
+  ctx.lineCap = "round";
   ctx.beginPath();
-  ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.ellipse(cx, cy, rx, Math.max(2, ry), 0, 0.08 * Math.PI, 0.92 * Math.PI);
+  ctx.stroke();
+  ctx.globalAlpha = 0.62;
+  const sparks = [
+    [-0.58, -0.5, -0.7, -1.08],
+    [0.52, -0.42, 0.66, -1],
+    [0.08, -0.34, 0.16, -0.82],
+  ];
+  for (const [x1, y1, x2, y2] of sparks) {
+    ctx.beginPath();
+    ctx.moveTo(cx + rx * x1, cy + ry * y1);
+    ctx.lineTo(cx + rx * x2, cy + ry * y2);
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -2435,15 +2441,7 @@ function drawRemoteWarriorBack(remote, x, y, px, palette, armor, attack, step) {
   paperRect(x + (5 - leg) * px, y + 25 * px, 6 * px, 2 * px, "#17110e", edge, 0.04);
   paperRect(x + (13 + leg) * px, y + 25 * px, 6 * px, 2 * px, "#17110e", edge, 0.04);
   drawRemoteSword(x - px * 0.8, y + px * 0.8, px, palette, attack);
-  if (remote.berserk) {
-    ctx.save();
-    ctx.globalAlpha = 0.32;
-    ctx.fillStyle = "#ff542a";
-    ctx.beginPath();
-    ctx.ellipse(x + 9.5 * px, y + 13 * px, 10 * px, 14 * px, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
+  if (remote.berserk) drawSpriteAura(x + 9.5 * px, y + 27 * px, 10 * px, 4 * px, "#ff542a");
 }
 
 function drawRemoteWarriorSide(remote, x, y, px, palette, armor, attack, step, faceLeft) {
