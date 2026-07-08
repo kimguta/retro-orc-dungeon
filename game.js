@@ -16,7 +16,7 @@ const FOV = Math.PI / 3;
 const RAYS = 960;
 const MAX_DEPTH = 18;
 const TILE = 64;
-const WALL_TEXTURE_WORLD_SPAN = 2;
+const WALL_TEXTURE_WORLD_SPAN = 8;
 const TURN_SPEED = 1.95;
 const MOVE_SPEED = 2.1;
 const SPECIAL_RAGE_COST = 40;
@@ -1938,11 +1938,11 @@ function drawCitadelWallColumn(hit, x, y, colW, wallH, light, faceShade, hitZone
     const texSpanY = Math.max(1, img.naturalHeight);
     const startY = 0;
     const distanceBlend = Math.min(1, fixedDist / MAX_DEPTH);
-    const srcW = Math.max(5, Math.floor(img.naturalWidth / (720 - distanceBlend * 260)));
-    const srcX = Math.max(0, Math.min(img.naturalWidth - srcW, Math.floor(wallU * img.naturalWidth)));
+    const srcW = Math.min(img.naturalWidth, Math.floor(18 + distanceBlend * 42));
+    const srcX = Math.floor(wallU * img.naturalWidth) % img.naturalWidth;
     ctx.save();
     ctx.globalAlpha = Math.min(0.98, 0.78 + distFade * 0.18);
-    ctx.drawImage(img, srcX, startY, srcW, texSpanY, x, y, colW, wallH);
+    drawWrappedTextureSlice(img, srcX, startY, srcW, texSpanY, x - 0.35, y, colW + 0.7, wallH);
     ctx.restore();
   }
 
@@ -1966,6 +1966,17 @@ function drawCitadelWallColumn(hit, x, y, colW, wallH, light, faceShade, hitZone
 
   ctx.fillStyle = `rgba(236, 211, 156, ${0.02 + distFade * 0.035})`;
   ctx.fillRect(x, y + wallH * 0.055, colW, Math.max(1, wallH * 0.006));
+}
+
+function drawWrappedTextureSlice(img, srcX, srcY, srcW, srcH, dx, dy, dw, dh) {
+  const width = Math.max(1, img.naturalWidth);
+  const firstW = Math.min(srcW, width - srcX);
+  ctx.drawImage(img, srcX, srcY, firstW, srcH, dx, dy, dw * (firstW / srcW), dh);
+  if (firstW < srcW) {
+    const restW = srcW - firstW;
+    const restDx = dx + dw * (firstW / srcW);
+    ctx.drawImage(img, 0, srcY, restW, srcH, restDx, dy, dw * (restW / srcW), dh);
+  }
 }
 
 function drawCitadelWallColumnLegacy(hit, x, y, colW, wallH, light, faceShade, hitZone, fixedDist) {
