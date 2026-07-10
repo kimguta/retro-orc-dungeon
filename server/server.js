@@ -14,6 +14,7 @@ const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 const ROOM_FILE = path.join(DATA_DIR, "room.json");
 const STATE_FILE = path.join(DATA_DIR, "state.json");
+const ROOM_BACKUP_KEY = "__paperCitadelRoomState";
 const ROOM_ID = "citadel";
 const MAP_W = 64;
 const MAP_H = 36;
@@ -22,6 +23,7 @@ const persistedState = loadState();
 const users = persistedState.users;
 const players = new Map();
 const room = createRoom(persistedState.room);
+let roomNeedsClientRecovery = !persistedState.room;
 let lastUsersSaveAt = 0;
 let lastStorageError = "";
 
@@ -43,6 +45,7 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: CLIENT_ORIGINS } });
 
 io.on("connection", (socket) => {
+  recoverRoomFromClient(socket.handshake.auth?.roomBackup);
   const player = joinPlayer(socket, socket.handshake.auth?.name);
   socket.join(ROOM_ID);
   socket.emit("room:joined", {
@@ -197,7 +200,30 @@ function createRoom(saved = null) {
   };
 }
 
+function recoverRoomFromClient(rawBackup) {
+  if (!roomNeedsClientRecovery || !rawBackup || typeof rawBackup !== "object") return false;
+  const defeated = Math.max(0, Math.min(1000000, Math.floor(finite(rawBackup.balrogDefeatedCount, 0))));
+  const tier = Math.max(1, defeated + 1, Math.min(1000001, Math.floor(finite(rawBackup.dungeonTier, 1))));
+  if (defeated === 0 && tier === 1) return false;
+
+  room.dungeonTier = tier;
+  room.balrogDefeatedCount = defeated;
+  room.mapPattern = clampPattern(rawBackup.mapPattern);
+  room.map = buildMap(room.mapPattern);
+  room.balrogRespawnAt = Math.max(0, Math.floor(finite(rawBackup.balrogRespawnAt, 0)));
+  room.enemies = baseSpawns(room.mapPattern).map((spawn, index) => makeEnemy(spawn, index, tier));
+  room.projectiles = [];
+  room.nextEnemyId = Math.max(1000, ...room.enemies.map((enemy) => numericEnemyId(enemy.id) + 1));
+  room.nextProjectileId = 1;
+  roomNeedsClientRecovery = false;
+  ensureMonsterPopulation();
+  saveRoom();
+  console.log(`Recovered citadel tier ${tier} from returning player backup.`);
+  return true;
+}
+
 function resetDungeon() {
+  roomNeedsClientRecovery = false;
   room.dungeonTier = 1;
   room.balrogDefeatedCount = 0;
   room.mapPattern = 0;
@@ -521,6 +547,7 @@ function applyEnemyDamage(socket, player, enemy, damage) {
 }
 
 function onBalrogDefeated() {
+  roomNeedsClientRecovery = false;
   room.balrogDefeatedCount += 1;
   room.dungeonTier += 1;
   room.balrogRespawnAt = Date.now() + BALROG_RESPAWN_MS;
@@ -755,15 +782,30 @@ function sanitizeName(value) {
 
 function loadUsers() {
   try {
-    return JSON.parse(fs.readFileSync(USERS_FILE, "utf8"));
+    const data = JSON.parse(fs.readFileSync(USERS_FILE, "utf8"));
+    if (!data || typeof data !== "object" || Array.isArray(data)) return {};
+    delete data[ROOM_BACKUP_KEY];
+    return data;
   } catch (_) {
     return {};
   }
 }
 
+function loadRoomBackupFromUsers() {
+  try {
+    const data = JSON.parse(fs.readFileSync(USERS_FILE, "utf8"));
+    return data?.[ROOM_BACKUP_KEY] || null;
+  } catch (_) {
+    return null;
+  }
+}
+
 function saveUsers() {
   const stateSaved = saveState();
-  const usersSaved = writeJsonAtomic(USERS_FILE, users);
+  const usersSaved = writeJsonAtomic(USERS_FILE, {
+    ...users,
+    [ROOM_BACKUP_KEY]: serializeRoom(),
+  });
   return stateSaved && usersSaved;
 }
 
@@ -777,7 +819,7 @@ function loadState() {
   } catch (_) {
     return {
       users: loadUsers(),
-      room: loadRoom(),
+      room: loadRoom() || loadRoomBackupFromUsers(),
     };
   }
 }

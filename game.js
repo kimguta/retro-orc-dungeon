@@ -481,6 +481,13 @@ function characterSnapshot() {
     weaponScrolls: player.weaponScrolls,
     armorScrolls: player.armorScrolls,
     kills,
+    roomState: {
+      dungeonTier: roomState.dungeonTier,
+      balrogDefeatedCount: roomState.balrogDefeatedCount,
+      mapPattern,
+      balrogRespawnAt,
+      savedAt: Date.now(),
+    },
     savedAt: Date.now(),
   };
 }
@@ -505,6 +512,19 @@ function loadCharacterBackup(name = characterName) {
   } catch (_) {
     return null;
   }
+}
+
+function loadRoomBackup(name = characterName) {
+  const backup = loadCharacterBackup(name);
+  const savedRoom = backup?.roomState;
+  if (!savedRoom || typeof savedRoom !== "object") return null;
+  return {
+    dungeonTier: Math.max(1, Math.floor(Number(savedRoom.dungeonTier) || 1)),
+    balrogDefeatedCount: Math.max(0, Math.floor(Number(savedRoom.balrogDefeatedCount) || 0)),
+    mapPattern: Math.max(0, Math.floor(Number(savedRoom.mapPattern) || 0)),
+    balrogRespawnAt: Math.max(0, Math.floor(Number(savedRoom.balrogRespawnAt) || 0)),
+    savedAt: Math.max(0, Math.floor(Number(savedRoom.savedAt) || 0)),
+  };
 }
 
 function backupLooksAhead(backup, character) {
@@ -943,7 +963,10 @@ function connectMultiplayer() {
   }
   if (multiplayerSocket) multiplayerSocket.disconnect();
   multiplayerSocket = io(SOCKET_SERVER_URL, {
-    auth: { name: characterName },
+    auth: {
+      name: characterName,
+      roomBackup: loadRoomBackup(characterName),
+    },
     transports: ["websocket", "polling"],
   });
   multiplayerSocket.on("connect", () => setNameStatus("성채에 접속했습니다."));
@@ -1113,6 +1136,7 @@ function applyServerDungeon(dungeon) {
     ...projectile,
     serverOwned: true,
   }));
+  saveCharacterBackup();
 }
 
 function buildBaseMap() {
