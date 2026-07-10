@@ -2241,10 +2241,16 @@ function drawRemotePlayers() {
     const depthIndex = Math.floor((screenX / W) * RAYS);
     if (depthIndex < 0 || depthIndex >= RAYS || depths[depthIndex] < entry.dist - 0.2) continue;
     const hopLift = Math.min(size * 0.34, Math.max(0, entry.remote.hop || 0) * 118);
-    const groundY = HALF_H + H / Math.max(1, entry.dist) * 0.27;
+    const groundY = HALF_H + H / Math.max(1, entry.dist) * 0.27 + size * 0.1;
     const y = groundY - size * 0.5 - hopLift;
+    const distanceShade = Math.max(0, Math.min(0.92, (entry.dist - 2.2) / 7.2));
+    ctx.save();
+    if (distanceShade > 0) {
+      ctx.filter = `brightness(${Math.max(0.08, 1 - distanceShade)}) saturate(${Math.max(0.2, 1 - distanceShade * 0.86)})`;
+    }
     drawFloorContact(screenX, groundY, size, "#1b100a", 0.18);
     drawRemoteWarrior(entry.remote, screenX - size / 2, y, size);
+    ctx.restore();
     drawNameplate(
       screenX,
       y - Math.max(22, size * 0.08),
@@ -2269,12 +2275,10 @@ function drawRemoteWarrior(remote, x, y, size) {
   const comicW = 32 * comicPx;
   const comicH = 40 * comicPx;
   if (drawComicSprite("knight", remote, x + size * 0.5 - comicW / 2, y + size * 0.95 - comicH, comicPx, { width: 32, height: 40 })) {
-    if (remote.berserk) drawSpriteAura(x + size * 0.5, y + size * 0.95, size * 0.34, size * 0.18, "#ff542a");
     return;
   }
   if (drawPaperKnightSprite(remote, x - px * 1.8, y - px * 3.2, px)) {
     drawRemoteSword(x + px * 0.7, y + px * 0.9, px, palette, attack);
-    if (remote.berserk) drawSpriteAura(x + 12 * px, y + 27 * px, 10 * px, 4 * px, "#ff542a");
     return;
   }
   const edge = "#231812";
@@ -2287,7 +2291,7 @@ function drawRemoteWarrior(remote, x, y, size) {
   paperRect(x + 8 * px, y + 5.5 * px, 2 * px, 2 * px, "#171713", edge, 0.04);
   paperRect(x + 14 * px, y + 5.5 * px, 2 * px, 2 * px, "#171713", edge, 0.04);
   paperRect(x + 10 * px, y + 9 * px, 4 * px, 1.2 * px, "#8d4b2e", edge, 0.06);
-  paperPoly([[x + 4 * px, y + 12 * px], [x + 20 * px, y + 12 * px], [x + 18 * px, y + 22 * px], [x + 6 * px, y + 22 * px]], remote.berserk ? "#8e3027" : armor.body, edge, 0.18);
+  paperPoly([[x + 4 * px, y + 12 * px], [x + 20 * px, y + 12 * px], [x + 18 * px, y + 22 * px], [x + 6 * px, y + 22 * px]], armor.body, edge, 0.18);
   paperRect(x + 6 * px, y + 12 * px, 12 * px, 2.5 * px, armor.light, edge, 0.26);
   paperRect(x + 10.5 * px, y + 14 * px, 3 * px, 7 * px, armor.glint, edge, 0.12);
   paperPoly([[x + 1 * px, y + 13 * px], [x + 6 * px, y + 12 * px], [x + 6 * px, y + 19 * px], [x + 2 * px, y + 20 * px]], armor.edge, edge, 0.2);
@@ -2298,31 +2302,6 @@ function drawRemoteWarrior(remote, x, y, size) {
   paperRect(x + (5 - leg) * px, y + 25 * px, 6 * px, 2 * px, "#17110e", edge, 0.04);
   paperRect(x + (13 + leg) * px, y + 25 * px, 6 * px, 2 * px, "#17110e", edge, 0.04);
   drawRemoteSword(x, y, px, palette, attack);
-  if (remote.berserk) drawSpriteAura(x + 9.5 * px, y + 27 * px, 10 * px, 4 * px, "#ff542a");
-}
-
-function drawSpriteAura(cx, cy, rx, ry, color) {
-  ctx.save();
-  ctx.globalAlpha = 0.82;
-  ctx.strokeStyle = color;
-  ctx.lineWidth = Math.max(1.5, rx * 0.045);
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.ellipse(cx, cy, rx, Math.max(2, ry), 0, 0.08 * Math.PI, 0.92 * Math.PI);
-  ctx.stroke();
-  ctx.globalAlpha = 0.62;
-  const sparks = [
-    [-0.58, -0.5, -0.7, -1.08],
-    [0.52, -0.42, 0.66, -1],
-    [0.08, -0.34, 0.16, -0.82],
-  ];
-  for (const [x1, y1, x2, y2] of sparks) {
-    ctx.beginPath();
-    ctx.moveTo(cx + rx * x1, cy + ry * y1);
-    ctx.lineTo(cx + rx * x2, cy + ry * y2);
-    ctx.stroke();
-  }
-  ctx.restore();
 }
 
 function drawPaperKnightSprite(entity, x, y, px) {
@@ -2433,7 +2412,7 @@ function drawRemoteWarriorBack(remote, x, y, px, palette, armor, attack, step) {
   drawKnightPlume(x, y, px, true);
   paperRoundedRect(x + 5 * px, y + 2 * px, 14 * px, 10 * px, 3 * px, "#9d998c", edge, 0.16);
   paperRect(x + 7 * px, y + 5 * px, 10 * px, 5 * px, "#67665e", edge, 0.08);
-  paperPoly([[x + 4 * px, y + 12 * px], [x + 20 * px, y + 12 * px], [x + 18 * px, y + 22 * px], [x + 6 * px, y + 22 * px]], remote.berserk ? "#8e3027" : armor.body, edge, 0.16);
+  paperPoly([[x + 4 * px, y + 12 * px], [x + 20 * px, y + 12 * px], [x + 18 * px, y + 22 * px], [x + 6 * px, y + 22 * px]], armor.body, edge, 0.16);
   paperRect(x + 6 * px, y + 12 * px, 12 * px, 2.5 * px, armor.light, edge, 0.24);
   paperPoly([[x + 8 * px, y + 15 * px], [x + 16 * px, y + 15 * px], [x + 15 * px, y + 21 * px], [x + 9 * px, y + 21 * px]], "#263746", edge, 0.14);
   paperRect(x + (6 - leg) * px, y + 21 * px, 5 * px, 5 * px, "#342a24", edge, 0.08);
@@ -2441,7 +2420,6 @@ function drawRemoteWarriorBack(remote, x, y, px, palette, armor, attack, step) {
   paperRect(x + (5 - leg) * px, y + 25 * px, 6 * px, 2 * px, "#17110e", edge, 0.04);
   paperRect(x + (13 + leg) * px, y + 25 * px, 6 * px, 2 * px, "#17110e", edge, 0.04);
   drawRemoteSword(x - px * 0.8, y + px * 0.8, px, palette, attack);
-  if (remote.berserk) drawSpriteAura(x + 9.5 * px, y + 27 * px, 10 * px, 4 * px, "#ff542a");
 }
 
 function drawRemoteWarriorSide(remote, x, y, px, palette, armor, attack, step, faceLeft) {
@@ -2457,7 +2435,7 @@ function drawRemoteWarriorSide(remote, x, y, px, palette, armor, attack, step, f
   paperPoly([[x + 9 * px, y + 4 * px], [x + 18 * px, y + 5 * px], [x + 19 * px, y + 10 * px], [x + 10 * px, y + 10 * px]], "#e2b47d", edge, 0.14);
   paperRect(x + 15 * px, y + 5 * px, 5 * px, 2 * px, "#484841", edge, 0.06);
   paperRect(x + 17 * px, y + 5.5 * px, 1.5 * px, 2 * px, "#171713", edge, 0.04);
-  paperPoly([[x + 6 * px, y + 12 * px], [x + 19 * px, y + 12 * px], [x + 17 * px, y + 22 * px], [x + 7 * px, y + 22 * px]], remote.berserk ? "#8e3027" : armor.body, edge, 0.18);
+  paperPoly([[x + 6 * px, y + 12 * px], [x + 19 * px, y + 12 * px], [x + 17 * px, y + 22 * px], [x + 7 * px, y + 22 * px]], armor.body, edge, 0.18);
   paperRect(x + 8 * px, y + 12 * px, 10 * px, 2.5 * px, armor.light, edge, 0.22);
   paperPoly([[x + 15 * px, y + 13 * px], [x + 22 * px, y + 15 * px], [x + 21 * px, y + 20 * px], [x + 16 * px, y + 18 * px]], armor.edge, edge, 0.18);
   paperRect(x + (7 - leg) * px, y + 21 * px, 5 * px, 5 * px, "#342a24", edge, 0.08);
