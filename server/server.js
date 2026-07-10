@@ -24,7 +24,7 @@ const persistedState = loadState();
 const users = persistedState.users;
 const players = new Map();
 const room = createRoom(persistedState.room);
-let roomNeedsClientRecovery = !persistedState.room;
+let roomNeedsClientRecovery = !hasAuthoritativeRoomState(persistedState.room);
 let roomRecoveryTimer = null;
 let roomRecoveryBestSavedAt = 0;
 let lastUsersSaveAt = 0;
@@ -39,6 +39,7 @@ app.get("/health", (_, res) => {
     players: players.size,
     tier: room.dungeonTier,
     balrogRespawnAt: room.balrogRespawnAt,
+    roomRecovery: roomNeedsClientRecovery ? "waiting" : "authoritative",
     storage: lastStorageError ? "degraded" : "ok",
     lastStorageError,
   });
@@ -201,6 +202,13 @@ function createRoom(saved = null) {
     nextEnemyId: Math.max(1000, Math.floor(Number(saved?.nextEnemyId) || 1000), ...enemies.map((enemy) => numericEnemyId(enemy.id) + 1)),
     nextProjectileId: 1,
   };
+}
+
+function hasAuthoritativeRoomState(saved) {
+  if (!saved || typeof saved !== "object") return false;
+  if (saved.recoveryComplete === true) return true;
+  return Math.floor(finite(saved.dungeonTier, 1)) > 1
+    || Math.floor(finite(saved.balrogDefeatedCount, 0)) > 0;
 }
 
 function recoverRoomFromClient(rawBackup) {
@@ -892,6 +900,7 @@ function serializeRoom() {
     mapPattern: room.mapPattern,
     balrogRespawnAt: room.balrogRespawnAt,
     nextEnemyId: room.nextEnemyId,
+    recoveryComplete: !roomNeedsClientRecovery,
     savedAt: Date.now(),
   };
 }

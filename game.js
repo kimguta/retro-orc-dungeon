@@ -497,7 +497,12 @@ function saveCharacterBackup(force = false) {
   const now = Date.now();
   if (!force && now - lastCharacterBackupAt < 1000) return;
   try {
-    localStorage.setItem(`${CHARACTER_BACKUP_PREFIX}${characterName.toLowerCase()}`, JSON.stringify(characterSnapshot()));
+    const snapshot = characterSnapshot();
+    const existing = loadCharacterBackup(characterName);
+    if (isRoomBackupAhead(existing?.roomState, snapshot.roomState)) {
+      snapshot.roomState = existing.roomState;
+    }
+    localStorage.setItem(`${CHARACTER_BACKUP_PREFIX}${characterName.toLowerCase()}`, JSON.stringify(snapshot));
     lastCharacterBackupAt = now;
   } catch (_) {
     // Storage can be unavailable in private or restricted browser contexts.
@@ -525,6 +530,17 @@ function loadRoomBackup(name = characterName) {
     balrogRespawnAt: Math.max(0, Math.floor(Number(savedRoom.balrogRespawnAt) || 0)),
     savedAt: Math.max(0, Math.floor(Number(savedRoom.savedAt) || 0)),
   };
+}
+
+function isRoomBackupAhead(candidate, current) {
+  if (!candidate || typeof candidate !== "object") return false;
+  const candidateDefeated = Math.max(0, Math.floor(Number(candidate.balrogDefeatedCount) || 0));
+  const currentDefeated = Math.max(0, Math.floor(Number(current?.balrogDefeatedCount) || 0));
+  if (candidateDefeated !== currentDefeated) return candidateDefeated > currentDefeated;
+  const candidateTier = Math.max(1, Math.floor(Number(candidate.dungeonTier) || 1));
+  const currentTier = Math.max(1, Math.floor(Number(current?.dungeonTier) || 1));
+  if (candidateTier !== currentTier) return candidateTier > currentTier;
+  return Math.max(0, Number(candidate.savedAt) || 0) > Math.max(0, Number(current?.savedAt) || 0);
 }
 
 function backupLooksAhead(backup, character) {
