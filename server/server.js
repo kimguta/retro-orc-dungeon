@@ -19,11 +19,14 @@ const ROOM_ID = "citadel";
 const MAP_W = 64;
 const MAP_H = 36;
 const BALROG_RESPAWN_MS = 150000;
+const ROOM_RECOVERY_WINDOW_MS = 5000;
 const persistedState = loadState();
 const users = persistedState.users;
 const players = new Map();
 const room = createRoom(persistedState.room);
 let roomNeedsClientRecovery = !persistedState.room;
+let roomRecoveryTimer = null;
+let roomRecoveryBestSavedAt = 0;
 let lastUsersSaveAt = 0;
 let lastStorageError = "";
 
@@ -204,10 +207,20 @@ function recoverRoomFromClient(rawBackup) {
   if (!roomNeedsClientRecovery || !rawBackup || typeof rawBackup !== "object") return false;
   const defeated = Math.max(0, Math.min(1000000, Math.floor(finite(rawBackup.balrogDefeatedCount, 0))));
   const tier = Math.max(1, defeated + 1, Math.min(1000001, Math.floor(finite(rawBackup.dungeonTier, 1))));
+  const savedAt = Math.max(0, Math.floor(finite(rawBackup.savedAt, 0)));
   if (defeated === 0 && tier === 1) return false;
+
+  if (!roomRecoveryTimer) {
+    roomRecoveryTimer = setTimeout(finishRoomRecovery, ROOM_RECOVERY_WINDOW_MS);
+  }
+  const betterProgress = defeated > room.balrogDefeatedCount
+    || (defeated === room.balrogDefeatedCount && tier > room.dungeonTier)
+    || (defeated === room.balrogDefeatedCount && tier === room.dungeonTier && savedAt > roomRecoveryBestSavedAt);
+  if (!betterProgress) return false;
 
   room.dungeonTier = tier;
   room.balrogDefeatedCount = defeated;
+  roomRecoveryBestSavedAt = savedAt;
   room.mapPattern = clampPattern(rawBackup.mapPattern);
   room.map = buildMap(room.mapPattern);
   room.balrogRespawnAt = Math.max(0, Math.floor(finite(rawBackup.balrogRespawnAt, 0)));
@@ -215,15 +228,29 @@ function recoverRoomFromClient(rawBackup) {
   room.projectiles = [];
   room.nextEnemyId = Math.max(1000, ...room.enemies.map((enemy) => numericEnemyId(enemy.id) + 1));
   room.nextProjectileId = 1;
-  roomNeedsClientRecovery = false;
   ensureMonsterPopulation();
   saveRoom();
-  console.log(`Recovered citadel tier ${tier} from returning player backup.`);
+  io.to(ROOM_ID).emit("dungeon:update", publicDungeon());
+  console.log(`Selected returning player backup: citadel tier ${tier}, ${defeated} Balrog defeats.`);
   return true;
 }
 
-function resetDungeon() {
+function finishRoomRecovery() {
   roomNeedsClientRecovery = false;
+  roomRecoveryTimer = null;
+  saveRoom();
+  console.log(`Citadel recovery finalized at tier ${room.dungeonTier}.`);
+}
+
+function cancelRoomRecovery() {
+  roomNeedsClientRecovery = false;
+  roomRecoveryBestSavedAt = 0;
+  if (roomRecoveryTimer) clearTimeout(roomRecoveryTimer);
+  roomRecoveryTimer = null;
+}
+
+function resetDungeon() {
+  cancelRoomRecovery();
   room.dungeonTier = 1;
   room.balrogDefeatedCount = 0;
   room.mapPattern = 0;
@@ -547,7 +574,7 @@ function applyEnemyDamage(socket, player, enemy, damage) {
 }
 
 function onBalrogDefeated() {
-  roomNeedsClientRecovery = false;
+  cancelRoomRecovery();
   room.balrogDefeatedCount += 1;
   room.dungeonTier += 1;
   room.balrogRespawnAt = Date.now() + BALROG_RESPAWN_MS;
